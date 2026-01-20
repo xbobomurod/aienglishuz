@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { ScoreDisplay } from "./ScoreDisplay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SpeakingModuleProps {
   onBack: () => void;
@@ -37,29 +39,30 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
     
     setIsLoading(true);
     
-    // Simulate AI response for now - will be connected to Lovable AI
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setFeedback({
-      bandScore: 6.0,
-      fluencyScore: 5.5,
-      vocabularyScore: 6.0,
-      grammarScore: 6.5,
-      fillerWords: [
-        { word: "um", count: 8, suggestion: "Pause silently instead, or use 'well' to transition" },
-        { word: "like", count: 5, suggestion: "Replace with 'such as' or 'for example'" },
-        { word: "you know", count: 3, suggestion: "Use 'specifically' or remove entirely" },
-      ],
-      idioms: [
-        '"at the end of the day" - to summarize or conclude a point',
-        '"hit the ground running" - to start something with immediate energy',
-        '"a blessing in disguise" - something good that initially seemed bad',
-      ],
-      modelAnswer: "In my opinion, technology has fundamentally transformed the way we communicate with one another. While some argue that it has diminished face-to-face interactions, I would contend that it has actually enhanced our ability to maintain relationships across vast distances. For instance, video calling platforms enable families separated by continents to share meaningful moments in real-time. Furthermore, social media platforms, despite their drawbacks, have created unprecedented opportunities for global collaboration and cultural exchange.",
-      overallFeedback: "Your response shows good topic development but could benefit from reduced hesitation and more sophisticated linking words. Focus on eliminating filler words and incorporating more idiomatic expressions to sound more natural.",
-    });
-    
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-speaking', {
+        body: { transcript, topic: topic || undefined }
+      });
+
+      if (error) {
+        console.error("Error analyzing speaking:", error);
+        toast.error("Failed to analyze speaking. Please try again.");
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setFeedback(data);
+      toast.success(`Speaking analyzed! Band Score: ${data.bandScore}`);
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;

@@ -1,0 +1,7 @@
+project_id = "qxennwcuuhahkkjyleuy"
+
+[functions.grade-essay]
+verify_jwt = false
+
+[functions.analyze-speaking]
+verify_jwt = false

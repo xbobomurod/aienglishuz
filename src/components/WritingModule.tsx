@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { ScoreDisplay } from "./ScoreDisplay";
 import { FeedbackTable } from "./FeedbackTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface WritingModuleProps {
   onBack: () => void;
@@ -39,38 +41,30 @@ export function WritingModule({ onBack }: WritingModuleProps) {
     
     setIsLoading(true);
     
-    // Simulate AI response for now - will be connected to Lovable AI
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setFeedback({
-      bandScore: 6.5,
-      breakdown: {
-        taskResponse: 7,
-        coherence: 6.5,
-        lexicalResource: 6,
-        grammar: 6.5,
-      },
-      errors: [
-        {
-          mistake: "The technology is very important",
-          correction: "Technology plays a crucial role",
-          logic: "Avoid weak adjectives like 'very'. Use more precise vocabulary.",
-        },
-        {
-          mistake: "Peoples thinks that",
-          correction: "People think that",
-          logic: "'People' is already plural; use singular verb form 'think'.",
-        },
-      ],
-      suggestions: [
-        "Instead of 'good for society', try 'beneficial for societal development'",
-        "Replace 'many problems' with 'numerous challenges'",
-        "Use 'Furthermore' or 'Moreover' instead of 'Also'",
-      ],
-      overallFeedback: "Your essay demonstrates a good understanding of the topic with clear arguments. Focus on using more sophisticated vocabulary and varying your sentence structures to achieve a higher band score.",
-    });
-    
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('grade-essay', {
+        body: { essay, topic: topic || undefined }
+      });
+
+      if (error) {
+        console.error("Error grading essay:", error);
+        toast.error("Failed to grade essay. Please try again.");
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setFeedback(data);
+      toast.success(`Essay graded! Band Score: ${data.bandScore}`);
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const wordCount = essay.trim().split(/\s+/).filter(Boolean).length;
