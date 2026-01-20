@@ -123,9 +123,22 @@ serve(async (req) => {
     // Parse the JSON from the AI response
     let feedback;
     try {
-      // Remove markdown code blocks if present
-      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      feedback = JSON.parse(cleanedContent);
+      // Try to extract JSON from the response - handle cases where AI adds text before/after
+      let jsonStr = content;
+      
+      // First, try to find JSON within code blocks
+      const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1].trim();
+      } else {
+        // Try to find JSON object directly (starts with { and ends with })
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+        }
+      }
+      
+      feedback = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError, content);
       return new Response(
