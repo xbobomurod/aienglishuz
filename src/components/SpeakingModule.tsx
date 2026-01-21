@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScoreDisplay } from "./ScoreDisplay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { VoiceRecorder } from "./VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -111,6 +112,17 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
             />
           </div>
           
+          {/* Voice Recorder */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              🎙️ Record Your Voice
+            </label>
+            <VoiceRecorder 
+              transcript={transcript} 
+              onTranscriptChange={setTranscript} 
+            />
+          </div>
+          
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-foreground">
@@ -121,13 +133,12 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               </span>
             </div>
             <Textarea
-              placeholder="Paste the transcript of your speaking response here. Include all filler words (um, uh, like) exactly as you spoke them for accurate analysis..."
+              placeholder="Click the microphone to start recording, or paste your transcript here. Include all filler words (um, uh, like) for accurate analysis..."
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
-              className="min-h-[300px] bg-card resize-none"
+              className="min-h-[200px] bg-card resize-none"
             />
           </div>
-
           <Button 
             onClick={handleSubmit} 
             disabled={!transcript.trim() || isLoading}
@@ -148,7 +159,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
 
           <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 text-primary text-sm">
             <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>Tip: Include all filler words and hesitations in your transcript for the most accurate fluency analysis.</span>
+            <span>Tip: The voice recorder captures filler words naturally. Speak as you would in a real IELTS test!</span>
           </div>
         </div>
 
