@@ -15,16 +15,28 @@ interface SpeakingModuleProps {
 
 interface SpeakingFeedback {
   bandScore: number;
+  scoreJustification: string;
   fluencyScore: number;
   vocabularyScore: number;
   grammarScore: number;
+  transcriptWithHighlights: string;
   fillerWords: Array<{
     word: string;
     count: number;
     suggestion: string;
   }>;
-  idioms: string[];
-  modelAnswer: string;
+  vocabularyUpgrades: Array<{
+    original: string;
+    upgrade: string;
+    example: string;
+  }>;
+  grammarCorrections: Array<{
+    mistake: string;
+    correction: string;
+    explanation: string;
+  }>;
+  nativeUpgrade: string;
+  dailyPracticeTip: string;
   overallFeedback: string;
 }
 
@@ -147,10 +159,12 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               {/* Score Overview */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Estimated Band Score</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    🎙️ Estimated Band Score
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-around">
+                  <div className="flex items-center justify-around mb-4">
                     <ScoreDisplay score={feedback.bandScore} label="Overall" size="lg" />
                     <div className="space-y-3">
                       <ScoreDisplay score={feedback.fluencyScore} label="Fluency" size="sm" />
@@ -158,71 +172,138 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                       <ScoreDisplay score={feedback.grammarScore} label="Grammar" size="sm" />
                     </div>
                   </div>
+                  <p className="text-sm text-muted-foreground italic">{feedback.scoreJustification}</p>
                 </CardContent>
               </Card>
 
-              {/* Filler Words */}
+              {/* Transcript Review */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">📝 Transcript Review</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <blockquote className="border-l-4 border-primary pl-4 text-muted-foreground text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{ 
+                      __html: feedback.transcriptWithHighlights.replace(/\*\*(.*?)\*\*/g, '<strong class="text-destructive">$1</strong>') 
+                    }} 
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Performance Breakdown - Fluency */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Volume2 className="w-5 h-5 text-destructive" />
-                    Filler Word Analysis
+                    Fluency Analysis
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {feedback.fillerWords.map((filler, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
-                      <Badge variant="destructive" className="font-mono">
-                        "{filler.word}" × {filler.count}
-                      </Badge>
-                      <p className="text-sm text-muted-foreground flex-1">
-                        {filler.suggestion}
+                  {feedback.fillerWords.length > 0 ? (
+                    feedback.fillerWords.map((filler, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
+                        <Badge variant="destructive" className="font-mono">
+                          "{filler.word}" × {filler.count}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground flex-1">
+                          {filler.suggestion}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Great job! No significant filler words detected.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Vocabulary Upgrades */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">📚 Vocabulary Upgrades</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {feedback.vocabularyUpgrades.map((vocab, index) => (
+                    <div key={index} className="p-3 rounded-lg bg-secondary/50 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-muted-foreground">
+                          "{vocab.original}"
+                        </Badge>
+                        <span className="text-muted-foreground">→</span>
+                        <Badge className="font-mono bg-primary/10 text-primary">
+                          "{vocab.upgrade}"
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground italic pl-1">
+                        {vocab.example}
                       </p>
                     </div>
                   ))}
                 </CardContent>
               </Card>
 
-              {/* Idiomatic Suggestions */}
+              {/* Grammar Corrections */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Suggested Idioms</CardTitle>
+                  <CardTitle className="text-lg">✏️ Grammar Corrections</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {feedback.idioms.map((idiom, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm">
-                        <span className="w-5 h-5 rounded-full bg-accent/10 text-accent flex items-center justify-center flex-shrink-0 text-xs font-bold">
-                          {index + 1}
-                        </span>
-                        <span className="text-muted-foreground">{idiom}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <CardContent className="space-y-3">
+                  {feedback.grammarCorrections.length > 0 ? (
+                    feedback.grammarCorrections.map((grammar, index) => (
+                      <div key={index} className="p-3 rounded-lg bg-secondary/50 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="destructive" className="font-mono line-through">
+                            {grammar.mistake}
+                          </Badge>
+                          <span className="text-muted-foreground">→</span>
+                          <Badge className="font-mono bg-success/10 text-success">
+                            {grammar.correction}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground pl-1">
+                          {grammar.explanation}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Excellent grammar! No corrections needed.</p>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Model Answer */}
+              {/* Native Upgrade */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded bg-success/10 text-success text-xs font-bold">
-                      Band 9.0
+                      Native
                     </span>
-                    Model Answer
+                    The "Native" Upgrade
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm leading-relaxed italic">
-                    "{feedback.modelAnswer}"
+                    "{feedback.nativeUpgrade}"
                   </p>
+                </CardContent>
+              </Card>
+
+              {/* Daily Practice Tip */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-primary" />
+                    Daily Practice Tip
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground text-sm">{feedback.dailyPracticeTip}</p>
                 </CardContent>
               </Card>
 
               {/* Overall Feedback */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Summary</CardTitle>
+                  <CardTitle className="text-lg">📊 Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">{feedback.overallFeedback}</p>
