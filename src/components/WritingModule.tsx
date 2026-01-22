@@ -5,8 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScoreDisplay } from "./ScoreDisplay";
 import { FeedbackTable } from "./FeedbackTable";
+import { ProgressReport } from "./ProgressReport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
 import { toast } from "sonner";
 
 interface WritingModuleProps {
@@ -35,6 +37,13 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   const [essay, setEssay] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<WritingFeedback | null>(null);
+  const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
+  
+  const { 
+    saveWritingEvaluation, 
+    getPreviousWritingScore,
+    writingHistory 
+  } = useEvaluationHistory();
 
   const handleSubmit = async () => {
     if (!essay.trim()) return;
@@ -58,7 +67,25 @@ export function WritingModule({ onBack }: WritingModuleProps) {
       }
 
       setFeedback(data);
-      toast.success(`Essay graded! Band Score: ${data.bandScore}`);
+      
+      // Save to history
+      const { error: saveError } = await saveWritingEvaluation({
+        topic: topic || undefined,
+        essay,
+        bandScore: data.bandScore,
+        breakdown: data.breakdown,
+        errors: data.errors,
+        suggestions: data.suggestions,
+        overallFeedback: data.overallFeedback
+      });
+
+      if (saveError) {
+        console.error("Error saving evaluation:", saveError);
+        toast.success(`Essay graded! Band Score: ${data.bandScore} (Note: Failed to save to history)`);
+      } else {
+        setSavedTaskId(crypto.randomUUID());
+        toast.success(`Essay graded and saved! Band Score: ${data.bandScore}`);
+      }
     } catch (err) {
       console.error("Error:", err);
       toast.error("Something went wrong. Please try again.");
@@ -68,6 +95,36 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   };
 
   const wordCount = essay.trim().split(/\s+/).filter(Boolean).length;
+  const previousScore = getPreviousWritingScore();
+
+  // Calculate improvement areas
+  const getImprovementAreas = (): string[] => {
+    if (!feedback || writingHistory.length < 1) return [];
+    
+    const areas: string[] = [];
+    const prev = writingHistory[0];
+    
+    if (prev) {
+      if (feedback.breakdown.taskResponse > (prev.task_response || 0)) {
+        areas.push("Your task response improved!");
+      }
+      if (feedback.breakdown.coherence > (prev.coherence || 0)) {
+        areas.push("Better coherence and cohesion in your writing.");
+      }
+      if (feedback.breakdown.lexicalResource > (prev.lexical_resource || 0)) {
+        areas.push("Your vocabulary usage has become more sophisticated.");
+      }
+      if (feedback.breakdown.grammar > (prev.grammar || 0)) {
+        areas.push("Grammar accuracy has improved.");
+      }
+      
+      if (areas.length === 0 && feedback.bandScore >= (prev.band_score || 0)) {
+        areas.push("Consistent performance maintained.");
+      }
+    }
+    
+    return areas;
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -148,10 +205,21 @@ export function WritingModule({ onBack }: WritingModuleProps) {
         <div className="space-y-4">
           {feedback ? (
             <>
+              {/* Progress Report */}
+              {savedTaskId && (
+                <ProgressReport
+                  currentScore={feedback.bandScore}
+                  previousScore={previousScore}
+                  taskId={savedTaskId}
+                  improvementAreas={getImprovementAreas()}
+                  type="writing"
+                />
+              )}
+
               {/* Score Overview */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Band Score</CardTitle>
+                  <CardTitle className="text-lg">📝 Detailed Evaluation</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-around">

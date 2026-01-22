@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScoreDisplay } from "./ScoreDisplay";
+import { ProgressReport } from "./ProgressReport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
+import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
 import { toast } from "sonner";
 
 interface SpeakingModuleProps {
@@ -46,6 +48,13 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const [transcript, setTranscript] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<SpeakingFeedback | null>(null);
+  const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
+
+  const { 
+    saveSpeakingEvaluation, 
+    getPreviousSpeakingScore,
+    speakingHistory 
+  } = useEvaluationHistory();
 
   const handleSubmit = async () => {
     if (!transcript.trim()) return;
@@ -69,7 +78,30 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
       }
 
       setFeedback(data);
-      toast.success(`Speaking analyzed! Band Score: ${data.bandScore}`);
+      
+      // Save to history
+      const { error: saveError } = await saveSpeakingEvaluation({
+        topic: topic || undefined,
+        transcript,
+        bandScore: data.bandScore,
+        fluencyScore: data.fluencyScore,
+        vocabularyScore: data.vocabularyScore,
+        grammarScore: data.grammarScore,
+        fillerWords: data.fillerWords,
+        vocabularyUpgrades: data.vocabularyUpgrades,
+        grammarCorrections: data.grammarCorrections,
+        nativeUpgrade: data.nativeUpgrade,
+        dailyPracticeTip: data.dailyPracticeTip,
+        overallFeedback: data.overallFeedback
+      });
+
+      if (saveError) {
+        console.error("Error saving evaluation:", saveError);
+        toast.success(`Speaking analyzed! Band Score: ${data.bandScore} (Note: Failed to save to history)`);
+      } else {
+        setSavedTaskId(crypto.randomUUID());
+        toast.success(`Speaking analyzed and saved! Band Score: ${data.bandScore}`);
+      }
     } catch (err) {
       console.error("Error:", err);
       toast.error("Something went wrong. Please try again.");
@@ -79,6 +111,33 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   };
 
   const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+  const previousScore = getPreviousSpeakingScore();
+
+  // Calculate improvement areas
+  const getImprovementAreas = (): string[] => {
+    if (!feedback || speakingHistory.length < 1) return [];
+    
+    const areas: string[] = [];
+    const prev = speakingHistory[0];
+    
+    if (prev) {
+      if (feedback.fluencyScore > (prev.fluency_score || 0)) {
+        areas.push("Your fluency has improved - fewer hesitations!");
+      }
+      if (feedback.vocabularyScore > (prev.vocabulary_score || 0)) {
+        areas.push("Better vocabulary range and precision.");
+      }
+      if (feedback.grammarScore > (prev.grammar_score || 0)) {
+        areas.push("Grammar accuracy has improved.");
+      }
+      
+      if (areas.length === 0 && feedback.bandScore >= (prev.band_score || 0)) {
+        areas.push("Consistent speaking performance maintained.");
+      }
+    }
+    
+    return areas;
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -92,7 +151,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
             Speaking Analyst
           </h1>
           <p className="text-muted-foreground text-sm">
-            Paste your speaking transcript for detailed analysis
+            Record or paste your speaking transcript for detailed analysis
           </p>
         </div>
       </div>
@@ -139,6 +198,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               className="min-h-[200px] bg-card resize-none"
             />
           </div>
+
           <Button 
             onClick={handleSubmit} 
             disabled={!transcript.trim() || isLoading}
@@ -167,6 +227,17 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
         <div className="space-y-4">
           {feedback ? (
             <>
+              {/* Progress Report */}
+              {savedTaskId && (
+                <ProgressReport
+                  currentScore={feedback.bandScore}
+                  previousScore={previousScore}
+                  taskId={savedTaskId}
+                  improvementAreas={getImprovementAreas()}
+                  type="speaking"
+                />
+              )}
+
               {/* Score Overview */}
               <Card>
                 <CardHeader className="pb-2">
