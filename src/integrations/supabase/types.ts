@@ -14,7 +14,135 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      speaking_evaluations: {
+        Row: {
+          band_score: number
+          created_at: string
+          daily_practice_tip: string | null
+          filler_words: Json | null
+          fluency_score: number | null
+          grammar_corrections: Json | null
+          grammar_score: number | null
+          id: string
+          native_upgrade: string | null
+          overall_feedback: string | null
+          topic: string | null
+          transcript: string
+          user_id: string
+          vocabulary_score: number | null
+          vocabulary_upgrades: Json | null
+        }
+        Insert: {
+          band_score: number
+          created_at?: string
+          daily_practice_tip?: string | null
+          filler_words?: Json | null
+          fluency_score?: number | null
+          grammar_corrections?: Json | null
+          grammar_score?: number | null
+          id?: string
+          native_upgrade?: string | null
+          overall_feedback?: string | null
+          topic?: string | null
+          transcript: string
+          user_id: string
+          vocabulary_score?: number | null
+          vocabulary_upgrades?: Json | null
+        }
+        Update: {
+          band_score?: number
+          created_at?: string
+          daily_practice_tip?: string | null
+          filler_words?: Json | null
+          fluency_score?: number | null
+          grammar_corrections?: Json | null
+          grammar_score?: number | null
+          id?: string
+          native_upgrade?: string | null
+          overall_feedback?: string | null
+          topic?: string | null
+          transcript?: string
+          user_id?: string
+          vocabulary_score?: number | null
+          vocabulary_upgrades?: Json | null
+        }
+        Relationships: []
+      }
+      writing_evaluations: {
+        Row: {
+          band_score: number
+          coherence: number | null
+          created_at: string
+          errors: Json | null
+          essay: string
+          grammar: number | null
+          id: string
+          lexical_resource: number | null
+          overall_feedback: string | null
+          suggestions: Json | null
+          task_response: number | null
+          topic: string | null
+          user_id: string
+        }
+        Insert: {
+          band_score: number
+          coherence?: number | null
+          created_at?: string
+          errors?: Json | null
+          essay: string
+          grammar?: number | null
+          id?: string
+          lexical_resource?: number | null
+          overall_feedback?: string | null
+          suggestions?: Json | null
+          task_response?: number | null
+          topic?: string | null
+          user_id: string
+        }
+        Update: {
+          band_score?: number
+          coherence?: number | null
+          created_at?: string
+          errors?: Json | null
+          essay?: string
+          grammar?: number | null
+          id?: string
+          lexical_resource?: number | null
+          overall_feedback?: string | null
+          suggestions?: Json | null
+          task_response?: number | null
+          topic?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
