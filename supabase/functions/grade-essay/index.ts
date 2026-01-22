@@ -5,11 +5,64 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const systemPrompt = `You are an expert IELTS/CEFR Writing Examiner. Your task is to evaluate essays and provide detailed, professional feedback according to IELTS Writing Task 2 criteria.
+const getSystemPrompt = (taskType: string) => {
+  const basePrompt = `You are an expert language examiner certified in both CEFR (Multi-level) and IELTS standards. You provide dual scoring for all evaluations.
 
-You must analyze the essay and return a JSON response with this exact structure:
+SCORING GUIDELINES:
+
+IELTS Bands:
+- Band 9: Expert user (C2)
+- Band 8-8.5: Very good user (C1-C2)
+- Band 7-7.5: Good user (C1)
+- Band 6-6.5: Competent user (B2)
+- Band 5-5.5: Modest user (B1-B2)
+- Band 4-4.5: Limited user (B1)
+- Band 3 and below: Very limited (A2 or below)
+
+CEFR Levels:
+- C2: Proficiency - Can express with precision, differentiate finer shades of meaning
+- C1: Advanced - Can express fluently and spontaneously, use flexible and effective language
+- B2: Upper-Intermediate - Can interact with degree of fluency, clear detailed text
+- B1: Intermediate - Can deal with most situations, produce simple connected text`;
+
+  if (taskType === "task1") {
+    return `${basePrompt}
+
+TASK 1 EVALUATION (Letter/Email - 150 words minimum):
+Focus on: Purpose achievement, tone appropriateness (formal/informal), opening and closing conventions, coherent organization.
+
+Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
+  "cefrLevel": "<B1|B2|C1|C2>",
+  "breakdown": {
+    "taskAchievement": <number 0-9>,
+    "coherence": <number 0-9>,
+    "lexicalResource": <number 0-9>,
+    "grammar": <number 0-9>
+  },
+  "errors": [
+    {
+      "mistake": "<exact phrase>",
+      "correction": "<corrected version>",
+      "cefrTip": "<tip at appropriate CEFR level>"
+    }
+  ],
+  "suggestions": ["<upgrade suggestions>"],
+  "overallFeedback": "<summary>",
+  "modelAnswer": "<C1 level model answer for the same task>"
+}`;
+  }
+
+  return `${basePrompt}
+
+TASK 2 EVALUATION (Essay - 250 words minimum):
+Focus on: Task response (addressing all parts), coherence & cohesion, lexical resource, grammatical range & accuracy.
+
+Return JSON:
+{
+  "bandScore": <number 0-9 with .5 increments>,
+  "cefrLevel": "<B1|B2|C1|C2>",
   "breakdown": {
     "taskResponse": <number 0-9>,
     "coherence": <number 0-9>,
@@ -18,29 +71,33 @@ You must analyze the essay and return a JSON response with this exact structure:
   },
   "errors": [
     {
-      "mistake": "<exact phrase from essay>",
+      "mistake": "<exact phrase>",
       "correction": "<corrected version>",
-      "logic": "<explanation of why this is wrong and how to fix it>"
+      "cefrTip": "<tip at appropriate CEFR level>"
     }
   ],
-  "suggestions": [
-    "<specific suggestion to upgrade a basic phrase to advanced vocabulary>",
-    "<another suggestion>",
-    "<another suggestion>"
+  "suggestions": ["<upgrade suggestions>"],
+  "overallFeedback": "<summary>",
+  "modelAnswer": "<C1 level model answer for the same topic>"
+}`;
+};
+
+const taskPrompts = {
+  task1: [
+    "Write a letter to your landlord complaining about a problem with your apartment. Include what the problem is, how it affects you, and what action you want them to take.",
+    "Write an email to a friend inviting them to visit you. Describe your area, suggest activities, and propose dates.",
+    "Write a formal letter applying for a volunteer position at a local charity. Explain why you are interested and what skills you can offer.",
+    "Write an email to your manager requesting time off work. Explain why you need it and how your work will be covered.",
+    "Write a letter of complaint to a company about a faulty product. Describe the issue and what resolution you expect."
   ],
-  "overallFeedback": "<2-3 sentence summary of strengths and areas for improvement>"
-}
-
-Scoring Guidelines:
-- Band 9: Expert user, fully operational command
-- Band 8: Very good user, occasional unsystematic inaccuracies
-- Band 7: Good user, handles complex language well
-- Band 6: Competent user, generally effective command
-- Band 5: Modest user, partial command
-- Band 4: Limited user, basic competence
-- Band 3-1: Extremely limited to non-user
-
-Be encouraging but strictly honest. Provide 3-5 specific errors and 3 upgrade suggestions.`;
+  task2: [
+    "Some people believe that technology has made our lives more complicated. To what extent do you agree or disagree?",
+    "Many cities are now banning cars from their centers. What are the advantages and disadvantages of this approach?",
+    "Education should focus more on practical skills rather than academic subjects. Discuss both views and give your opinion.",
+    "The rise of remote work has changed how people view the traditional office. What are the implications for the future of work?",
+    "Climate change is the biggest threat facing humanity today. To what extent do you agree with this statement?"
+  ]
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -48,7 +105,17 @@ serve(async (req) => {
   }
 
   try {
-    const { essay, topic } = await req.json();
+    const { essay, topic, taskType = "task2", generatePrompt = false } = await req.json();
+    
+    // If user wants a new prompt
+    if (generatePrompt) {
+      const prompts = taskPrompts[taskType as keyof typeof taskPrompts] || taskPrompts.task2;
+      const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+      return new Response(
+        JSON.stringify({ prompt: randomPrompt, taskType }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     if (!essay || essay.trim().length === 0) {
       return new Response(
@@ -66,11 +133,12 @@ serve(async (req) => {
       );
     }
 
+    const systemPrompt = getSystemPrompt(taskType);
     const userMessage = topic 
-      ? `Topic: ${topic}\n\nEssay:\n${essay}`
-      : `Essay:\n${essay}`;
+      ? `Task Type: ${taskType === "task1" ? "Letter/Email (Task 1)" : "Essay (Task 2)"}\nTopic: ${topic}\n\nSubmission:\n${essay}`
+      : `Task Type: ${taskType === "task1" ? "Letter/Email (Task 1)" : "Essay (Task 2)"}\n\nSubmission:\n${essay}`;
 
-    console.log("Grading essay, word count:", essay.split(/\s+/).length);
+    console.log(`Grading ${taskType}, word count:`, essay.split(/\s+/).length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -120,24 +188,18 @@ serve(async (req) => {
       );
     }
 
-    // Parse the JSON from the AI response
     let feedback;
     try {
-      // Try to extract JSON from the response - handle cases where AI adds text before/after
       let jsonStr = content;
-      
-      // First, try to find JSON within code blocks
       const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (codeBlockMatch) {
         jsonStr = codeBlockMatch[1].trim();
       } else {
-        // Try to find JSON object directly (starts with { and ends with })
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           jsonStr = jsonMatch[0];
         }
       }
-      
       feedback = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError, content);
@@ -147,7 +209,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Essay graded successfully, band score:", feedback.bandScore);
+    console.log("Essay graded successfully, band score:", feedback.bandScore, "CEFR:", feedback.cefrLevel);
 
     return new Response(
       JSON.stringify(feedback),

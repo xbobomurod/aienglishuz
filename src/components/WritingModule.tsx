@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Send, Loader2, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { Send, Loader2, ArrowLeft, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { ScoreDisplay } from "./ScoreDisplay";
-import { FeedbackTable } from "./FeedbackTable";
+import { DualScoreDisplay } from "./DualScoreDisplay";
+import { CorrectionTable } from "./CorrectionTable";
+import { ModelAnswer } from "./ModelAnswer";
 import { ProgressReport } from "./ProgressReport";
+import { TaskSelector, WritingTaskType } from "./TaskSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
@@ -17,8 +19,10 @@ interface WritingModuleProps {
 
 interface WritingFeedback {
   bandScore: number;
+  cefrLevel: string;
   breakdown: {
-    taskResponse: number;
+    taskResponse?: number;
+    taskAchievement?: number;
     coherence: number;
     lexicalResource: number;
     grammar: number;
@@ -26,16 +30,20 @@ interface WritingFeedback {
   errors: Array<{
     mistake: string;
     correction: string;
-    logic: string;
+    cefrTip?: string;
+    logic?: string;
   }>;
   suggestions: string[];
   overallFeedback: string;
+  modelAnswer?: string;
 }
 
 export function WritingModule({ onBack }: WritingModuleProps) {
+  const [taskType, setTaskType] = useState<WritingTaskType>("task2");
   const [topic, setTopic] = useState("");
   const [essay, setEssay] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [feedback, setFeedback] = useState<WritingFeedback | null>(null);
   const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
   
@@ -45,6 +53,29 @@ export function WritingModule({ onBack }: WritingModuleProps) {
     writingHistory 
   } = useEvaluationHistory();
 
+  const minWordCount = taskType === "task1" ? 150 : 250;
+
+  const handleGeneratePrompt = async () => {
+    setIsGeneratingPrompt(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('grade-essay', {
+        body: { generatePrompt: true, taskType }
+      });
+
+      if (error || data.error) {
+        toast.error("Failed to generate prompt");
+        return;
+      }
+
+      setTopic(data.prompt);
+      toast.success("New prompt generated!");
+    } catch (err) {
+      toast.error("Something went wrong");
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!essay.trim()) return;
     
@@ -52,7 +83,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
     
     try {
       const { data, error } = await supabase.functions.invoke('grade-essay', {
-        body: { essay, topic: topic || undefined }
+        body: { essay, topic: topic || undefined, taskType }
       });
 
       if (error) {
@@ -68,23 +99,26 @@ export function WritingModule({ onBack }: WritingModuleProps) {
 
       setFeedback(data);
       
-      // Save to history
       const { error: saveError } = await saveWritingEvaluation({
         topic: topic || undefined,
         essay,
         bandScore: data.bandScore,
-        breakdown: data.breakdown,
+        breakdown: {
+          taskResponse: data.breakdown.taskResponse || data.breakdown.taskAchievement || 0,
+          coherence: data.breakdown.coherence,
+          lexicalResource: data.breakdown.lexicalResource,
+          grammar: data.breakdown.grammar
+        },
         errors: data.errors,
         suggestions: data.suggestions,
         overallFeedback: data.overallFeedback
       });
 
       if (saveError) {
-        console.error("Error saving evaluation:", saveError);
-        toast.success(`Essay graded! Band Score: ${data.bandScore} (Note: Failed to save to history)`);
+        toast.success(`Essay graded! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
       } else {
         setSavedTaskId(crypto.randomUUID());
-        toast.success(`Essay graded and saved! Band Score: ${data.bandScore}`);
+        toast.success(`Essay graded and saved! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
       }
     } catch (err) {
       console.error("Error:", err);
@@ -97,32 +131,29 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   const wordCount = essay.trim().split(/\s+/).filter(Boolean).length;
   const previousScore = getPreviousWritingScore();
 
-  // Calculate improvement areas
   const getImprovementAreas = (): string[] => {
     if (!feedback || writingHistory.length < 1) return [];
-    
     const areas: string[] = [];
     const prev = writingHistory[0];
     
     if (prev) {
-      if (feedback.breakdown.taskResponse > (prev.task_response || 0)) {
+      const taskScore = feedback.breakdown.taskResponse || feedback.breakdown.taskAchievement || 0;
+      if (taskScore > (prev.task_response || 0)) {
         areas.push("Your task response improved!");
       }
       if (feedback.breakdown.coherence > (prev.coherence || 0)) {
-        areas.push("Better coherence and cohesion in your writing.");
+        areas.push("Better coherence and cohesion.");
       }
       if (feedback.breakdown.lexicalResource > (prev.lexical_resource || 0)) {
-        areas.push("Your vocabulary usage has become more sophisticated.");
+        areas.push("More sophisticated vocabulary.");
       }
       if (feedback.breakdown.grammar > (prev.grammar || 0)) {
-        areas.push("Grammar accuracy has improved.");
+        areas.push("Grammar accuracy improved.");
       }
-      
-      if (areas.length === 0 && feedback.bandScore >= (prev.band_score || 0)) {
+      if (areas.length === 0) {
         areas.push("Consistent performance maintained.");
       }
     }
-    
     return areas;
   };
 
@@ -138,7 +169,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
             Writing Examiner
           </h1>
           <p className="text-muted-foreground text-sm">
-            Submit your essay for IELTS-style evaluation
+            IELTS + CEFR dual scoring with model answers
           </p>
         </div>
       </div>
@@ -146,32 +177,64 @@ export function WritingModule({ onBack }: WritingModuleProps) {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Input Section */}
         <div className="space-y-4">
+          {/* Task Selector */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Essay Topic (optional)
+              Select Task Type
             </label>
-            <Input
-              placeholder="e.g., 'Should governments invest more in renewable energy?'"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="bg-card"
+            <TaskSelector
+              type="writing"
+              selectedTask={taskType}
+              onSelectTask={setTaskType}
             />
           </div>
-          
+
+          {/* Topic */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-foreground">
-                Your Essay
+                {taskType === "task1" ? "Letter/Email Prompt" : "Essay Topic"}
               </label>
-              <span className={`text-sm ${wordCount < 250 ? 'text-muted-foreground' : 'text-success'}`}>
-                {wordCount} words {wordCount >= 250 && <CheckCircle2 className="w-4 h-4 inline ml-1" />}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGeneratePrompt}
+                disabled={isGeneratingPrompt}
+              >
+                {isGeneratingPrompt ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-1" />
+                )}
+                Generate
+              </Button>
+            </div>
+            <Textarea
+              placeholder={taskType === "task1" 
+                ? "Click 'Generate' for a prompt, or enter your own letter/email task..."
+                : "Click 'Generate' for a topic, or enter your own essay question..."
+              }
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              className="bg-card min-h-[80px] resize-none"
+            />
+          </div>
+          
+          {/* Essay Input */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-foreground">
+                Your {taskType === "task1" ? "Letter/Email" : "Essay"}
+              </label>
+              <span className={`text-sm ${wordCount < minWordCount ? 'text-muted-foreground' : 'text-success'}`}>
+                {wordCount} words {wordCount >= minWordCount && <CheckCircle2 className="w-4 h-4 inline ml-1" />}
               </span>
             </div>
             <Textarea
-              placeholder="Paste or write your essay here... (minimum 250 words recommended for IELTS Task 2)"
+              placeholder={`Write your ${taskType === "task1" ? "letter/email" : "essay"} here... (minimum ${minWordCount} words)`}
               value={essay}
               onChange={(e) => setEssay(e.target.value)}
-              className="min-h-[300px] bg-card resize-none"
+              className="min-h-[250px] bg-card resize-none"
             />
           </div>
 
@@ -188,15 +251,15 @@ export function WritingModule({ onBack }: WritingModuleProps) {
             ) : (
               <>
                 <Send className="w-4 h-4 mr-2" />
-                Evaluate Essay
+                Evaluate {taskType === "task1" ? "Letter" : "Essay"}
               </>
             )}
           </Button>
 
-          {wordCount > 0 && wordCount < 250 && (
+          {wordCount > 0 && wordCount < minWordCount && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/10 text-accent text-sm">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>IELTS Task 2 essays should be at least 250 words. You have {250 - wordCount} more words to go.</span>
+              <span>{taskType === "task1" ? "Task 1" : "Task 2"} requires at least {minWordCount} words. You have {minWordCount - wordCount} more to go.</span>
             </div>
           )}
         </div>
@@ -216,16 +279,24 @@ export function WritingModule({ onBack }: WritingModuleProps) {
                 />
               )}
 
-              {/* Score Overview */}
+              {/* Dual Score Display */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">📝 Detailed Evaluation</CardTitle>
+                  <CardTitle className="text-lg">📝 Overall Grade</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-around">
-                    <ScoreDisplay score={feedback.bandScore} label="Overall" size="lg" />
+                    <DualScoreDisplay 
+                      bandScore={feedback.bandScore} 
+                      cefrLevel={feedback.cefrLevel} 
+                      size="lg" 
+                    />
                     <div className="grid grid-cols-2 gap-4">
-                      <ScoreDisplay score={feedback.breakdown.taskResponse} label="Task" size="sm" />
+                      <ScoreDisplay 
+                        score={feedback.breakdown.taskResponse || feedback.breakdown.taskAchievement || 0} 
+                        label={taskType === "task1" ? "Task" : "Response"} 
+                        size="sm" 
+                      />
                       <ScoreDisplay score={feedback.breakdown.coherence} label="Coherence" size="sm" />
                       <ScoreDisplay score={feedback.breakdown.lexicalResource} label="Lexical" size="sm" />
                       <ScoreDisplay score={feedback.breakdown.grammar} label="Grammar" size="sm" />
@@ -237,27 +308,20 @@ export function WritingModule({ onBack }: WritingModuleProps) {
               {/* Overall Feedback */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Feedback</CardTitle>
+                  <CardTitle className="text-lg">💬 Feedback</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">{feedback.overallFeedback}</p>
                 </CardContent>
               </Card>
 
-              {/* Error Table */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Error Analysis</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <FeedbackTable items={feedback.errors} />
-                </CardContent>
-              </Card>
+              {/* Correction Table */}
+              <CorrectionTable items={feedback.errors} />
 
               {/* Suggestions */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Grade-Up Suggestions</CardTitle>
+                  <CardTitle className="text-lg">🚀 Grade-Up Suggestions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
@@ -272,12 +336,18 @@ export function WritingModule({ onBack }: WritingModuleProps) {
                   </ul>
                 </CardContent>
               </Card>
+
+              {/* Model Answer */}
+              {feedback.modelAnswer && (
+                <ModelAnswer answer={feedback.modelAnswer} level="C1" />
+              )}
             </>
           ) : (
             <div className="flex items-center justify-center h-full min-h-[400px] rounded-xl border border-dashed border-border bg-secondary/30">
               <div className="text-center text-muted-foreground">
                 <PenIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Submit your essay to see detailed feedback</p>
+                <p>Submit your {taskType === "task1" ? "letter" : "essay"} to see detailed feedback</p>
+                <p className="text-xs mt-2">Includes IELTS band score, CEFR level, and model answer</p>
               </div>
             </div>
           )}

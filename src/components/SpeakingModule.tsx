@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Send, Loader2, ArrowLeft, Volume2, Lightbulb } from "lucide-react";
+import { Send, Loader2, ArrowLeft, Volume2, Lightbulb, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { ScoreDisplay } from "./ScoreDisplay";
+import { DualScoreDisplay } from "./DualScoreDisplay";
+import { CorrectionTable } from "./CorrectionTable";
+import { ModelAnswer } from "./ModelAnswer";
 import { ProgressReport } from "./ProgressReport";
+import { TaskSelector, SpeakingTaskType } from "./TaskSelector";
+import { ImageUpload } from "./ImageUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VoiceRecorder } from "./VoiceRecorder";
@@ -18,11 +22,31 @@ interface SpeakingModuleProps {
 
 interface SpeakingFeedback {
   bandScore: number;
+  cefrLevel: string;
   scoreJustification: string;
   fluencyScore: number;
   vocabularyScore: number;
   grammarScore: number;
+  pronunciationScore?: number;
+  spatialLanguageScore?: number;
+  coherenceScore?: number;
+  analyticalScore?: number;
   transcriptWithHighlights: string;
+  prepositionAnalysis?: {
+    used: string[];
+    missing: string[];
+    feedback: string;
+  };
+  topicCoverage?: {
+    covered: string[];
+    missed: string[];
+    feedback: string;
+  };
+  argumentAnalysis?: {
+    strengths: string[];
+    weaknesses: string[];
+    feedback: string;
+  };
   fillerWords: Array<{
     word: string;
     count: number;
@@ -36,7 +60,8 @@ interface SpeakingFeedback {
   grammarCorrections: Array<{
     mistake: string;
     correction: string;
-    explanation: string;
+    cefrTip?: string;
+    explanation?: string;
   }>;
   nativeUpgrade: string;
   dailyPracticeTip: string;
@@ -44,9 +69,12 @@ interface SpeakingFeedback {
 }
 
 export function SpeakingModule({ onBack }: SpeakingModuleProps) {
+  const [taskType, setTaskType] = useState<SpeakingTaskType>("interview");
   const [topic, setTopic] = useState("");
   const [transcript, setTranscript] = useState("");
+  const [imageData, setImageData] = useState<{ url: string; description: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [feedback, setFeedback] = useState<SpeakingFeedback | null>(null);
   const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
 
@@ -56,6 +84,27 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
     speakingHistory 
   } = useEvaluationHistory();
 
+  const handleGeneratePrompt = async () => {
+    setIsGeneratingPrompt(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-speaking', {
+        body: { generatePrompt: true, taskType }
+      });
+
+      if (error || data.error) {
+        toast.error("Failed to generate prompt");
+        return;
+      }
+
+      setTopic(data.prompt);
+      toast.success("New prompt generated!");
+    } catch (err) {
+      toast.error("Something went wrong");
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!transcript.trim()) return;
     
@@ -63,7 +112,12 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
     
     try {
       const { data, error } = await supabase.functions.invoke('analyze-speaking', {
-        body: { transcript, topic: topic || undefined }
+        body: { 
+          transcript, 
+          topic: topic || undefined, 
+          taskType,
+          imageDescription: taskType === "picture" ? imageData?.description : undefined
+        }
       });
 
       if (error) {
@@ -79,7 +133,6 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
 
       setFeedback(data);
       
-      // Save to history
       const { error: saveError } = await saveSpeakingEvaluation({
         topic: topic || undefined,
         transcript,
@@ -96,11 +149,10 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
       });
 
       if (saveError) {
-        console.error("Error saving evaluation:", saveError);
-        toast.success(`Speaking analyzed! Band Score: ${data.bandScore} (Note: Failed to save to history)`);
+        toast.success(`Speaking analyzed! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
       } else {
         setSavedTaskId(crypto.randomUUID());
-        toast.success(`Speaking analyzed and saved! Band Score: ${data.bandScore}`);
+        toast.success(`Speaking analyzed and saved! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
       }
     } catch (err) {
       console.error("Error:", err);
@@ -113,30 +165,35 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
   const previousScore = getPreviousSpeakingScore();
 
-  // Calculate improvement areas
   const getImprovementAreas = (): string[] => {
     if (!feedback || speakingHistory.length < 1) return [];
-    
     const areas: string[] = [];
     const prev = speakingHistory[0];
     
     if (prev) {
       if (feedback.fluencyScore > (prev.fluency_score || 0)) {
-        areas.push("Your fluency has improved - fewer hesitations!");
+        areas.push("Fluency improved - fewer hesitations!");
       }
       if (feedback.vocabularyScore > (prev.vocabulary_score || 0)) {
-        areas.push("Better vocabulary range and precision.");
+        areas.push("Better vocabulary range.");
       }
       if (feedback.grammarScore > (prev.grammar_score || 0)) {
-        areas.push("Grammar accuracy has improved.");
+        areas.push("Grammar accuracy improved.");
       }
-      
-      if (areas.length === 0 && feedback.bandScore >= (prev.band_score || 0)) {
-        areas.push("Consistent speaking performance maintained.");
+      if (areas.length === 0) {
+        areas.push("Consistent performance maintained.");
       }
     }
-    
     return areas;
+  };
+
+  const getTaskLabel = () => {
+    switch (taskType) {
+      case "interview": return "Part 1: Interview";
+      case "picture": return "Part 1.2: Picture Description";
+      case "talk": return "Part 2: Long Turn";
+      case "discussion": return "Part 3: Discussion";
+    }
   };
 
   return (
@@ -151,7 +208,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
             Speaking Analyst
           </h1>
           <p className="text-muted-foreground text-sm">
-            Record or paste your speaking transcript for detailed analysis
+            IELTS + CEFR dual scoring with detailed analysis
           </p>
         </div>
       </div>
@@ -159,15 +216,53 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Input Section */}
         <div className="space-y-4">
+          {/* Task Selector */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              Speaking Topic (optional)
+              Select Task Type
             </label>
-            <Input
-              placeholder="e.g., 'Describe a memorable trip you took'"
+            <TaskSelector
+              type="speaking"
+              selectedTask={taskType}
+              onSelectTask={setTaskType}
+            />
+          </div>
+
+          {/* Image Upload for Picture Task */}
+          {taskType === "picture" && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                🖼️ Image/Scene to Describe
+              </label>
+              <ImageUpload onImageChange={setImageData} />
+            </div>
+          )}
+
+          {/* Topic/Question */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-foreground">
+                {taskType === "talk" ? "Cue Card" : "Question/Topic"}
+              </label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGeneratePrompt}
+                disabled={isGeneratingPrompt}
+              >
+                {isGeneratingPrompt ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-1" />
+                )}
+                Generate
+              </Button>
+            </div>
+            <Textarea
+              placeholder="Click 'Generate' for a question, or enter your own..."
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              className="bg-card"
+              className={`bg-card resize-none ${taskType === "talk" ? "min-h-[120px]" : "min-h-[60px]"}`}
             />
           </div>
           
@@ -182,6 +277,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
             />
           </div>
           
+          {/* Transcript */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-foreground">
@@ -192,10 +288,10 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               </span>
             </div>
             <Textarea
-              placeholder="Click the microphone to start recording, or paste your transcript here. Include all filler words (um, uh, like) for accurate analysis..."
+              placeholder="Click the microphone to start recording, or paste your transcript here..."
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
-              className="min-h-[200px] bg-card resize-none"
+              className="min-h-[150px] bg-card resize-none"
             />
           </div>
 
@@ -212,14 +308,18 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
             ) : (
               <>
                 <Send className="w-4 h-4 mr-2" />
-                Analyze Speech
+                Analyze {getTaskLabel()}
               </>
             )}
           </Button>
 
           <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 text-primary text-sm">
             <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>Tip: The voice recorder captures filler words naturally. Speak as you would in a real IELTS test!</span>
+            <span>
+              {taskType === "picture" 
+                ? "Focus on prepositions of place: 'in the background', 'next to', 'on the left'..."
+                : "Speak naturally and include all filler words for accurate analysis."}
+            </span>
           </div>
         </div>
 
@@ -238,20 +338,33 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                 />
               )}
 
-              {/* Score Overview */}
+              {/* Dual Score Display */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    🎙️ Estimated Band Score
+                    🎙️ Overall Grade
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-around mb-4">
-                    <ScoreDisplay score={feedback.bandScore} label="Overall" size="lg" />
+                    <DualScoreDisplay 
+                      bandScore={feedback.bandScore} 
+                      cefrLevel={feedback.cefrLevel} 
+                      size="lg" 
+                    />
                     <div className="space-y-3">
                       <ScoreDisplay score={feedback.fluencyScore} label="Fluency" size="sm" />
                       <ScoreDisplay score={feedback.vocabularyScore} label="Vocabulary" size="sm" />
                       <ScoreDisplay score={feedback.grammarScore} label="Grammar" size="sm" />
+                      {feedback.spatialLanguageScore && (
+                        <ScoreDisplay score={feedback.spatialLanguageScore} label="Spatial" size="sm" />
+                      )}
+                      {feedback.coherenceScore && (
+                        <ScoreDisplay score={feedback.coherenceScore} label="Coherence" size="sm" />
+                      )}
+                      {feedback.analyticalScore && (
+                        <ScoreDisplay score={feedback.analyticalScore} label="Analysis" size="sm" />
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground italic">{feedback.scoreJustification}</p>
@@ -272,7 +385,91 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                 </CardContent>
               </Card>
 
-              {/* Performance Breakdown - Fluency */}
+              {/* Task-Specific Analysis */}
+              {feedback.prepositionAnalysis && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">📍 Spatial Language Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">Prepositions Used:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {feedback.prepositionAnalysis.used.map((p, i) => (
+                          <Badge key={i} className="bg-success/10 text-success">{p}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">Could Have Used:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {feedback.prepositionAnalysis.missing.map((p, i) => (
+                          <Badge key={i} variant="outline">{p}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{feedback.prepositionAnalysis.feedback}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {feedback.topicCoverage && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">📋 Topic Coverage</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-success mb-1">✓ Covered:</p>
+                      <ul className="text-sm text-muted-foreground list-disc list-inside">
+                        {feedback.topicCoverage.covered.map((p, i) => (
+                          <li key={i}>{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    {feedback.topicCoverage.missed.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-destructive mb-1">✗ Missed:</p>
+                        <ul className="text-sm text-muted-foreground list-disc list-inside">
+                          {feedback.topicCoverage.missed.map((p, i) => (
+                            <li key={i}>{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground">{feedback.topicCoverage.feedback}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {feedback.argumentAnalysis && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">💭 Argument Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-success mb-1">Strengths:</p>
+                      <ul className="text-sm text-muted-foreground list-disc list-inside">
+                        {feedback.argumentAnalysis.strengths.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-accent mb-1">Areas to Improve:</p>
+                      <ul className="text-sm text-muted-foreground list-disc list-inside">
+                        {feedback.argumentAnalysis.weaknesses.map((w, i) => (
+                          <li key={i}>{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{feedback.argumentAnalysis.feedback}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Fluency Analysis */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -293,7 +490,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">Great job! No significant filler words detected.</p>
+                    <p className="text-sm text-muted-foreground">Great fluency! No significant filler words.</p>
                   )}
                 </CardContent>
               </Card>
@@ -323,51 +520,14 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                 </CardContent>
               </Card>
 
-              {/* Grammar Corrections */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">✏️ Grammar Corrections</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {feedback.grammarCorrections.length > 0 ? (
-                    feedback.grammarCorrections.map((grammar, index) => (
-                      <div key={index} className="p-3 rounded-lg bg-secondary/50 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="destructive" className="font-mono line-through">
-                            {grammar.mistake}
-                          </Badge>
-                          <span className="text-muted-foreground">→</span>
-                          <Badge className="font-mono bg-success/10 text-success">
-                            {grammar.correction}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground pl-1">
-                          {grammar.explanation}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Excellent grammar! No corrections needed.</p>
-                  )}
-                </CardContent>
-              </Card>
+              {/* Grammar Corrections with CEFR Tips */}
+              <CorrectionTable 
+                items={feedback.grammarCorrections} 
+                title="Grammar Corrections" 
+              />
 
-              {/* Native Upgrade */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-success/10 text-success text-xs font-bold">
-                      Native
-                    </span>
-                    The "Native" Upgrade
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-sm leading-relaxed italic">
-                    "{feedback.nativeUpgrade}"
-                  </p>
-                </CardContent>
-              </Card>
+              {/* Native Model Answer */}
+              <ModelAnswer answer={feedback.nativeUpgrade} level="C1" />
 
               {/* Daily Practice Tip */}
               <Card className="border-primary/30 bg-primary/5">
@@ -397,6 +557,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               <div className="text-center text-muted-foreground">
                 <MicIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>Submit your transcript to see detailed analysis</p>
+                <p className="text-xs mt-2">Includes IELTS band, CEFR level, and C1 model answer</p>
               </div>
             </div>
           )}
