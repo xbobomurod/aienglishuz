@@ -5,52 +5,179 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const systemPrompt = `You are an expert IELTS Speaking Examiner and Linguistic Analyst. Analyze the provided Speech-to-Text transcript.
+const getSystemPrompt = (taskType: string, hasImage: boolean = false) => {
+  const basePrompt = `You are an expert IELTS Speaking Examiner and CEFR Certified Assessor. You provide dual scoring (IELTS 0-9 + CEFR B1-C2) for all evaluations.
 
-**Phase 1: Speech Quality Analysis**
-- Identify filler words (e.g., "uhm", "err", "like", "you know") and repetitive phrases
-- Analyze the flow: Is the response too short, or does it lack logical connectors?
+SCORING GUIDELINES:
 
-**Phase 2: Linguistic Evaluation (IELTS Criteria)**
-1. Fluency & Coherence: Does the speaker connect ideas logically?
-2. Lexical Resource: Identify basic vocabulary and suggest advanced synonyms/idioms
-3. Grammatical Range: Detect spoken grammar errors (tense shifts, subject-verb agreement)
+IELTS Bands:
+- Band 9: Expert user (C2)
+- Band 8-8.5: Very good user (C1-C2)
+- Band 7-7.5: Good user (C1)
+- Band 6-6.5: Competent user (B2)
+- Band 5-5.5: Modest user (B1-B2)
+- Band 4-4.5: Limited user (B1)
+- Band 3 and below: Very limited (A2 or below)
 
-Return a JSON response with this exact structure:
+CEFR Levels:
+- C2: Proficiency - Can express with precision, differentiate finer shades of meaning
+- C1: Advanced - Can express fluently and spontaneously, use flexible and effective language
+- B2: Upper-Intermediate - Can interact with degree of fluency, clear detailed text
+- B1: Intermediate - Can deal with most situations, produce simple connected text`;
+
+  if (taskType === "interview") {
+    return `${basePrompt}
+
+TASK 1.1 - INTERVIEW EVALUATION:
+General questions about familiar topics (hobby, study, home, work).
+Focus on: Fluency, ability to expand answers, pronunciation clarity, basic vocabulary range.
+
+Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "scoreJustification": "<brief 1-2 sentence justification of the score>",
+  "cefrLevel": "<B1|B2|C1|C2>",
+  "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
   "grammarScore": <number 0-9>,
-  "transcriptWithHighlights": "<the user's transcript with **bold** markers around mistakes/issues>",
-  "fillerWords": [
-    {
-      "word": "<filler word found>",
-      "count": <number of occurrences>,
-      "suggestion": "<e.g., 'You used like 5 times. Try using furthermore or specifically.'>"
-    }
-  ],
-  "vocabularyUpgrades": [
-    {
-      "original": "<basic word/phrase used>",
-      "upgrade": "<advanced synonym or idiom>",
-      "example": "<example sentence using the upgrade>"
-    }
-  ],
-  "grammarCorrections": [
-    {
-      "mistake": "<the spoken grammar error>",
-      "correction": "<the correct form>",
-      "explanation": "<brief explanation>"
-    }
-  ],
-  "nativeUpgrade": "<2-3 sentence version of how a native speaker would answer the same question naturally and fluently>",
-  "dailyPracticeTip": "<one specific exercise to improve based on today's performance>",
-  "overallFeedback": "<2-3 sentence encouraging summary of strengths and improvement areas>"
-}
+  "pronunciationScore": <number 0-9>,
+  "transcriptWithHighlights": "<transcript with **bold** on errors>",
+  "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
+  "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
+  "nativeUpgrade": "<C1 level model answer>",
+  "dailyPracticeTip": "<specific exercise>",
+  "overallFeedback": "<summary>"
+}`;
+  }
 
-Tone: Encouraging, professional, and analytical. Be strictly honest about the score.`;
+  if (taskType === "picture") {
+    return `${basePrompt}
+
+TASK 1.2 - PICTURE DESCRIPTION EVALUATION:
+${hasImage ? "Evaluate their description of the provided image." : "Evaluate their description of the hypothetical scene they described."}
+CRITICAL FOCUS: Use of prepositions of place (in the background, next to, in front of, behind, on the left/right, at the top/bottom, between, among).
+Also evaluate: Spatial vocabulary, descriptive adjectives, present continuous for actions.
+
+Return JSON:
+{
+  "bandScore": <number 0-9 with .5 increments>,
+  "cefrLevel": "<B1|B2|C1|C2>",
+  "scoreJustification": "<brief justification>",
+  "fluencyScore": <number 0-9>,
+  "vocabularyScore": <number 0-9>,
+  "grammarScore": <number 0-9>,
+  "spatialLanguageScore": <number 0-9>,
+  "transcriptWithHighlights": "<transcript with **bold** on errors>",
+  "prepositionAnalysis": {
+    "used": ["<prepositions they used>"],
+    "missing": ["<prepositions they could have used>"],
+    "feedback": "<specific feedback on spatial language>"
+  },
+  "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
+  "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
+  "nativeUpgrade": "<C1 level model description>",
+  "dailyPracticeTip": "<specific exercise for picture description>",
+  "overallFeedback": "<summary>"
+}`;
+  }
+
+  if (taskType === "talk") {
+    return `${basePrompt}
+
+TASK 2 - ONE MINUTE TALK EVALUATION:
+User responds to a cue card for 1-2 minutes.
+Focus on: Coherent extended speech, topic development, use of discourse markers, vocabulary range.
+
+Return JSON:
+{
+  "bandScore": <number 0-9 with .5 increments>,
+  "cefrLevel": "<B1|B2|C1|C2>",
+  "scoreJustification": "<brief justification>",
+  "fluencyScore": <number 0-9>,
+  "vocabularyScore": <number 0-9>,
+  "grammarScore": <number 0-9>,
+  "coherenceScore": <number 0-9>,
+  "transcriptWithHighlights": "<transcript with **bold** on errors>",
+  "topicCoverage": {
+    "covered": ["<points addressed>"],
+    "missed": ["<points not addressed>"],
+    "feedback": "<feedback on topic development>"
+  },
+  "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
+  "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
+  "nativeUpgrade": "<C1 level model response to the same cue card>",
+  "dailyPracticeTip": "<specific exercise>",
+  "overallFeedback": "<summary>"
+}`;
+  }
+
+  if (taskType === "discussion") {
+    return `${basePrompt}
+
+TASK 3 - DISCUSSION EVALUATION (2 minutes):
+Deep analytical questions requiring abstract thinking and opinion justification.
+Focus on: Complex ideas, speculation, hypothetical language, balanced arguments, advanced connectors.
+
+Return JSON:
+{
+  "bandScore": <number 0-9 with .5 increments>,
+  "cefrLevel": "<B1|B2|C1|C2>",
+  "scoreJustification": "<brief justification>",
+  "fluencyScore": <number 0-9>,
+  "vocabularyScore": <number 0-9>,
+  "grammarScore": <number 0-9>,
+  "analyticalScore": <number 0-9>,
+  "transcriptWithHighlights": "<transcript with **bold** on errors>",
+  "argumentAnalysis": {
+    "strengths": ["<strong points in their argument>"],
+    "weaknesses": ["<areas to improve>"],
+    "feedback": "<feedback on analytical skills>"
+  },
+  "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
+  "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
+  "nativeUpgrade": "<C1 level model discussion response>",
+  "dailyPracticeTip": "<specific exercise>",
+  "overallFeedback": "<summary>"
+}`;
+  }
+
+  // Default interview type
+  return getSystemPrompt("interview", false);
+};
+
+const taskPrompts = {
+  interview: [
+    "Let's talk about your hometown. What do you like most about it?",
+    "What hobbies do you enjoy in your free time?",
+    "Describe your daily routine. What do you usually do in the morning?",
+    "Tell me about your family. Do you have any siblings?",
+    "What kind of music do you enjoy listening to?"
+  ],
+  picture: [
+    "Describe a busy city street scene with people, vehicles, and buildings.",
+    "Describe a peaceful park scene with people enjoying outdoor activities.",
+    "Describe a classroom during a lesson with students and a teacher.",
+    "Describe a family gathering or celebration scene.",
+    "Describe a market or shopping area with vendors and customers."
+  ],
+  talk: [
+    "Describe a memorable journey you have taken.\nYou should say:\n• where you went\n• how you traveled\n• who you traveled with\nand explain why this journey was memorable.",
+    "Describe a skill you would like to learn.\nYou should say:\n• what the skill is\n• how you would learn it\n• why you want to learn it\nand explain how this skill would benefit you.",
+    "Describe a person who has influenced you.\nYou should say:\n• who this person is\n• how you know them\n• what qualities they have\nand explain how they have influenced you.",
+    "Describe a place you would like to visit.\nYou should say:\n• where it is\n• what you know about it\n• how you would travel there\nand explain why you want to visit this place."
+  ],
+  discussion: [
+    "Some people believe that travel is essential for personal development. Do you agree? Why might some people disagree?",
+    "How do you think technology will change education in the next 20 years? What are the potential benefits and drawbacks?",
+    "What role should governments play in protecting the environment? How can individuals contribute?",
+    "Do you think traditional skills are still relevant in the modern world? Why or why not?",
+    "How has globalization affected local cultures? Is this change positive or negative?"
+  ]
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -58,7 +185,17 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, topic } = await req.json();
+    const { transcript, topic, taskType = "interview", generatePrompt = false, imageDescription } = await req.json();
+    
+    // If user wants a new prompt
+    if (generatePrompt) {
+      const prompts = taskPrompts[taskType as keyof typeof taskPrompts] || taskPrompts.interview;
+      const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+      return new Response(
+        JSON.stringify({ prompt: randomPrompt, taskType }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     if (!transcript || transcript.trim().length === 0) {
       return new Response(
@@ -76,11 +213,15 @@ serve(async (req) => {
       );
     }
 
-    const userMessage = topic 
-      ? `Speaking Topic: ${topic}\n\nTranscript:\n${transcript}`
-      : `Transcript:\n${transcript}`;
+    const hasImage = taskType === "picture" && imageDescription;
+    const systemPrompt = getSystemPrompt(taskType, hasImage);
+    
+    let userMessage = `Task Type: ${taskType.charAt(0).toUpperCase() + taskType.slice(1)}`;
+    if (topic) userMessage += `\nTopic/Question: ${topic}`;
+    if (hasImage) userMessage += `\nImage Context: ${imageDescription}`;
+    userMessage += `\n\nTranscript:\n${transcript}`;
 
-    console.log("Analyzing speaking transcript, word count:", transcript.split(/\s+/).length);
+    console.log(`Analyzing ${taskType} speaking, word count:`, transcript.split(/\s+/).length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -130,24 +271,18 @@ serve(async (req) => {
       );
     }
 
-    // Parse the JSON from the AI response
     let feedback;
     try {
-      // Try to extract JSON from the response - handle cases where AI adds text before/after
       let jsonStr = content;
-      
-      // First, try to find JSON within code blocks
       const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (codeBlockMatch) {
         jsonStr = codeBlockMatch[1].trim();
       } else {
-        // Try to find JSON object directly (starts with { and ends with })
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           jsonStr = jsonMatch[0];
         }
       }
-      
       feedback = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError, content);
@@ -157,7 +292,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Speaking analyzed successfully, band score:", feedback.bandScore);
+    console.log("Speaking analyzed successfully, band score:", feedback.bandScore, "CEFR:", feedback.cefrLevel);
 
     return new Response(
       JSON.stringify(feedback),
