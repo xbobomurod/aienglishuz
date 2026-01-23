@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, Loader2, ArrowLeft, Volume2, Lightbulb, Sparkles } from "lucide-react";
+import { Send, Loader2, ArrowLeft, Volume2, Lightbulb, Sparkles, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScoreDisplay } from "./ScoreDisplay";
@@ -9,8 +9,11 @@ import { ModelAnswer } from "./ModelAnswer";
 import { ProgressReport } from "./ProgressReport";
 import { TaskSelector, SpeakingTaskType } from "./TaskSelector";
 import { ImageUpload } from "./ImageUpload";
+import { PracticeTimer } from "./PracticeTimer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
@@ -77,8 +80,9 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [feedback, setFeedback] = useState<SpeakingFeedback | null>(null);
   const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
+  const [timedMode, setTimedMode] = useState(false);
 
-  const { 
+  const {
     saveSpeakingEvaluation, 
     getPreviousSpeakingScore,
     speakingHistory 
@@ -216,6 +220,34 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Input Section */}
         <div className="space-y-4">
+          {/* Timed Mode Toggle */}
+          <Card className="bg-secondary/30">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Timer className="w-5 h-5 text-primary" />
+                  <div>
+                    <Label htmlFor="timed-mode" className="font-medium">Timed Practice Mode</Label>
+                    <p className="text-xs text-muted-foreground">Simulate real IELTS test conditions</p>
+                  </div>
+                </div>
+                <Switch
+                  id="timed-mode"
+                  checked={timedMode}
+                  onCheckedChange={setTimedMode}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Practice Timer */}
+          {timedMode && (
+            <PracticeTimer 
+              taskType={taskType} 
+              onTimeUp={() => toast.info("Time's up! Submit your response now.")}
+            />
+          )}
+
           {/* Task Selector */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">

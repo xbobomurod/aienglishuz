@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HomeModule } from "@/components/HomeModule";
 import { WritingModule } from "@/components/WritingModule";
 import { SpeakingModule } from "@/components/SpeakingModule";
-import { BookOpen, PenTool, Mic, LogOut, User, Loader2 } from "lucide-react";
+import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -108,6 +108,10 @@ const Index = () => {
               <DropdownMenuItem disabled className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 <span className="truncate">{userEmail}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard")} className="flex items-center gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                 <LogOut className="w-4 h-4 mr-2" />
