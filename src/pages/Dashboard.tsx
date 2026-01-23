@@ -39,6 +39,7 @@ import { useEvaluationHistory, WritingEvaluation, SpeakingEvaluation } from "@/h
 import { useAuth } from "@/hooks/useAuth";
 import { format, subDays, isAfter } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EmailPreferences } from "@/components/EmailPreferences";
 
 type TimeFilter = "7d" | "30d" | "90d" | "all";
 
@@ -295,6 +296,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Email Preferences */}
+        <EmailPreferences />
 
         {/* Evaluation History Tabs */}
         <Card>
