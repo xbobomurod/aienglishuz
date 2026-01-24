@@ -3,7 +3,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HomeModule } from "@/components/HomeModule";
 import { WritingModule } from "@/components/WritingModule";
 import { SpeakingModule } from "@/components/SpeakingModule";
-import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard } from "lucide-react";
+import { ReadingModule } from "@/components/ReadingModule";
+import { ListeningModule } from "@/components/ListeningModule";
+import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-type Module = "home" | "writing" | "speaking";
+type Module = "home" | "writing" | "speaking" | "reading" | "listening";
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState<Module>("home");
@@ -29,7 +31,7 @@ const Index = () => {
     }
   }, [isLoading, isAuthenticated, navigate]);
 
-  const handleSelectModule = (module: "writing" | "speaking") => {
+  const handleSelectModule = (module: "writing" | "speaking" | "reading" | "listening") => {
     setActiveModule(module);
   };
 
@@ -77,10 +79,18 @@ const Index = () => {
           </div>
 
           <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as Module)}>
-            <TabsList className="hidden sm:flex">
+            <TabsList className="hidden md:flex">
               <TabsTrigger value="home" className="gap-2">
                 <BookOpen className="w-4 h-4" />
                 Home
+              </TabsTrigger>
+              <TabsTrigger value="reading" className="gap-2">
+                <BookOpen className="w-4 h-4" />
+                Reading
+              </TabsTrigger>
+              <TabsTrigger value="listening" className="gap-2">
+                <Headphones className="w-4 h-4" />
+                Listening
               </TabsTrigger>
               <TabsTrigger value="writing" className="gap-2">
                 <PenTool className="w-4 h-4" />
@@ -133,12 +143,18 @@ const Index = () => {
         {activeModule === "speaking" && (
           <SpeakingModule onBack={handleBack} />
         )}
+        {activeModule === "reading" && (
+          <ReadingModule onBack={handleBack} />
+        )}
+        {activeModule === "listening" && (
+          <ListeningModule onBack={handleBack} />
+        )}
       </main>
 
       {/* Footer */}
       <footer className="border-t border-border/50 py-6 mt-auto">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>AI-powered feedback using IELTS/CEFR standards</p>
+          <p>Complete IELTS test simulation with AI-powered feedback</p>
         </div>
       </footer>
     </div>
