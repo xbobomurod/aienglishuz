@@ -1,0 +1,431 @@
+import { useState, useEffect } from "react";
+import { 
+  ArrowLeft, 
+  BookOpen, 
+  Loader2, 
+  CheckCircle2, 
+  XCircle, 
+  RefreshCw,
+  Clock,
+  Trophy,
+  Lightbulb
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+interface ReadingModuleProps {
+  onBack: () => void;
+}
+
+interface Question {
+  id: number;
+  type: "multiple-choice" | "true-false-not-given" | "fill-blank";
+  question: string;
+  options?: string[];
+  correctAnswer: string;
+}
+
+interface ReadingTest {
+  topic: string;
+  passage: string;
+  questions: Question[];
+}
+
+interface TestResult {
+  correctCount: number;
+  totalQuestions: number;
+  bandScore: number;
+  percentage: number;
+  results: Array<{
+    questionId: number;
+    correct: boolean;
+    userAnswer: string;
+    correctAnswer: string;
+  }>;
+  feedback: string;
+}
+
+export function ReadingModule({ onBack }: ReadingModuleProps) {
+  const { user } = useAuth();
+  const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
+  const [test, setTest] = useState<ReadingTest | null>(null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<TestResult | null>(null);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (startTime && !result) {
+      interval = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [startTime, result]);
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const generateTest = async () => {
+    setIsLoading(true);
+    setResult(null);
+    setAnswers({});
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("reading-test", {
+        body: { action: "generate", difficulty }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setTest(data);
+      setStartTime(Date.now());
+      setElapsedTime(0);
+      toast.success("Reading test generated!");
+    } catch (err) {
+      console.error("Error generating test:", err);
+      toast.error("Failed to generate test. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const submitTest = async () => {
+    if (!test) return;
+
+    setIsSubmitting(true);
+    const timeTaken = Math.floor((Date.now() - (startTime || Date.now())) / 1000);
+
+    try {
+      const userAnswers = test.questions.map(q => answers[q.id] || "");
+      const correctAnswers = test.questions.map(q => q.correctAnswer);
+
+      const { data, error } = await supabase.functions.invoke("reading-test", {
+        body: {
+          action: "score",
+          userAnswers,
+          correctAnswers,
+          totalQuestions: test.questions.length
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setResult(data);
+
+      // Save to database
+      if (user) {
+        const insertData = {
+          user_id: user.id,
+          passage_topic: test.topic,
+          passage_text: test.passage,
+          questions: test.questions as unknown,
+          user_answers: userAnswers as unknown,
+          correct_answers: correctAnswers as unknown,
+          band_score: data.bandScore,
+          correct_count: data.correctCount,
+          total_questions: data.totalQuestions,
+          time_taken_seconds: timeTaken,
+          feedback: data.feedback
+        };
+        await supabase.from("reading_evaluations").insert(insertData as any);
+      }
+
+      toast.success(`Test completed! Band Score: ${data.bandScore}`);
+    } catch (err) {
+      console.error("Error submitting test:", err);
+      toast.error("Failed to submit test. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getCefrFromBand = (band: number): string => {
+    if (band >= 8) return "C2";
+    if (band >= 7) return "C1";
+    if (band >= 5.5) return "B2";
+    if (band >= 4) return "B1";
+    return "A2";
+  };
+
+  const answeredCount = Object.keys(answers).length;
+  const progress = test ? (answeredCount / test.questions.length) * 100 : 0;
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="font-display text-2xl font-bold text-foreground">
+            Reading Module
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Practice IELTS Reading with AI-generated passages
+          </p>
+        </div>
+        {startTime && !result && (
+          <Badge variant="outline" className="gap-1">
+            <Clock className="w-3 h-3" />
+            {formatTime(elapsedTime)}
+          </Badge>
+        )}
+      </div>
+
+      {/* Test not started */}
+      {!test && !isLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Start a Reading Test
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Difficulty Level</Label>
+              <Select value={difficulty} onValueChange={(v) => setDifficulty(v as typeof difficulty)}>
+                <SelectTrigger className="w-full max-w-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">Beginner (A2-B1)</SelectItem>
+                  <SelectItem value="intermediate">Intermediate (B1-B2)</SelectItem>
+                  <SelectItem value="advanced">Advanced (C1-C2)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="p-4 rounded-lg bg-primary/10 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground mb-2">What to expect:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>One academic-style reading passage</li>
+                <li>10 questions of various types</li>
+                <li>Multiple choice, True/False/Not Given, and fill-in-the-blank</li>
+                <li>Instant scoring with IELTS band and CEFR level</li>
+              </ul>
+            </div>
+
+            <Button onClick={generateTest} className="w-full gap-2">
+              <BookOpen className="w-4 h-4" />
+              Generate Reading Test
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading */}
+      {isLoading && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Generating your reading test...</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Test in progress */}
+      {test && !result && !isLoading && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Passage */}
+          <Card className="lg:row-span-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">{test.topic}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px] pr-4">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{test.passage}</p>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Questions */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {answeredCount}/{test.questions.length} answered
+              </span>
+              <Progress value={progress} className="w-32 h-2" />
+            </div>
+
+            <ScrollArea className="h-[450px]">
+              <div className="space-y-4 pr-4">
+                {test.questions.map((q, index) => (
+                  <Card key={q.id} className={answers[q.id] ? "border-primary/50" : ""}>
+                    <CardContent className="p-4">
+                      <p className="font-medium text-sm mb-3">
+                        <span className="text-primary mr-2">Q{index + 1}.</span>
+                        {q.question}
+                      </p>
+
+                      {q.type === "multiple-choice" || q.type === "true-false-not-given" ? (
+                        <RadioGroup
+                          value={answers[q.id] || ""}
+                          onValueChange={(v) => setAnswers(prev => ({ ...prev, [q.id]: v }))}
+                        >
+                          {q.options?.map((option, i) => (
+                            <div key={i} className="flex items-center space-x-2">
+                              <RadioGroupItem value={option.charAt(0)} id={`q${q.id}-${i}`} />
+                              <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
+                                {option}
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      ) : (
+                        <Input
+                          placeholder="Type your answer..."
+                          value={answers[q.id] || ""}
+                          onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                          className="text-sm"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+
+            <Button 
+              onClick={submitTest} 
+              disabled={isSubmitting || answeredCount === 0}
+              className="w-full gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Scoring...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Submit Test ({answeredCount}/{test.questions.length})
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {result && test && (
+        <div className="space-y-6">
+          {/* Score Card */}
+          <Card className="border-primary/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-accent" />
+                Test Results
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 rounded-lg bg-primary/10">
+                  <p className="text-3xl font-bold text-primary">{result.bandScore}</p>
+                  <p className="text-sm text-muted-foreground">IELTS Band</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-accent/10">
+                  <p className="text-3xl font-bold text-accent">{getCefrFromBand(result.bandScore)}</p>
+                  <p className="text-sm text-muted-foreground">CEFR Level</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-success/10">
+                  <p className="text-3xl font-bold text-success">{result.correctCount}/{result.totalQuestions}</p>
+                  <p className="text-sm text-muted-foreground">Correct</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-secondary">
+                  <p className="text-3xl font-bold">{formatTime(elapsedTime)}</p>
+                  <p className="text-sm text-muted-foreground">Time Taken</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="flex items-start gap-2">
+                  <Lightbulb className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm mb-1">Feedback</p>
+                    <p className="text-sm text-muted-foreground">{result.feedback}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Answer Review */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Answer Review</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-3 pr-4">
+                  {result.results.map((r, index) => (
+                    <div 
+                      key={r.questionId}
+                      className={`p-3 rounded-lg ${r.correct ? "bg-success/10" : "bg-destructive/10"}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {r.correct ? (
+                          <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-destructive mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Q{index + 1}: {test.questions[index]?.question}
+                          </p>
+                          <div className="flex gap-4 mt-1 text-sm">
+                            <span className={r.correct ? "text-success" : "text-destructive"}>
+                              Your answer: {r.userAnswer || "(blank)"}
+                            </span>
+                            {!r.correct && (
+                              <span className="text-success">
+                                Correct: {r.correctAnswer}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Try Again */}
+          <Button onClick={generateTest} className="w-full gap-2" variant="outline">
+            <RefreshCw className="w-4 h-4" />
+            Start New Test
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

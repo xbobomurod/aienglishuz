@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      listening_evaluations: {
+        Row: {
+          audio_topic: string | null
+          band_score: number
+          correct_answers: Json
+          correct_count: number
+          created_at: string
+          feedback: string | null
+          id: string
+          questions: Json
+          time_taken_seconds: number | null
+          total_questions: number
+          transcript: string
+          user_answers: Json
+          user_id: string
+        }
+        Insert: {
+          audio_topic?: string | null
+          band_score: number
+          correct_answers?: Json
+          correct_count?: number
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          questions?: Json
+          time_taken_seconds?: number | null
+          total_questions?: number
+          transcript: string
+          user_answers?: Json
+          user_id: string
+        }
+        Update: {
+          audio_topic?: string | null
+          band_score?: number
+          correct_answers?: Json
+          correct_count?: number
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          questions?: Json
+          time_taken_seconds?: number | null
+          total_questions?: number
+          transcript?: string
+          user_answers?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -44,6 +92,54 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weekly_report_enabled?: boolean | null
+        }
+        Relationships: []
+      }
+      reading_evaluations: {
+        Row: {
+          band_score: number
+          correct_answers: Json
+          correct_count: number
+          created_at: string
+          feedback: string | null
+          id: string
+          passage_text: string
+          passage_topic: string | null
+          questions: Json
+          time_taken_seconds: number | null
+          total_questions: number
+          user_answers: Json
+          user_id: string
+        }
+        Insert: {
+          band_score: number
+          correct_answers?: Json
+          correct_count?: number
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          passage_text: string
+          passage_topic?: string | null
+          questions?: Json
+          time_taken_seconds?: number | null
+          total_questions?: number
+          user_answers?: Json
+          user_id: string
+        }
+        Update: {
+          band_score?: number
+          correct_answers?: Json
+          correct_count?: number
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          passage_text?: string
+          passage_topic?: string | null
+          questions?: Json
+          time_taken_seconds?: number | null
+          total_questions?: number
+          user_answers?: Json
+          user_id?: string
         }
         Relationships: []
       }

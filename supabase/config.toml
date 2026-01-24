@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.send-weekly-report]
 verify_jwt = false
+
+[functions.reading-test]
+verify_jwt = false
+
+[functions.listening-test]
+verify_jwt = false

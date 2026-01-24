@@ -1,9 +1,9 @@
-import { BookOpen, Mic, PenTool, Sparkles } from "lucide-react";
+import { BookOpen, Mic, PenTool, Sparkles, Headphones } from "lucide-react";
 import { ModuleCard } from "./ModuleCard";
 import { Button } from "@/components/ui/button";
 
 interface HomeModuleProps {
-  onSelectModule: (module: "writing" | "speaking") => void;
+  onSelectModule: (module: "writing" | "speaking" | "reading" | "listening") => void;
 }
 
 const dailyChallenges = [
@@ -34,18 +34,32 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
       </div>
 
       {/* Module Selection */}
-      <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        <ModuleCard
+          icon={BookOpen}
+          title="Reading"
+          description="Practice with AI-generated passages and various question types."
+          accentColor="success"
+          onClick={() => onSelectModule("reading")}
+        />
+        <ModuleCard
+          icon={Headphones}
+          title="Listening"
+          description="Listen to audio scripts and answer comprehension questions."
+          accentColor="accent"
+          onClick={() => onSelectModule("listening")}
+        />
         <ModuleCard
           icon={PenTool}
-          title="Writing Examiner"
-          description="Submit your essay and receive detailed band scores, error analysis, and suggestions for improvement."
+          title="Writing"
+          description="Submit essays for detailed band scores and improvement tips."
           accentColor="primary"
           onClick={() => onSelectModule("writing")}
         />
         <ModuleCard
           icon={Mic}
-          title="Speaking Analyst"
-          description="Paste your speaking transcript for filler word analysis, vocabulary suggestions, and a model answer."
+          title="Speaking"
+          description="Record transcripts for fluency analysis and vocabulary feedback."
           accentColor="accent"
           onClick={() => onSelectModule("speaking")}
         />
@@ -57,7 +71,7 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
           <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl" />
           <div className="relative">
             <div className="flex items-center gap-2 text-accent font-semibold mb-3">
-              <BookOpen className="w-5 h-5" />
+              <Sparkles className="w-5 h-5" />
               Daily Challenge
             </div>
             <p className="text-foreground font-medium text-lg mb-4">
@@ -75,6 +89,12 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
                 onClick={() => onSelectModule("speaking")}
               >
                 Practice Speaking
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => onSelectModule("reading")}
+              >
+                Try Reading
               </Button>
             </div>
           </div>
