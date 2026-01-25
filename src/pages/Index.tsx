@@ -5,7 +5,8 @@ import { WritingModule } from "@/components/WritingModule";
 import { SpeakingModule } from "@/components/SpeakingModule";
 import { ReadingModule } from "@/components/ReadingModule";
 import { ListeningModule } from "@/components/ListeningModule";
-import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard, Headphones } from "lucide-react";
+import { MockTestModule } from "@/components/MockTestModule";
+import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard, Headphones, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-type Module = "home" | "writing" | "speaking" | "reading" | "listening";
+type Module = "home" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState<Module>("home");
@@ -31,7 +32,7 @@ const Index = () => {
     }
   }, [isLoading, isAuthenticated, navigate]);
 
-  const handleSelectModule = (module: "writing" | "speaking" | "reading" | "listening") => {
+  const handleSelectModule = (module: "writing" | "speaking" | "reading" | "listening" | "mocktest") => {
     setActiveModule(module);
   };
 
@@ -83,6 +84,10 @@ const Index = () => {
               <TabsTrigger value="home" className="gap-2">
                 <BookOpen className="w-4 h-4" />
                 Home
+              </TabsTrigger>
+              <TabsTrigger value="mocktest" className="gap-2">
+                <Trophy className="w-4 h-4" />
+                Mock Test
               </TabsTrigger>
               <TabsTrigger value="reading" className="gap-2">
                 <BookOpen className="w-4 h-4" />
@@ -148,6 +153,9 @@ const Index = () => {
         )}
         {activeModule === "listening" && (
           <ListeningModule onBack={handleBack} />
+        )}
+        {activeModule === "mocktest" && (
+          <MockTestModule onBack={handleBack} />
         )}
       </main>
 
