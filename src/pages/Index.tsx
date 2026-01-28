@@ -11,37 +11,33 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
 type Module = "home" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
-
 const Index = () => {
   const [activeModule, setActiveModule] = useState<Module>("home");
-  const { user, isLoading, signOut, isAuthenticated } = useAuth();
+  const {
+    user,
+    isLoading,
+    signOut,
+    isAuthenticated
+  } = useAuth();
   const navigate = useNavigate();
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/auth");
     }
   }, [isLoading, isAuthenticated, navigate]);
-
   const handleSelectModule = (module: "writing" | "speaking" | "reading" | "listening" | "mocktest") => {
     setActiveModule(module);
   };
-
   const handleBack = () => {
     setActiveModule("home");
   };
-
   const handleSignOut = async () => {
-    const { error } = await signOut();
+    const {
+      error
+    } = await signOut();
     if (error) {
       toast.error("Failed to sign out");
     } else {
@@ -49,24 +45,17 @@ const Index = () => {
       navigate("/auth");
     }
   };
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+    return <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
   if (!isAuthenticated) {
     return null;
   }
-
   const userEmail = user?.email || "";
   const userInitial = userEmail.charAt(0).toUpperCase();
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
         <div className="container flex items-center justify-between h-16">
@@ -74,12 +63,10 @@ const Index = () => {
             <div className="w-9 h-9 rounded-lg gradient-hero flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-xl font-bold text-foreground">
-              EnglishPro
-            </span>
+            <span className="font-display text-xl font-bold text-foreground">EnglishCoach</span>
           </div>
 
-          <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as Module)}>
+          <Tabs value={activeModule} onValueChange={v => setActiveModule(v as Module)}>
             <TabsList className="hidden md:flex">
               <TabsTrigger value="home" className="gap-2">
                 <BookOpen className="w-4 h-4" />
@@ -139,24 +126,12 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container py-8">
-        {activeModule === "home" && (
-          <HomeModule onSelectModule={handleSelectModule} />
-        )}
-        {activeModule === "writing" && (
-          <WritingModule onBack={handleBack} />
-        )}
-        {activeModule === "speaking" && (
-          <SpeakingModule onBack={handleBack} />
-        )}
-        {activeModule === "reading" && (
-          <ReadingModule onBack={handleBack} />
-        )}
-        {activeModule === "listening" && (
-          <ListeningModule onBack={handleBack} />
-        )}
-        {activeModule === "mocktest" && (
-          <MockTestModule onBack={handleBack} />
-        )}
+        {activeModule === "home" && <HomeModule onSelectModule={handleSelectModule} />}
+        {activeModule === "writing" && <WritingModule onBack={handleBack} />}
+        {activeModule === "speaking" && <SpeakingModule onBack={handleBack} />}
+        {activeModule === "reading" && <ReadingModule onBack={handleBack} />}
+        {activeModule === "listening" && <ListeningModule onBack={handleBack} />}
+        {activeModule === "mocktest" && <MockTestModule onBack={handleBack} />}
       </main>
 
       {/* Footer */}
@@ -165,8 +140,6 @@ const Index = () => {
           <p>Complete IELTS test simulation with AI-powered feedback</p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
