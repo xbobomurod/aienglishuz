@@ -19,6 +19,10 @@ import {
   RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
+import { MockReadingSection } from "./mock-test/MockReadingSection";
+import { MockListeningSection } from "./mock-test/MockListeningSection";
+import { MockWritingSection } from "./mock-test/MockWritingSection";
+import { MockSpeakingSection } from "./mock-test/MockSpeakingSection";
 
 interface MockTestModuleProps {
   onBack: () => void;
@@ -30,7 +34,7 @@ interface SectionConfig {
   id: TestSection;
   title: string;
   icon: React.ElementType;
-  duration: number; // in seconds
+  duration: number;
   description: string;
 }
 
@@ -46,28 +50,28 @@ const SECTIONS: SectionConfig[] = [
     id: "listening", 
     title: "Listening", 
     icon: Headphones, 
-    duration: 30 * 60, // 30 minutes
+    duration: 30 * 60,
     description: "Listen to audio recordings and answer questions"
   },
   { 
     id: "reading", 
     title: "Reading", 
     icon: BookOpen, 
-    duration: 60 * 60, // 60 minutes
+    duration: 60 * 60,
     description: "Read passages and answer comprehension questions"
   },
   { 
     id: "writing", 
     title: "Writing", 
     icon: PenTool, 
-    duration: 60 * 60, // 60 minutes
+    duration: 60 * 60,
     description: "Complete Task 1 and Task 2 essays"
   },
   { 
     id: "speaking", 
     title: "Speaking", 
     icon: Mic, 
-    duration: 14 * 60, // 14 minutes
+    duration: 14 * 60,
     description: "Answer interview questions and give a talk"
   },
 ];
@@ -138,7 +142,7 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
 
   const handleSectionTimeout = useCallback(() => {
     toast.warning("Time's up for this section!");
-    handleCompleteSection(0, true);
+    handleCompleteSection(5.0, true); // Default score on timeout
   }, [currentSectionIndex]);
 
   const startTest = () => {
@@ -153,7 +157,7 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
     toast.success("Mock test started! Good luck!");
   };
 
-  const handleCompleteSection = (bandScore: number, timedOut = false) => {
+  const handleCompleteSection = useCallback((bandScore: number, timedOut = false) => {
     const timeTaken = sectionStartTime 
       ? Math.floor((Date.now() - sectionStartTime) / 1000)
       : SECTIONS[currentSectionIndex].duration;
@@ -181,7 +185,7 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
       setIsRunning(false);
       toast.success("Mock test completed!");
     }
-  };
+  }, [currentSectionIndex, sectionStartTime]);
 
   const togglePause = () => {
     setIsPaused((prev) => !prev);
@@ -196,7 +200,7 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
     if (results.length === 0) return 0;
     const total = results.reduce((acc, r) => acc + r.bandScore, 0);
     const avg = total / results.length;
-    return Math.round(avg * 2) / 2; // Round to nearest 0.5
+    return Math.round(avg * 2) / 2;
   };
 
   const getProgressPercentage = (): number => {
@@ -385,9 +389,43 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
 
   // Active Test Section
   const currentSectionConfig = SECTIONS[currentSectionIndex];
-  const timePercentage = (timeRemaining / currentSectionConfig.duration) * 100;
-  const isLowTime = timeRemaining < 300; // Less than 5 minutes
-  const isCriticalTime = timeRemaining < 60; // Less than 1 minute
+  const isLowTime = timeRemaining < 300;
+  const isCriticalTime = timeRemaining < 60;
+
+  const renderActiveSection = () => {
+    switch (currentSection) {
+      case "listening":
+        return (
+          <MockListeningSection
+            onComplete={handleCompleteSection}
+            isPaused={isPaused}
+          />
+        );
+      case "reading":
+        return (
+          <MockReadingSection
+            onComplete={handleCompleteSection}
+            isPaused={isPaused}
+          />
+        );
+      case "writing":
+        return (
+          <MockWritingSection
+            onComplete={handleCompleteSection}
+            isPaused={isPaused}
+          />
+        );
+      case "speaking":
+        return (
+          <MockSpeakingSection
+            onComplete={handleCompleteSection}
+            isPaused={isPaused}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -452,63 +490,8 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
         </div>
       )}
 
-      {/* Section Content Placeholder */}
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <currentSectionConfig.icon className="w-5 h-5" />
-            {currentSectionConfig.title} Section
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="p-8 text-center bg-muted/30 rounded-lg border border-dashed border-border">
-            <currentSectionConfig.icon className="w-16 h-16 text-primary/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              {currentSectionConfig.title} Test
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              {currentSectionConfig.description}
-            </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              In a full implementation, this section would load the actual {currentSectionConfig.title.toLowerCase()} test 
-              component with questions and content.
-            </p>
-            
-            {/* Simulated Score Input for Demo */}
-            <div className="max-w-xs mx-auto space-y-4">
-              <p className="text-sm font-medium text-foreground">
-                For demo purposes, enter a band score to complete this section:
-              </p>
-              <div className="flex gap-2">
-                {[5.0, 6.0, 7.0, 8.0].map((score) => (
-                  <Button
-                    key={score}
-                    variant="outline"
-                    onClick={() => handleCompleteSection(score)}
-                    className="flex-1"
-                  >
-                    {score}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/20">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              Time remaining for this section
-            </div>
-            <Button 
-              onClick={() => handleCompleteSection(6.5)}
-              className="gap-2"
-            >
-              Complete Section
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Section Content */}
+      {renderActiveSection()}
     </div>
   );
 }
