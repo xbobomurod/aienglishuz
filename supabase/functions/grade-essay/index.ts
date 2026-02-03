@@ -28,7 +28,7 @@ CEFR Levels:
   if (taskType === "task1") {
     return `${basePrompt}
 
-TASK 1 EVALUATION (Letter/Email - 150 words minimum):
+TASK 1 EVALUATION (Letter/Email - 40 words minimum):
 Focus on: Purpose achievement, tone appropriateness (formal/informal), opening and closing conventions, coherent organization.
 
 Return JSON:

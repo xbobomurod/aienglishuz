@@ -23,9 +23,9 @@ const writingTasks = [
   {
     id: "task1" as const,
     title: "Task 1: Letter/Email",
-    description: "150 words minimum. Formal or informal letter.",
+    description: "40 words minimum. Formal or informal letter.",
     icon: FileText,
-    wordCount: 150,
+    wordCount: 40,
   },
   {
     id: "task2" as const,
