@@ -146,7 +146,7 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
 
   const task1Words = getWordCount(task1Essay);
   const task2Words = getWordCount(task2Essay);
-  const canSubmit = task1Words >= 100 || task2Words >= 150;
+  const canSubmit = task1Words >= 35 || task2Words >= 150;
 
   return (
     <Card>
@@ -159,12 +159,12 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
       <CardContent className="space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="task1" className="gap-2">
-              Task 1
-              <Badge variant={task1Words >= 150 ? "default" : "secondary"} className="ml-1">
-                {task1Words}/150
-              </Badge>
-            </TabsTrigger>
+          <TabsTrigger value="task1" className="gap-2">
+            Task 1
+            <Badge variant={task1Words >= 40 ? "default" : "secondary"} className="ml-1">
+              {task1Words}/40
+            </Badge>
+          </TabsTrigger>
             <TabsTrigger value="task2" className="gap-2">
               Task 2
               <Badge variant={task2Words >= 250 ? "default" : "secondary"} className="ml-1">
@@ -185,21 +185,21 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Your Letter/Report</span>
-                <span className={`text-sm ${task1Words >= 150 ? "text-success" : "text-muted-foreground"}`}>
-                  {task1Words} words {task1Words >= 150 && <CheckCircle2 className="w-4 h-4 inline ml-1" />}
+                <span className={`text-sm ${task1Words >= 40 ? "text-success" : "text-muted-foreground"}`}>
+                  {task1Words} words {task1Words >= 40 && <CheckCircle2 className="w-4 h-4 inline ml-1" />}
                 </span>
               </div>
               <Textarea
-                placeholder="Write your Task 1 response here... (minimum 150 words)"
+                placeholder="Write your Task 1 response here... (minimum 40 words)"
                 value={task1Essay}
                 onChange={(e) => setTask1Essay(e.target.value)}
                 className="min-h-[300px] resize-none"
                 disabled={isPaused}
               />
-              {task1Words > 0 && task1Words < 150 && (
+              {task1Words > 0 && task1Words < 40 && (
                 <div className="flex items-start gap-2 p-3 mt-2 rounded-lg bg-accent/10 text-accent text-sm">
                   <AlertCircle className="w-4 h-4 mt-0.5" />
-                  <span>Task 1 requires at least 150 words. You need {150 - task1Words} more.</span>
+                  <span>Task 1 requires at least 40 words. You need {40 - task1Words} more.</span>
                 </div>
               )}
             </div>
