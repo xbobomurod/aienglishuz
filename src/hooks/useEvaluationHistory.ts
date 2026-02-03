@@ -34,29 +34,71 @@ export interface SpeakingEvaluation {
   created_at: string;
 }
 
+export interface ReadingEvaluation {
+  id: string;
+  passage_topic: string | null;
+  passage_text: string;
+  band_score: number;
+  correct_count: number;
+  total_questions: number;
+  questions: unknown;
+  user_answers: unknown;
+  correct_answers: unknown;
+  feedback: string | null;
+  time_taken_seconds: number | null;
+  created_at: string;
+}
+
+export interface ListeningEvaluation {
+  id: string;
+  audio_topic: string | null;
+  transcript: string;
+  band_score: number;
+  correct_count: number;
+  total_questions: number;
+  questions: unknown;
+  user_answers: unknown;
+  correct_answers: unknown;
+  feedback: string | null;
+  time_taken_seconds: number | null;
+  created_at: string;
+}
+
 export function useEvaluationHistory() {
   const { user } = useAuth();
   const [writingHistory, setWritingHistory] = useState<WritingEvaluation[]>([]);
   const [speakingHistory, setSpeakingHistory] = useState<SpeakingEvaluation[]>([]);
+  const [readingHistory, setReadingHistory] = useState<ReadingEvaluation[]>([]);
+  const [listeningHistory, setListeningHistory] = useState<ListeningEvaluation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchHistory = async () => {
     if (!user) {
       setWritingHistory([]);
       setSpeakingHistory([]);
+      setReadingHistory([]);
+      setListeningHistory([]);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
 
-    const [writingResult, speakingResult] = await Promise.all([
+    const [writingResult, speakingResult, readingResult, listeningResult] = await Promise.all([
       supabase
         .from("writing_evaluations")
         .select("*")
         .order("created_at", { ascending: false }),
       supabase
         .from("speaking_evaluations")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("reading_evaluations")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("listening_evaluations")
         .select("*")
         .order("created_at", { ascending: false })
     ]);
@@ -67,6 +109,14 @@ export function useEvaluationHistory() {
 
     if (speakingResult.data) {
       setSpeakingHistory(speakingResult.data as SpeakingEvaluation[]);
+    }
+
+    if (readingResult.data) {
+      setReadingHistory(readingResult.data as ReadingEvaluation[]);
+    }
+
+    if (listeningResult.data) {
+      setListeningHistory(listeningResult.data as ListeningEvaluation[]);
     }
 
     setIsLoading(false);
@@ -162,6 +212,16 @@ export function useEvaluationHistory() {
     return speakingHistory[0].band_score;
   };
 
+  const getLastReadingScore = () => {
+    if (readingHistory.length === 0) return null;
+    return readingHistory[0].band_score;
+  };
+
+  const getLastListeningScore = () => {
+    if (listeningHistory.length === 0) return null;
+    return listeningHistory[0].band_score;
+  };
+
   const getPreviousWritingScore = () => {
     if (writingHistory.length < 2) return null;
     return writingHistory[1].band_score;
@@ -172,16 +232,32 @@ export function useEvaluationHistory() {
     return speakingHistory[1].band_score;
   };
 
+  const getPreviousReadingScore = () => {
+    if (readingHistory.length < 2) return null;
+    return readingHistory[1].band_score;
+  };
+
+  const getPreviousListeningScore = () => {
+    if (listeningHistory.length < 2) return null;
+    return listeningHistory[1].band_score;
+  };
+
   return {
     writingHistory,
     speakingHistory,
+    readingHistory,
+    listeningHistory,
     isLoading,
     saveWritingEvaluation,
     saveSpeakingEvaluation,
     getLastWritingScore,
     getLastSpeakingScore,
+    getLastReadingScore,
+    getLastListeningScore,
     getPreviousWritingScore,
     getPreviousSpeakingScore,
+    getPreviousReadingScore,
+    getPreviousListeningScore,
     refetch: fetchHistory
   };
 }
