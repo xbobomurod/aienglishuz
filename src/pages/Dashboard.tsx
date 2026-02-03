@@ -10,6 +10,8 @@ import {
   Mic,
   Eye,
   BarChart3,
+  BookOpen,
+  Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +37,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
-import { useEvaluationHistory, WritingEvaluation, SpeakingEvaluation } from "@/hooks/useEvaluationHistory";
+import { useEvaluationHistory, WritingEvaluation, SpeakingEvaluation, ReadingEvaluation, ListeningEvaluation } from "@/hooks/useEvaluationHistory";
 import { useAuth } from "@/hooks/useAuth";
 import { format, subDays, isAfter } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -52,16 +54,26 @@ const chartConfig = {
     label: "Speaking",
     color: "hsl(var(--accent))",
   },
+  reading: {
+    label: "Reading",
+    color: "hsl(217 91% 60%)",
+  },
+  listening: {
+    label: "Listening",
+    color: "hsl(280 87% 65%)",
+  },
 } satisfies ChartConfig;
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { isLoading: authLoading, isAuthenticated } = useAuth();
-  const { writingHistory, speakingHistory, isLoading } = useEvaluationHistory();
+  const { writingHistory, speakingHistory, readingHistory, listeningHistory, isLoading } = useEvaluationHistory();
 
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("30d");
   const [selectedWriting, setSelectedWriting] = useState<WritingEvaluation | null>(null);
   const [selectedSpeaking, setSelectedSpeaking] = useState<SpeakingEvaluation | null>(null);
+  const [selectedReading, setSelectedReading] = useState<ReadingEvaluation | null>(null);
+  const [selectedListening, setSelectedListening] = useState<ListeningEvaluation | null>(null);
 
   if (authLoading || isLoading) {
     return (
@@ -85,10 +97,12 @@ export default function Dashboard() {
 
   const filteredWriting = filterByTime(writingHistory);
   const filteredSpeaking = filterByTime(speakingHistory);
+  const filteredReading = filterByTime(readingHistory);
+  const filteredListening = filterByTime(listeningHistory);
 
-  // Prepare chart data - combine writing and speaking scores over time
+  // Prepare chart data - combine all scores over time
   const prepareChartData = () => {
-    const allDates = new Map<string, { writing?: number; speaking?: number }>();
+    const allDates = new Map<string, { writing?: number; speaking?: number; reading?: number; listening?: number }>();
 
     filteredWriting.forEach((w) => {
       const date = format(new Date(w.created_at), "MMM d");
@@ -100,6 +114,18 @@ export default function Dashboard() {
       const date = format(new Date(s.created_at), "MMM d");
       const existing = allDates.get(date) || {};
       allDates.set(date, { ...existing, speaking: s.band_score });
+    });
+
+    filteredReading.forEach((r) => {
+      const date = format(new Date(r.created_at), "MMM d");
+      const existing = allDates.get(date) || {};
+      allDates.set(date, { ...existing, reading: r.band_score });
+    });
+
+    filteredListening.forEach((l) => {
+      const date = format(new Date(l.created_at), "MMM d");
+      const existing = allDates.get(date) || {};
+      allDates.set(date, { ...existing, listening: l.band_score });
     });
 
     return Array.from(allDates.entries())
@@ -123,12 +149,27 @@ export default function Dashboard() {
     return "A2";
   };
 
+  const formatTime = (seconds: number | null) => {
+    if (!seconds) return "—";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const avgWritingScore = filteredWriting.length
     ? (filteredWriting.reduce((sum, w) => sum + w.band_score, 0) / filteredWriting.length).toFixed(1)
     : "—";
 
   const avgSpeakingScore = filteredSpeaking.length
     ? (filteredSpeaking.reduce((sum, s) => sum + s.band_score, 0) / filteredSpeaking.length).toFixed(1)
+    : "—";
+
+  const avgReadingScore = filteredReading.length
+    ? (filteredReading.reduce((sum, r) => sum + r.band_score, 0) / filteredReading.length).toFixed(1)
+    : "—";
+
+  const avgListeningScore = filteredListening.length
+    ? (filteredListening.reduce((sum, l) => sum + l.band_score, 0) / filteredListening.length).toFixed(1)
     : "—";
 
   const writingTrend = writingHistory.length >= 2
@@ -138,6 +179,28 @@ export default function Dashboard() {
   const speakingTrend = speakingHistory.length >= 2
     ? speakingHistory[0].band_score - speakingHistory[1].band_score
     : 0;
+
+  const readingTrend = readingHistory.length >= 2
+    ? readingHistory[0].band_score - readingHistory[1].band_score
+    : 0;
+
+  const listeningTrend = listeningHistory.length >= 2
+    ? listeningHistory[0].band_score - listeningHistory[1].band_score
+    : 0;
+
+  const totalEvaluations = filteredWriting.length + filteredSpeaking.length + filteredReading.length + filteredListening.length;
+
+  // Calculate combined average
+  const scores = [
+    avgWritingScore !== "—" ? parseFloat(avgWritingScore) : null,
+    avgSpeakingScore !== "—" ? parseFloat(avgSpeakingScore) : null,
+    avgReadingScore !== "—" ? parseFloat(avgReadingScore) : null,
+    avgListeningScore !== "—" ? parseFloat(avgListeningScore) : null,
+  ].filter((s): s is number => s !== null);
+  
+  const combinedAverage = scores.length > 0 
+    ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
+    : "—";
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,11 +234,47 @@ export default function Dashboard() {
 
       <main className="container py-8 space-y-6">
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Writing Average
+                Reading
+              </CardTitle>
+              <BookOpen className="w-4 h-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{avgReadingScore}</div>
+              {readingTrend !== 0 && (
+                <p className={`text-xs flex items-center gap-1 ${readingTrend > 0 ? "text-success" : "text-destructive"}`}>
+                  {readingTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {readingTrend > 0 ? "+" : ""}{readingTrend.toFixed(1)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Listening
+              </CardTitle>
+              <Headphones className="w-4 h-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{avgListeningScore}</div>
+              {listeningTrend !== 0 && (
+                <p className={`text-xs flex items-center gap-1 ${listeningTrend > 0 ? "text-success" : "text-destructive"}`}>
+                  {listeningTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {listeningTrend > 0 ? "+" : ""}{listeningTrend.toFixed(1)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Writing
               </CardTitle>
               <PenTool className="w-4 h-4 text-primary" />
             </CardHeader>
@@ -184,7 +283,7 @@ export default function Dashboard() {
               {writingTrend !== 0 && (
                 <p className={`text-xs flex items-center gap-1 ${writingTrend > 0 ? "text-success" : "text-destructive"}`}>
                   {writingTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {writingTrend > 0 ? "+" : ""}{writingTrend.toFixed(1)} from last
+                  {writingTrend > 0 ? "+" : ""}{writingTrend.toFixed(1)}
                 </p>
               )}
             </CardContent>
@@ -193,7 +292,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Speaking Average
+                Speaking
               </CardTitle>
               <Mic className="w-4 h-4 text-accent" />
             </CardHeader>
@@ -202,7 +301,7 @@ export default function Dashboard() {
               {speakingTrend !== 0 && (
                 <p className={`text-xs flex items-center gap-1 ${speakingTrend > 0 ? "text-success" : "text-destructive"}`}>
                   {speakingTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {speakingTrend > 0 ? "+" : ""}{speakingTrend.toFixed(1)} from last
+                  {speakingTrend > 0 ? "+" : ""}{speakingTrend.toFixed(1)}
                 </p>
               )}
             </CardContent>
@@ -211,14 +310,14 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Evaluations
+                Total Tests
               </CardTitle>
               <BarChart3 className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{filteredWriting.length + filteredSpeaking.length}</div>
-              <p className="text-xs text-muted-foreground">
-                {filteredWriting.length} writing, {filteredSpeaking.length} speaking
+              <div className="text-2xl font-bold">{totalEvaluations}</div>
+              <p className="text-xs text-muted-foreground truncate">
+                R:{filteredReading.length} L:{filteredListening.length} W:{filteredWriting.length} S:{filteredSpeaking.length}
               </p>
             </CardContent>
           </Card>
@@ -226,25 +325,15 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Current CEFR Level
+                Overall
               </CardTitle>
               <Badge variant="outline" className="text-primary border-primary">
-                {getCefrFromBand(
-                  (parseFloat(avgWritingScore !== "—" ? avgWritingScore : "0") +
-                    parseFloat(avgSpeakingScore !== "—" ? avgSpeakingScore : "0")) /
-                    2
-                )}
+                {combinedAverage !== "—" ? getCefrFromBand(parseFloat(combinedAverage)) : "—"}
               </Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {(
-                  (parseFloat(avgWritingScore !== "—" ? avgWritingScore : "0") +
-                    parseFloat(avgSpeakingScore !== "—" ? avgSpeakingScore : "0")) /
-                  2
-                ).toFixed(1)}
-              </div>
-              <p className="text-xs text-muted-foreground">Combined average</p>
+              <div className="text-2xl font-bold">{combinedAverage}</div>
+              <p className="text-xs text-muted-foreground">Combined avg</p>
             </CardContent>
           </Card>
         </div>
@@ -267,6 +356,22 @@ export default function Dashboard() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
+                    dataKey="reading"
+                    stroke="var(--color-reading)"
+                    strokeWidth={2}
+                    dot={{ fill: "var(--color-reading)" }}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="listening"
+                    stroke="var(--color-listening)"
+                    strokeWidth={2}
+                    dot={{ fill: "var(--color-listening)" }}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
                     dataKey="writing"
                     stroke="var(--color-writing)"
                     strokeWidth={2}
@@ -283,7 +388,15 @@ export default function Dashboard() {
                   />
                 </LineChart>
               </ChartContainer>
-              <div className="flex justify-center gap-6 mt-4">
+              <div className="flex flex-wrap justify-center gap-4 mt-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-sm text-muted-foreground">Reading</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-purple-500" />
+                  <span className="text-sm text-muted-foreground">Listening</span>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-primary" />
                   <span className="text-sm text-muted-foreground">Writing</span>
@@ -309,8 +422,16 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="writing">
-              <TabsList className="mb-4">
+            <Tabs defaultValue="reading">
+              <TabsList className="mb-4 flex-wrap h-auto">
+                <TabsTrigger value="reading" className="gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  Reading ({filteredReading.length})
+                </TabsTrigger>
+                <TabsTrigger value="listening" className="gap-2">
+                  <Headphones className="w-4 h-4" />
+                  Listening ({filteredListening.length})
+                </TabsTrigger>
                 <TabsTrigger value="writing" className="gap-2">
                   <PenTool className="w-4 h-4" />
                   Writing ({filteredWriting.length})
@@ -320,6 +441,86 @@ export default function Dashboard() {
                   Speaking ({filteredSpeaking.length})
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="reading">
+                <ScrollArea className="h-[400px]">
+                  {filteredReading.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No reading evaluations in this period</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredReading.map((evaluation) => (
+                        <div
+                          key={evaluation.id}
+                          className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedReading(evaluation)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {evaluation.passage_topic || "Reading Passage"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(evaluation.created_at), "MMM d, yyyy")} • {evaluation.correct_count}/{evaluation.total_questions} correct
+                              {evaluation.time_taken_seconds && ` • ${formatTime(evaluation.time_taken_seconds)}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={getScoreColor(evaluation.band_score)}>
+                              {evaluation.band_score}/9
+                            </Badge>
+                            <Badge variant="outline">{getCefrFromBand(evaluation.band_score)}</Badge>
+                            <Button variant="ghost" size="icon">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="listening">
+                <ScrollArea className="h-[400px]">
+                  {filteredListening.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Headphones className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No listening evaluations in this period</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredListening.map((evaluation) => (
+                        <div
+                          key={evaluation.id}
+                          className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedListening(evaluation)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {evaluation.audio_topic || "Listening Test"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(evaluation.created_at), "MMM d, yyyy")} • {evaluation.correct_count}/{evaluation.total_questions} correct
+                              {evaluation.time_taken_seconds && ` • ${formatTime(evaluation.time_taken_seconds)}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={getScoreColor(evaluation.band_score)}>
+                              {evaluation.band_score}/9
+                            </Badge>
+                            <Badge variant="outline">{getCefrFromBand(evaluation.band_score)}</Badge>
+                            <Button variant="ghost" size="icon">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
 
               <TabsContent value="writing">
                 <ScrollArea className="h-[400px]">
@@ -402,6 +603,110 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Reading Detail Dialog */}
+      <Dialog open={!!selectedReading} onOpenChange={() => setSelectedReading(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedReading?.passage_topic || "Reading Evaluation"}</DialogTitle>
+          </DialogHeader>
+          {selectedReading && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Badge className={`${getScoreColor(selectedReading.band_score)} text-lg px-3 py-1`}>
+                  IELTS: {selectedReading.band_score}/9
+                </Badge>
+                <Badge variant="outline" className="text-lg px-3 py-1">
+                  CEFR: {getCefrFromBand(selectedReading.band_score)}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-sm text-muted-foreground">Correct</p>
+                  <p className="text-lg font-semibold">{selectedReading.correct_count}/{selectedReading.total_questions}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-sm text-muted-foreground">Accuracy</p>
+                  <p className="text-lg font-semibold">
+                    {Math.round((selectedReading.correct_count / selectedReading.total_questions) * 100)}%
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-sm text-muted-foreground">Time</p>
+                  <p className="text-lg font-semibold">{formatTime(selectedReading.time_taken_seconds)}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2">Passage</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                  {selectedReading.passage_text}
+                </p>
+              </div>
+
+              {selectedReading.feedback && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Feedback</p>
+                  <p className="text-sm text-muted-foreground">{selectedReading.feedback}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Listening Detail Dialog */}
+      <Dialog open={!!selectedListening} onOpenChange={() => setSelectedListening(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedListening?.audio_topic || "Listening Evaluation"}</DialogTitle>
+          </DialogHeader>
+          {selectedListening && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Badge className={`${getScoreColor(selectedListening.band_score)} text-lg px-3 py-1`}>
+                  IELTS: {selectedListening.band_score}/9
+                </Badge>
+                <Badge variant="outline" className="text-lg px-3 py-1">
+                  CEFR: {getCefrFromBand(selectedListening.band_score)}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-sm text-muted-foreground">Correct</p>
+                  <p className="text-lg font-semibold">{selectedListening.correct_count}/{selectedListening.total_questions}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-sm text-muted-foreground">Accuracy</p>
+                  <p className="text-lg font-semibold">
+                    {Math.round((selectedListening.correct_count / selectedListening.total_questions) * 100)}%
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-sm text-muted-foreground">Time</p>
+                  <p className="text-lg font-semibold">{formatTime(selectedListening.time_taken_seconds)}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2">Transcript</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                  {selectedListening.transcript}
+                </p>
+              </div>
+
+              {selectedListening.feedback && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Feedback</p>
+                  <p className="text-sm text-muted-foreground">{selectedListening.feedback}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Writing Detail Dialog */}
       <Dialog open={!!selectedWriting} onOpenChange={() => setSelectedWriting(null)}>
