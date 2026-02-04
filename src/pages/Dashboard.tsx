@@ -12,6 +12,7 @@ import {
   BarChart3,
   BookOpen,
   Headphones,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +43,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { format, subDays, isAfter } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EmailPreferences } from "@/components/EmailPreferences";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 type TimeFilter = "7d" | "30d" | "90d" | "all";
 
@@ -206,20 +208,20 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="container flex items-center justify-between h-16">
-          <div className="flex items-center gap-4">
+        <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="font-display text-xl font-bold text-foreground">Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Track your progress over time</p>
+              <h1 className="font-display text-lg sm:text-xl font-bold text-foreground">Dashboard</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Track your progress over time</p>
             </div>
           </div>
 
           <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
-            <SelectTrigger className="w-[140px]">
-              <Filter className="w-4 h-4 mr-2" />
+            <SelectTrigger className="w-[110px] sm:w-[140px]">
+              <Filter className="w-4 h-4 mr-1 sm:mr-2" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -232,18 +234,18 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container py-8 space-y-6">
+      <main className="container py-4 sm:py-8 px-4 space-y-4 sm:space-y-6">
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Reading
               </CardTitle>
               <BookOpen className="w-4 h-4 text-blue-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{avgReadingScore}</div>
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-xl sm:text-2xl font-bold">{avgReadingScore}</div>
               {readingTrend !== 0 && (
                 <p className={`text-xs flex items-center gap-1 ${readingTrend > 0 ? "text-success" : "text-destructive"}`}>
                   {readingTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -254,14 +256,14 @@ export default function Dashboard() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Listening
               </CardTitle>
               <Headphones className="w-4 h-4 text-purple-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{avgListeningScore}</div>
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-xl sm:text-2xl font-bold">{avgListeningScore}</div>
               {listeningTrend !== 0 && (
                 <p className={`text-xs flex items-center gap-1 ${listeningTrend > 0 ? "text-success" : "text-destructive"}`}>
                   {listeningTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -272,14 +274,14 @@ export default function Dashboard() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Writing
               </CardTitle>
               <PenTool className="w-4 h-4 text-primary" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{avgWritingScore}</div>
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-xl sm:text-2xl font-bold">{avgWritingScore}</div>
               {writingTrend !== 0 && (
                 <p className={`text-xs flex items-center gap-1 ${writingTrend > 0 ? "text-success" : "text-destructive"}`}>
                   {writingTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -290,14 +292,14 @@ export default function Dashboard() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Speaking
               </CardTitle>
               <Mic className="w-4 h-4 text-accent" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{avgSpeakingScore}</div>
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-xl sm:text-2xl font-bold">{avgSpeakingScore}</div>
               {speakingTrend !== 0 && (
                 <p className={`text-xs flex items-center gap-1 ${speakingTrend > 0 ? "text-success" : "text-destructive"}`}>
                   {speakingTrend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -308,14 +310,14 @@ export default function Dashboard() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Total Tests
               </CardTitle>
               <BarChart3 className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalEvaluations}</div>
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-xl sm:text-2xl font-bold">{totalEvaluations}</div>
               <p className="text-xs text-muted-foreground truncate">
                 R:{filteredReading.length} L:{filteredListening.length} W:{filteredWriting.length} S:{filteredSpeaking.length}
               </p>
@@ -323,16 +325,16 @@ export default function Dashboard() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Overall
               </CardTitle>
-              <Badge variant="outline" className="text-primary border-primary">
+              <Badge variant="outline" className="text-primary border-primary text-xs">
                 {combinedAverage !== "—" ? getCefrFromBand(parseFloat(combinedAverage)) : "—"}
               </Badge>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{combinedAverage}</div>
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-xl sm:text-2xl font-bold">{combinedAverage}</div>
               <p className="text-xs text-muted-foreground">Combined avg</p>
             </CardContent>
           </Card>
@@ -341,25 +343,25 @@ export default function Dashboard() {
         {/* Score Trends Chart */}
         {chartData.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 Score Trends
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CardContent className="px-2 sm:px-6">
+              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[300px] w-full">
+                <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" className="text-xs" />
-                  <YAxis domain={[0, 9]} ticks={[0, 3, 5, 7, 9]} className="text-xs" />
+                  <XAxis dataKey="date" className="text-xs" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0, 9]} ticks={[0, 3, 5, 7, 9]} className="text-xs" tick={{ fontSize: 10 }} width={25} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
                     dataKey="reading"
                     stroke="var(--color-reading)"
                     strokeWidth={2}
-                    dot={{ fill: "var(--color-reading)" }}
+                    dot={{ fill: "var(--color-reading)", r: 3 }}
                     connectNulls
                   />
                   <Line
@@ -367,7 +369,7 @@ export default function Dashboard() {
                     dataKey="listening"
                     stroke="var(--color-listening)"
                     strokeWidth={2}
-                    dot={{ fill: "var(--color-listening)" }}
+                    dot={{ fill: "var(--color-listening)", r: 3 }}
                     connectNulls
                   />
                   <Line
@@ -375,7 +377,7 @@ export default function Dashboard() {
                     dataKey="writing"
                     stroke="var(--color-writing)"
                     strokeWidth={2}
-                    dot={{ fill: "var(--color-writing)" }}
+                    dot={{ fill: "var(--color-writing)", r: 3 }}
                     connectNulls
                   />
                   <Line
@@ -383,95 +385,122 @@ export default function Dashboard() {
                     dataKey="speaking"
                     stroke="var(--color-speaking)"
                     strokeWidth={2}
-                    dot={{ fill: "var(--color-speaking)" }}
+                    dot={{ fill: "var(--color-speaking)", r: 3 }}
                     connectNulls
                   />
                 </LineChart>
               </ChartContainer>
-              <div className="flex flex-wrap justify-center gap-4 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
-                  <span className="text-sm text-muted-foreground">Reading</span>
+              <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mt-3 sm:mt-4">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-500" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">Reading</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-purple-500" />
-                  <span className="text-sm text-muted-foreground">Listening</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-purple-500" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">Listening</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary" />
-                  <span className="text-sm text-muted-foreground">Writing</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-primary" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">Writing</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-accent" />
-                  <span className="text-sm text-muted-foreground">Speaking</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-accent" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">Speaking</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
+        {/* Account Settings */}
+        <Card>
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <KeyRound className="w-4 h-4 sm:w-5 sm:h-5" />
+              Account Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="font-medium text-sm sm:text-base">Password</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Change your account password</p>
+              </div>
+              <ChangePasswordDialog />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Email Preferences */}
         <EmailPreferences />
 
         {/* Evaluation History Tabs */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
               Evaluation History
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             <Tabs defaultValue="reading">
-              <TabsList className="mb-4 flex-wrap h-auto">
-                <TabsTrigger value="reading" className="gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  Reading ({filteredReading.length})
+              <TabsList className="mb-4 w-full grid grid-cols-4 h-auto">
+                <TabsTrigger value="reading" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
+                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Reading</span>
+                  <span className="sm:hidden">R</span>
+                  <span className="text-muted-foreground">({filteredReading.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="listening" className="gap-2">
-                  <Headphones className="w-4 h-4" />
-                  Listening ({filteredListening.length})
+                <TabsTrigger value="listening" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
+                  <Headphones className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Listening</span>
+                  <span className="sm:hidden">L</span>
+                  <span className="text-muted-foreground">({filteredListening.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="writing" className="gap-2">
-                  <PenTool className="w-4 h-4" />
-                  Writing ({filteredWriting.length})
+                <TabsTrigger value="writing" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
+                  <PenTool className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Writing</span>
+                  <span className="sm:hidden">W</span>
+                  <span className="text-muted-foreground">({filteredWriting.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="speaking" className="gap-2">
-                  <Mic className="w-4 h-4" />
-                  Speaking ({filteredSpeaking.length})
+                <TabsTrigger value="speaking" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
+                  <Mic className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Speaking</span>
+                  <span className="sm:hidden">S</span>
+                  <span className="text-muted-foreground">({filteredSpeaking.length})</span>
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="reading">
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[300px] sm:h-[400px]">
                   {filteredReading.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No reading evaluations in this period</p>
+                    <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                      <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No reading evaluations in this period</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 px-2">
                       {filteredReading.map((evaluation) => (
                         <div
                           key={evaluation.id}
-                          className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer gap-2"
                           onClick={() => setSelectedReading(evaluation)}
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
+                            <p className="font-medium truncate text-sm sm:text-base">
                               {evaluation.passage_topic || "Reading Passage"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {format(new Date(evaluation.created_at), "MMM d, yyyy")} • {evaluation.correct_count}/{evaluation.total_questions} correct
                               {evaluation.time_taken_seconds && ` • ${formatTime(evaluation.time_taken_seconds)}`}
                             </p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Badge className={getScoreColor(evaluation.band_score)}>
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline">{getCefrFromBand(evaluation.band_score)}</Badge>
-                            <Button variant="ghost" size="icon">
+                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </div>
@@ -483,35 +512,35 @@ export default function Dashboard() {
               </TabsContent>
 
               <TabsContent value="listening">
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[300px] sm:h-[400px]">
                   {filteredListening.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Headphones className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No listening evaluations in this period</p>
+                    <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                      <Headphones className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No listening evaluations in this period</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 px-2">
                       {filteredListening.map((evaluation) => (
                         <div
                           key={evaluation.id}
-                          className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer gap-2"
                           onClick={() => setSelectedListening(evaluation)}
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
+                            <p className="font-medium truncate text-sm sm:text-base">
                               {evaluation.audio_topic || "Listening Test"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {format(new Date(evaluation.created_at), "MMM d, yyyy")} • {evaluation.correct_count}/{evaluation.total_questions} correct
                               {evaluation.time_taken_seconds && ` • ${formatTime(evaluation.time_taken_seconds)}`}
                             </p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Badge className={getScoreColor(evaluation.band_score)}>
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline">{getCefrFromBand(evaluation.band_score)}</Badge>
-                            <Button variant="ghost" size="icon">
+                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </div>
@@ -523,34 +552,34 @@ export default function Dashboard() {
               </TabsContent>
 
               <TabsContent value="writing">
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[300px] sm:h-[400px]">
                   {filteredWriting.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <PenTool className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No writing evaluations in this period</p>
+                    <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                      <PenTool className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No writing evaluations in this period</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 px-2">
                       {filteredWriting.map((evaluation) => (
                         <div
                           key={evaluation.id}
-                          className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer gap-2"
                           onClick={() => setSelectedWriting(evaluation)}
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
+                            <p className="font-medium truncate text-sm sm:text-base">
                               {evaluation.topic || "Untitled Essay"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {format(new Date(evaluation.created_at), "MMM d, yyyy 'at' h:mm a")}
                             </p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Badge className={getScoreColor(evaluation.band_score)}>
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline">{getCefrFromBand(evaluation.band_score)}</Badge>
-                            <Button variant="ghost" size="icon">
+                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </div>
@@ -562,34 +591,34 @@ export default function Dashboard() {
               </TabsContent>
 
               <TabsContent value="speaking">
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[300px] sm:h-[400px]">
                   {filteredSpeaking.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Mic className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No speaking evaluations in this period</p>
+                    <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                      <Mic className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No speaking evaluations in this period</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 px-2">
                       {filteredSpeaking.map((evaluation) => (
                         <div
                           key={evaluation.id}
-                          className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer gap-2"
                           onClick={() => setSelectedSpeaking(evaluation)}
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
+                            <p className="font-medium truncate text-sm sm:text-base">
                               {evaluation.topic || "Untitled Recording"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {format(new Date(evaluation.created_at), "MMM d, yyyy 'at' h:mm a")}
                             </p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Badge className={getScoreColor(evaluation.band_score)}>
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline">{getCefrFromBand(evaluation.band_score)}</Badge>
-                            <Button variant="ghost" size="icon">
+                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </div>
@@ -606,41 +635,41 @@ export default function Dashboard() {
 
       {/* Reading Detail Dialog */}
       <Dialog open={!!selectedReading} onOpenChange={() => setSelectedReading(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>{selectedReading?.passage_topic || "Reading Evaluation"}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg pr-6">{selectedReading?.passage_topic || "Reading Evaluation"}</DialogTitle>
           </DialogHeader>
           {selectedReading && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Badge className={`${getScoreColor(selectedReading.band_score)} text-lg px-3 py-1`}>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                <Badge className={`${getScoreColor(selectedReading.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedReading.band_score}/9
                 </Badge>
-                <Badge variant="outline" className="text-lg px-3 py-1">
+                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                   CEFR: {getCefrFromBand(selectedReading.band_score)}
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Correct</p>
-                  <p className="text-lg font-semibold">{selectedReading.correct_count}/{selectedReading.total_questions}</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Correct</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedReading.correct_count}/{selectedReading.total_questions}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Accuracy</p>
-                  <p className="text-lg font-semibold">
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Accuracy</p>
+                  <p className="text-sm sm:text-lg font-semibold">
                     {Math.round((selectedReading.correct_count / selectedReading.total_questions) * 100)}%
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Time</p>
-                  <p className="text-lg font-semibold">{formatTime(selectedReading.time_taken_seconds)}</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Time</p>
+                  <p className="text-sm sm:text-lg font-semibold">{formatTime(selectedReading.time_taken_seconds)}</p>
                 </div>
               </div>
 
               <div>
                 <p className="text-sm font-medium mb-2">Passage</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-3 sm:p-4 rounded-lg max-h-[150px] sm:max-h-[200px] overflow-y-auto">
                   {selectedReading.passage_text}
                 </p>
               </div>
@@ -648,7 +677,7 @@ export default function Dashboard() {
               {selectedReading.feedback && (
                 <div>
                   <p className="text-sm font-medium mb-2">Feedback</p>
-                  <p className="text-sm text-muted-foreground">{selectedReading.feedback}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{selectedReading.feedback}</p>
                 </div>
               )}
             </div>
@@ -658,41 +687,41 @@ export default function Dashboard() {
 
       {/* Listening Detail Dialog */}
       <Dialog open={!!selectedListening} onOpenChange={() => setSelectedListening(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>{selectedListening?.audio_topic || "Listening Evaluation"}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg pr-6">{selectedListening?.audio_topic || "Listening Evaluation"}</DialogTitle>
           </DialogHeader>
           {selectedListening && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Badge className={`${getScoreColor(selectedListening.band_score)} text-lg px-3 py-1`}>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                <Badge className={`${getScoreColor(selectedListening.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedListening.band_score}/9
                 </Badge>
-                <Badge variant="outline" className="text-lg px-3 py-1">
+                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                   CEFR: {getCefrFromBand(selectedListening.band_score)}
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Correct</p>
-                  <p className="text-lg font-semibold">{selectedListening.correct_count}/{selectedListening.total_questions}</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Correct</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedListening.correct_count}/{selectedListening.total_questions}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Accuracy</p>
-                  <p className="text-lg font-semibold">
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Accuracy</p>
+                  <p className="text-sm sm:text-lg font-semibold">
                     {Math.round((selectedListening.correct_count / selectedListening.total_questions) * 100)}%
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Time</p>
-                  <p className="text-lg font-semibold">{formatTime(selectedListening.time_taken_seconds)}</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Time</p>
+                  <p className="text-sm sm:text-lg font-semibold">{formatTime(selectedListening.time_taken_seconds)}</p>
                 </div>
               </div>
 
               <div>
                 <p className="text-sm font-medium mb-2">Transcript</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-4 rounded-lg max-h-[200px] overflow-y-auto">
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-3 sm:p-4 rounded-lg max-h-[150px] sm:max-h-[200px] overflow-y-auto">
                   {selectedListening.transcript}
                 </p>
               </div>
@@ -700,7 +729,7 @@ export default function Dashboard() {
               {selectedListening.feedback && (
                 <div>
                   <p className="text-sm font-medium mb-2">Feedback</p>
-                  <p className="text-sm text-muted-foreground">{selectedListening.feedback}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{selectedListening.feedback}</p>
                 </div>
               )}
             </div>
@@ -710,43 +739,43 @@ export default function Dashboard() {
 
       {/* Writing Detail Dialog */}
       <Dialog open={!!selectedWriting} onOpenChange={() => setSelectedWriting(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>{selectedWriting?.topic || "Writing Evaluation"}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg pr-6">{selectedWriting?.topic || "Writing Evaluation"}</DialogTitle>
           </DialogHeader>
           {selectedWriting && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Badge className={`${getScoreColor(selectedWriting.band_score)} text-lg px-3 py-1`}>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                <Badge className={`${getScoreColor(selectedWriting.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedWriting.band_score}/9
                 </Badge>
-                <Badge variant="outline" className="text-lg px-3 py-1">
+                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                   CEFR: {getCefrFromBand(selectedWriting.band_score)}
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Task Response</p>
-                  <p className="text-lg font-semibold">{selectedWriting.task_response}/9</p>
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Task Response</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedWriting.task_response}/9</p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Coherence</p>
-                  <p className="text-lg font-semibold">{selectedWriting.coherence}/9</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Coherence</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedWriting.coherence}/9</p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Lexical Resource</p>
-                  <p className="text-lg font-semibold">{selectedWriting.lexical_resource}/9</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Lexical Resource</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedWriting.lexical_resource}/9</p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Grammar</p>
-                  <p className="text-lg font-semibold">{selectedWriting.grammar}/9</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Grammar</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedWriting.grammar}/9</p>
                 </div>
               </div>
 
               <div>
                 <p className="text-sm font-medium mb-2">Your Essay</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-4 rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-3 sm:p-4 rounded-lg max-h-[150px] sm:max-h-[200px] overflow-y-auto">
                   {selectedWriting.essay}
                 </p>
               </div>
@@ -754,7 +783,7 @@ export default function Dashboard() {
               {selectedWriting.overall_feedback && (
                 <div>
                   <p className="text-sm font-medium mb-2">Feedback</p>
-                  <p className="text-sm text-muted-foreground">{selectedWriting.overall_feedback}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{selectedWriting.overall_feedback}</p>
                 </div>
               )}
             </div>
@@ -764,39 +793,39 @@ export default function Dashboard() {
 
       {/* Speaking Detail Dialog */}
       <Dialog open={!!selectedSpeaking} onOpenChange={() => setSelectedSpeaking(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>{selectedSpeaking?.topic || "Speaking Evaluation"}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg pr-6">{selectedSpeaking?.topic || "Speaking Evaluation"}</DialogTitle>
           </DialogHeader>
           {selectedSpeaking && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Badge className={`${getScoreColor(selectedSpeaking.band_score)} text-lg px-3 py-1`}>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                <Badge className={`${getScoreColor(selectedSpeaking.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedSpeaking.band_score}/9
                 </Badge>
-                <Badge variant="outline" className="text-lg px-3 py-1">
+                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                   CEFR: {getCefrFromBand(selectedSpeaking.band_score)}
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Fluency</p>
-                  <p className="text-lg font-semibold">{selectedSpeaking.fluency_score}/9</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Fluency</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedSpeaking.fluency_score}/9</p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Vocabulary</p>
-                  <p className="text-lg font-semibold">{selectedSpeaking.vocabulary_score}/9</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Vocabulary</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedSpeaking.vocabulary_score}/9</p>
                 </div>
-                <div className="p-3 rounded-lg bg-secondary/50">
-                  <p className="text-sm text-muted-foreground">Grammar</p>
-                  <p className="text-lg font-semibold">{selectedSpeaking.grammar_score}/9</p>
+                <div className="p-2 sm:p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Grammar</p>
+                  <p className="text-sm sm:text-lg font-semibold">{selectedSpeaking.grammar_score}/9</p>
                 </div>
               </div>
 
               <div>
                 <p className="text-sm font-medium mb-2">Your Transcript</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-4 rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/30 p-3 sm:p-4 rounded-lg max-h-[150px] sm:max-h-[200px] overflow-y-auto">
                   {selectedSpeaking.transcript}
                 </p>
               </div>
@@ -804,7 +833,7 @@ export default function Dashboard() {
               {selectedSpeaking.native_upgrade && (
                 <div>
                   <p className="text-sm font-medium mb-2">Native Upgrade (C1)</p>
-                  <p className="text-sm text-primary italic bg-primary/10 p-4 rounded-lg">
+                  <p className="text-xs sm:text-sm text-primary italic bg-primary/10 p-3 sm:p-4 rounded-lg">
                     {selectedSpeaking.native_upgrade}
                   </p>
                 </div>
@@ -813,14 +842,14 @@ export default function Dashboard() {
               {selectedSpeaking.daily_practice_tip && (
                 <div>
                   <p className="text-sm font-medium mb-2">Practice Tip</p>
-                  <p className="text-sm text-muted-foreground">{selectedSpeaking.daily_practice_tip}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{selectedSpeaking.daily_practice_tip}</p>
                 </div>
               )}
 
               {selectedSpeaking.overall_feedback && (
                 <div>
                   <p className="text-sm font-medium mb-2">Feedback</p>
-                  <p className="text-sm text-muted-foreground">{selectedSpeaking.overall_feedback}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{selectedSpeaking.overall_feedback}</p>
                 </div>
               )}
             </div>
