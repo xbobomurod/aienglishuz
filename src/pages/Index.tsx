@@ -9,12 +9,14 @@ import { MockTestModule } from "@/components/MockTestModule";
 import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard, Headphones, Trophy, Menu, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 
 type Module = "home" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
 
@@ -27,6 +29,7 @@ const Index = () => {
     signOut,
     isAuthenticated
   } = useAuth();
+  const { displayName, avatarUrl, refetch: refetchProfile } = useProfile();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,7 +70,7 @@ const Index = () => {
   }
 
   const userEmail = user?.email || "";
-  const userInitial = userEmail.charAt(0).toUpperCase();
+  const userInitial = (displayName || userEmail).charAt(0).toUpperCase();
 
   const moduleItems = [
     { id: "home", label: "Home", icon: BookOpen },
@@ -140,6 +143,7 @@ const Index = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full">
                   <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
+                    <AvatarImage src={avatarUrl || undefined} alt="Profile" />
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                       {userInitial}
                     </AvatarFallback>
@@ -149,9 +153,22 @@ const Index = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem disabled className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  <span className="truncate">{userEmail}</span>
+                  <span className="truncate">{displayName || userEmail}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <ProfileEditDialog
+                  userId={user?.id || ""}
+                  userEmail={userEmail}
+                  currentDisplayName={displayName}
+                  currentAvatarUrl={avatarUrl || undefined}
+                  onProfileUpdate={refetchProfile}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center gap-2 cursor-pointer">
+                      <User className="w-4 h-4" />
+                      Edit Profile
+                    </DropdownMenuItem>
+                  }
+                />
                 <DropdownMenuItem onClick={() => navigate("/dashboard")} className="flex items-center gap-2">
                   <LayoutDashboard className="w-4 h-4" />
                   Dashboard
