@@ -412,27 +412,29 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Account Settings */}
-        <Card>
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <KeyRound className="w-4 h-4 sm:w-5 sm:h-5" />
-              Account Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <p className="font-medium text-sm sm:text-base">Password</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Change your account password</p>
+        {/* Account & Notification Settings */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <KeyRound className="w-4 h-4 sm:w-5 sm:h-5" />
+                Account Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="font-medium text-sm sm:text-base">Password</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Change your account password</p>
+                </div>
+                <ChangePasswordDialog />
               </div>
-              <ChangePasswordDialog />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Email Preferences */}
-        <EmailPreferences />
+          {/* Email Preferences */}
+          <EmailPreferences />
+        </div>
 
         {/* Evaluation History Tabs */}
         <Card>
