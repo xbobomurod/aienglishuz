@@ -69,6 +69,8 @@ export type Database = {
           display_name: string | null
           id: string
           last_report_sent_at: string | null
+          milestone_alerts_enabled: boolean | null
+          practice_reminder_enabled: boolean | null
           updated_at: string
           user_id: string
           weekly_report_enabled: boolean | null
@@ -79,6 +81,8 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_report_sent_at?: string | null
+          milestone_alerts_enabled?: boolean | null
+          practice_reminder_enabled?: boolean | null
           updated_at?: string
           user_id: string
           weekly_report_enabled?: boolean | null
@@ -89,6 +93,8 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_report_sent_at?: string | null
+          milestone_alerts_enabled?: boolean | null
+          practice_reminder_enabled?: boolean | null
           updated_at?: string
           user_id?: string
           weekly_report_enabled?: boolean | null
