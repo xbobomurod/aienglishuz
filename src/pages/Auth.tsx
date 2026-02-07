@@ -111,6 +111,19 @@ export default function Auth() {
     }
   };
 
+  // Use production URL if available, otherwise fall back to current origin
+  const getRedirectUrl = () => {
+    const productionUrl = "https://aienglishcoach.vercel.app";
+    const currentHost = window.location.hostname;
+    
+    // If we're on the production domain, use it
+    if (currentHost === "aienglishcoach.vercel.app") {
+      return `${productionUrl}/auth`;
+    }
+    // For preview/dev environments, use current origin
+    return `${window.location.origin}/auth`;
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateEmail()) return;
@@ -120,7 +133,7 @@ export default function Auth() {
       const { error } = await supabase.functions.invoke("send-password-reset", {
         body: {
           email,
-          redirectUrl: `${window.location.origin}/auth`,
+          redirectUrl: getRedirectUrl(),
         },
       });
 
