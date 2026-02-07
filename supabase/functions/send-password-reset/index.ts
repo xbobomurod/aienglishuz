@@ -39,12 +39,15 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
+    // Always use production URL for password reset redirects
+    const productionRedirectUrl = "https://aienglishcoach.vercel.app/auth";
+    
     // Generate password reset link
     const { data, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: email,
       options: {
-        redirectTo: redirectUrl,
+        redirectTo: productionRedirectUrl,
       },
     });
 
