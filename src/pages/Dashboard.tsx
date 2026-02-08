@@ -13,6 +13,10 @@ import {
   BookOpen,
   Headphones,
   KeyRound,
+  User,
+  Globe,
+  Target,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,10 +44,12 @@ import {
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useEvaluationHistory, WritingEvaluation, SpeakingEvaluation, ReadingEvaluation, ListeningEvaluation } from "@/hooks/useEvaluationHistory";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { format, subDays, isAfter } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EmailPreferences } from "@/components/EmailPreferences";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 
 type TimeFilter = "7d" | "30d" | "90d" | "all";
 
@@ -68,7 +74,8 @@ const chartConfig = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, user, signOut } = useAuth();
+  const { profile, isLoading: profileLoading, refetch: refetchProfile } = useProfile();
   const { writingHistory, speakingHistory, readingHistory, listeningHistory, isLoading } = useEvaluationHistory();
 
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("30d");
@@ -77,7 +84,7 @@ export default function Dashboard() {
   const [selectedReading, setSelectedReading] = useState<ReadingEvaluation | null>(null);
   const [selectedListening, setSelectedListening] = useState<ListeningEvaluation | null>(null);
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -421,13 +428,107 @@ export default function Dashboard() {
                 Account Settings
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-4 sm:px-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p className="font-medium text-sm sm:text-base">Password</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Change your account password</p>
+            <CardContent className="px-4 sm:px-6 space-y-4">
+              {/* Profile Edit */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm sm:text-base">Profile</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      {profile?.display_name || user?.email?.split('@')[0] || 'User'}
+                    </p>
+                  </div>
+                </div>
+                <ProfileEditDialog 
+                  trigger={<Button variant="outline" size="sm">Edit Profile</Button>}
+                  userId={user?.id || ""}
+                  userEmail={user?.email || ""}
+                  currentDisplayName={profile?.display_name || undefined}
+                  currentAvatarUrl={profile?.avatar_url || undefined}
+                  onProfileUpdate={() => refetchProfile()}
+                />
+              </div>
+
+              {/* Password */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <KeyRound className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm sm:text-base">Password</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Change your account password</p>
+                  </div>
                 </div>
                 <ChangePasswordDialog />
+              </div>
+
+              {/* Target Score */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <Target className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm sm:text-base">Target Score</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Set your IELTS goal</p>
+                  </div>
+                </div>
+                <Select defaultValue="7">
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">Band 5</SelectItem>
+                    <SelectItem value="5.5">Band 5.5</SelectItem>
+                    <SelectItem value="6">Band 6</SelectItem>
+                    <SelectItem value="6.5">Band 6.5</SelectItem>
+                    <SelectItem value="7">Band 7</SelectItem>
+                    <SelectItem value="7.5">Band 7.5</SelectItem>
+                    <SelectItem value="8">Band 8</SelectItem>
+                    <SelectItem value="8.5">Band 8.5</SelectItem>
+                    <SelectItem value="9">Band 9</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Language */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <Globe className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm sm:text-base">Interface Language</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Display language</p>
+                  </div>
+                </div>
+                <Select defaultValue="en">
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="ru">Русский</SelectItem>
+                    <SelectItem value="uz">O'zbekcha</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sign Out */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <LogOut className="w-5 h-5 text-destructive" />
+                  <div>
+                    <p className="font-medium text-sm sm:text-base text-destructive">Sign Out</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Log out of your account</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => {
+                    signOut();
+                    navigate("/auth");
+                  }}
+                >
+                  Sign Out
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -38,6 +38,25 @@ interface WritingFeedback {
   modelAnswer?: string;
 }
 
+const getMinWordCount = (taskType: WritingTaskType) => {
+  switch (taskType) {
+    case "task1-informal": return 50;
+    case "task1-formal": return 120;
+    case "task2": return 250;
+  }
+};
+
+const isTask1 = (taskType: WritingTaskType) => 
+  taskType === "task1-informal" || taskType === "task1-formal";
+
+const getTaskLabel = (taskType: WritingTaskType) => {
+  switch (taskType) {
+    case "task1-informal": return "Informal Letter";
+    case "task1-formal": return "Formal Letter";
+    case "task2": return "Essay";
+  }
+};
+
 export function WritingModule({ onBack }: WritingModuleProps) {
   const [taskType, setTaskType] = useState<WritingTaskType>("task2");
   const [topic, setTopic] = useState("");
@@ -53,13 +72,17 @@ export function WritingModule({ onBack }: WritingModuleProps) {
     writingHistory 
   } = useEvaluationHistory();
 
-  const minWordCount = taskType === "task1" ? 150 : 250;
+  const minWordCount = getMinWordCount(taskType);
 
   const handleGeneratePrompt = async () => {
     setIsGeneratingPrompt(true);
     try {
+      // Map to API task type
+      const apiTaskType = isTask1(taskType) ? "task1" : "task2";
+      const isInformal = taskType === "task1-informal";
+      
       const { data, error } = await supabase.functions.invoke('grade-essay', {
-        body: { generatePrompt: true, taskType }
+        body: { generatePrompt: true, taskType: apiTaskType, isInformal }
       });
 
       if (error || data.error) {
@@ -82,8 +105,12 @@ export function WritingModule({ onBack }: WritingModuleProps) {
     setIsLoading(true);
     
     try {
+      // Map to API task type
+      const apiTaskType = isTask1(taskType) ? "task1" : "task2";
+      const isInformal = taskType === "task1-informal";
+      
       const { data, error } = await supabase.functions.invoke('grade-essay', {
-        body: { essay, topic: topic || undefined, taskType }
+        body: { essay, topic: topic || undefined, taskType: apiTaskType, isInformal }
       });
 
       if (error) {
@@ -158,25 +185,25 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack} className="flex-shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">
+        <div className="min-w-0">
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">
             Writing Examiner
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs sm:text-sm truncate">
             IELTS + CEFR dual scoring with model answers
           </p>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Input Section */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Task Selector */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
@@ -193,7 +220,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-foreground">
-                {taskType === "task1" ? "Letter/Email Prompt" : "Essay Topic"}
+                {isTask1(taskType) ? "Letter Prompt" : "Essay Topic"}
               </label>
               <Button
                 variant="outline"
@@ -206,17 +233,17 @@ export function WritingModule({ onBack }: WritingModuleProps) {
                 ) : (
                   <Sparkles className="w-4 h-4 mr-1" />
                 )}
-                Generate
+                <span className="hidden sm:inline">Generate</span>
               </Button>
             </div>
             <Textarea
-              placeholder={taskType === "task1" 
-                ? "Click 'Generate' for a prompt, or enter your own letter/email task..."
+              placeholder={isTask1(taskType) 
+                ? "Click 'Generate' for a prompt, or enter your own letter task..."
                 : "Click 'Generate' for a topic, or enter your own essay question..."
               }
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              className="bg-card min-h-[80px] resize-none"
+              className="bg-card min-h-[60px] sm:min-h-[80px] resize-none text-sm"
             />
           </div>
           
@@ -224,17 +251,17 @@ export function WritingModule({ onBack }: WritingModuleProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-foreground">
-                Your {taskType === "task1" ? "Letter/Email" : "Essay"}
+                Your {getTaskLabel(taskType)}
               </label>
-              <span className={`text-sm ${wordCount < minWordCount ? 'text-muted-foreground' : 'text-success'}`}>
-                {wordCount} words {wordCount >= minWordCount && <CheckCircle2 className="w-4 h-4 inline ml-1" />}
+              <span className={`text-xs sm:text-sm ${wordCount < minWordCount ? 'text-muted-foreground' : 'text-success'}`}>
+                {wordCount}/{minWordCount}+ {wordCount >= minWordCount && <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline ml-1" />}
               </span>
             </div>
             <Textarea
-              placeholder={`Write your ${taskType === "task1" ? "letter/email" : "essay"} here... (minimum ${minWordCount} words)`}
+              placeholder={`Write your ${getTaskLabel(taskType).toLowerCase()} here... (minimum ${minWordCount} words)`}
               value={essay}
               onChange={(e) => setEssay(e.target.value)}
-              className="min-h-[250px] bg-card resize-none"
+              className="min-h-[180px] sm:min-h-[250px] bg-card resize-none text-sm"
             />
           </div>
 
@@ -251,21 +278,21 @@ export function WritingModule({ onBack }: WritingModuleProps) {
             ) : (
               <>
                 <Send className="w-4 h-4 mr-2" />
-                Evaluate {taskType === "task1" ? "Letter" : "Essay"}
+                Evaluate {getTaskLabel(taskType)}
               </>
             )}
           </Button>
 
           {wordCount > 0 && wordCount < minWordCount && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/10 text-accent text-sm">
+            <div className="flex items-start gap-2 p-2 sm:p-3 rounded-lg bg-accent/10 text-accent text-xs sm:text-sm">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>{taskType === "task1" ? "Task 1" : "Task 2"} requires at least {minWordCount} words. You have {minWordCount - wordCount} more to go.</span>
+              <span>{getTaskLabel(taskType)} requires at least {minWordCount} words. You have {minWordCount - wordCount} more to go.</span>
             </div>
           )}
         </div>
 
         {/* Feedback Section */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {feedback ? (
             <>
               {/* Progress Report */}
@@ -281,20 +308,20 @@ export function WritingModule({ onBack }: WritingModuleProps) {
 
               {/* Dual Score Display */}
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">📝 Overall Grade</CardTitle>
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                  <CardTitle className="text-base sm:text-lg">📝 Overall Grade</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-around">
+                <CardContent className="px-3 sm:px-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-around gap-4">
                     <DualScoreDisplay 
                       bandScore={feedback.bandScore} 
                       cefrLevel={feedback.cefrLevel} 
                       size="lg" 
                     />
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       <ScoreDisplay 
                         score={feedback.breakdown.taskResponse || feedback.breakdown.taskAchievement || 0} 
-                        label={taskType === "task1" ? "Task" : "Response"} 
+                        label={isTask1(taskType) ? "Task" : "Response"} 
                         size="sm" 
                       />
                       <ScoreDisplay score={feedback.breakdown.coherence} label="Coherence" size="sm" />
@@ -307,11 +334,11 @@ export function WritingModule({ onBack }: WritingModuleProps) {
 
               {/* Overall Feedback */}
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">💬 Feedback</CardTitle>
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                  <CardTitle className="text-base sm:text-lg">💬 Feedback</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{feedback.overallFeedback}</p>
+                <CardContent className="px-3 sm:px-6">
+                  <p className="text-muted-foreground text-sm">{feedback.overallFeedback}</p>
                 </CardContent>
               </Card>
 
@@ -320,14 +347,14 @@ export function WritingModule({ onBack }: WritingModuleProps) {
 
               {/* Suggestions */}
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">🚀 Grade-Up Suggestions</CardTitle>
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                  <CardTitle className="text-base sm:text-lg">🚀 Grade-Up Suggestions</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 sm:px-6">
                   <ul className="space-y-2">
                     {feedback.suggestions.map((suggestion, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm">
-                        <span className="w-5 h-5 rounded-full bg-success/10 text-success flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                      <li key={index} className="flex items-start gap-2 text-xs sm:text-sm">
+                        <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-success/10 text-success flex items-center justify-center flex-shrink-0 text-[10px] sm:text-xs font-bold">
                           {index + 1}
                         </span>
                         <span className="text-muted-foreground">{suggestion}</span>
@@ -343,10 +370,10 @@ export function WritingModule({ onBack }: WritingModuleProps) {
               )}
             </>
           ) : (
-            <div className="flex items-center justify-center h-full min-h-[400px] rounded-xl border border-dashed border-border bg-secondary/30">
-              <div className="text-center text-muted-foreground">
-                <PenIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Submit your {taskType === "task1" ? "letter" : "essay"} to see detailed feedback</p>
+            <div className="flex items-center justify-center h-full min-h-[300px] sm:min-h-[400px] rounded-xl border border-dashed border-border bg-secondary/30">
+              <div className="text-center text-muted-foreground p-4">
+                <PenIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">Submit your {getTaskLabel(taskType).toLowerCase()} to see detailed feedback</p>
                 <p className="text-xs mt-2">Includes IELTS band score, CEFR level, and model answer</p>
               </div>
             </div>
