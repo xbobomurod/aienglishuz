@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const getSystemPrompt = (taskType: string) => {
+const getSystemPrompt = (taskType: string, isInformal: boolean = false) => {
   const basePrompt = `You are an expert language examiner certified in both CEFR (Multi-level) and IELTS standards. You provide dual scoring for all evaluations.
 
 SCORING GUIDELINES:
@@ -26,10 +26,14 @@ CEFR Levels:
 - B1: Intermediate - Can deal with most situations, produce simple connected text`;
 
   if (taskType === "task1") {
+    const toneGuidance = isInformal 
+      ? "INFORMAL LETTER (50 words minimum): Focus on casual, friendly tone, contractions allowed, personal expressions."
+      : "FORMAL LETTER (120 words minimum): Focus on professional tone, proper salutations, formal language, no contractions.";
+    
     return `${basePrompt}
 
-TASK 1 EVALUATION (Letter/Email - 40 words minimum):
-Focus on: Purpose achievement, tone appropriateness (formal/informal), opening and closing conventions, coherent organization.
+TASK 1 EVALUATION - ${toneGuidance}
+Focus on: Purpose achievement, tone appropriateness (${isInformal ? 'informal/friendly' : 'formal/professional'}), opening and closing conventions, coherent organization.
 
 Return JSON:
 {
@@ -83,12 +87,19 @@ Return JSON:
 };
 
 const taskPrompts = {
-  task1: [
-    "Write a letter to your landlord complaining about a problem with your apartment. Include what the problem is, how it affects you, and what action you want them to take.",
+  task1Informal: [
     "Write an email to a friend inviting them to visit you. Describe your area, suggest activities, and propose dates.",
+    "Write a letter to your friend apologizing for missing their birthday party. Explain what happened and suggest meeting up soon.",
+    "Write an email to a friend asking for advice about choosing a new hobby. Mention your interests and what you're looking for.",
+    "Write a letter to a close friend thanking them for the gift they sent you. Describe how you've been using it.",
+    "Write an email to your roommate about sharing household chores. Be friendly but suggest a fair arrangement."
+  ],
+  task1Formal: [
+    "Write a letter to your landlord complaining about a problem with your apartment. Include what the problem is, how it affects you, and what action you want them to take.",
     "Write a formal letter applying for a volunteer position at a local charity. Explain why you are interested and what skills you can offer.",
     "Write an email to your manager requesting time off work. Explain why you need it and how your work will be covered.",
-    "Write a letter of complaint to a company about a faulty product. Describe the issue and what resolution you expect."
+    "Write a letter of complaint to a company about a faulty product. Describe the issue and what resolution you expect.",
+    "Write a formal letter to the local council about a traffic problem in your area. Describe the issue and suggest solutions."
   ],
   task2: [
     "Some people believe that technology has made our lives more complicated. To what extent do you agree or disagree?",
@@ -105,14 +116,19 @@ serve(async (req) => {
   }
 
   try {
-    const { essay, topic, taskType = "task2", generatePrompt = false } = await req.json();
+    const { essay, topic, taskType = "task2", isInformal = false, generatePrompt = false } = await req.json();
     
     // If user wants a new prompt
     if (generatePrompt) {
-      const prompts = taskPrompts[taskType as keyof typeof taskPrompts] || taskPrompts.task2;
+      let prompts: string[];
+      if (taskType === "task1") {
+        prompts = isInformal ? taskPrompts.task1Informal : taskPrompts.task1Formal;
+      } else {
+        prompts = taskPrompts.task2;
+      }
       const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
       return new Response(
-        JSON.stringify({ prompt: randomPrompt, taskType }),
+        JSON.stringify({ prompt: randomPrompt, taskType, isInformal }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -133,12 +149,15 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = getSystemPrompt(taskType);
+    const systemPrompt = getSystemPrompt(taskType, isInformal);
+    const taskLabel = taskType === "task1" 
+      ? (isInformal ? "Informal Letter (Task 1)" : "Formal Letter (Task 1)") 
+      : "Essay (Task 2)";
     const userMessage = topic 
-      ? `Task Type: ${taskType === "task1" ? "Letter/Email (Task 1)" : "Essay (Task 2)"}\nTopic: ${topic}\n\nSubmission:\n${essay}`
-      : `Task Type: ${taskType === "task1" ? "Letter/Email (Task 1)" : "Essay (Task 2)"}\n\nSubmission:\n${essay}`;
+      ? `Task Type: ${taskLabel}\nTopic: ${topic}\n\nSubmission:\n${essay}`
+      : `Task Type: ${taskLabel}\n\nSubmission:\n${essay}`;
 
-    console.log(`Grading ${taskType}, word count:`, essay.split(/\s+/).length);
+    console.log(`Grading ${taskType} (${isInformal ? 'informal' : 'formal'}), word count:`, essay.split(/\s+/).length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
