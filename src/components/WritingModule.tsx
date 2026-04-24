@@ -3,7 +3,6 @@ import { Send, Loader2, ArrowLeft, CheckCircle2, AlertCircle, Sparkles } from "l
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScoreDisplay } from "./ScoreDisplay";
-import { DualScoreDisplay } from "./DualScoreDisplay";
 import { CorrectionTable } from "./CorrectionTable";
 import { ModelAnswer } from "./ModelAnswer";
 import { ProgressReport } from "./ProgressReport";
@@ -19,7 +18,6 @@ interface WritingModuleProps {
 
 interface WritingFeedback {
   bandScore: number;
-  cefrLevel: string;
   breakdown: {
     taskResponse?: number;
     taskAchievement?: number;
@@ -30,7 +28,7 @@ interface WritingFeedback {
   errors: Array<{
     mistake: string;
     correction: string;
-    cefrTip?: string;
+    tip?: string;
     logic?: string;
   }>;
   suggestions: string[];
@@ -40,19 +38,16 @@ interface WritingFeedback {
 
 const getMinWordCount = (taskType: WritingTaskType) => {
   switch (taskType) {
-    case "task1-informal": return 50;
-    case "task1-formal": return 120;
+    case "task1": return 150;
     case "task2": return 250;
   }
 };
 
-const isTask1 = (taskType: WritingTaskType) => 
-  taskType === "task1-informal" || taskType === "task1-formal";
+const isTask1 = (taskType: WritingTaskType) => taskType === "task1";
 
 const getTaskLabel = (taskType: WritingTaskType) => {
   switch (taskType) {
-    case "task1-informal": return "Informal Letter";
-    case "task1-formal": return "Formal Letter";
+    case "task1": return "Task 1 Report";
     case "task2": return "Essay";
   }
 };
@@ -77,12 +72,8 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   const handleGeneratePrompt = async () => {
     setIsGeneratingPrompt(true);
     try {
-      // Map to API task type
-      const apiTaskType = isTask1(taskType) ? "task1" : "task2";
-      const isInformal = taskType === "task1-informal";
-      
       const { data, error } = await supabase.functions.invoke('grade-essay', {
-        body: { generatePrompt: true, taskType: apiTaskType, isInformal }
+        body: { generatePrompt: true, taskType }
       });
 
       if (error || data.error) {
@@ -105,12 +96,8 @@ export function WritingModule({ onBack }: WritingModuleProps) {
     setIsLoading(true);
     
     try {
-      // Map to API task type
-      const apiTaskType = isTask1(taskType) ? "task1" : "task2";
-      const isInformal = taskType === "task1-informal";
-      
       const { data, error } = await supabase.functions.invoke('grade-essay', {
-        body: { essay, topic: topic || undefined, taskType: apiTaskType, isInformal }
+        body: { essay, topic: topic || undefined, taskType }
       });
 
       if (error) {
@@ -142,10 +129,10 @@ export function WritingModule({ onBack }: WritingModuleProps) {
       });
 
       if (saveError) {
-        toast.success(`Essay graded! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
+        toast.success(`Graded! IELTS Band: ${data.bandScore}`);
       } else {
         setSavedTaskId(crypto.randomUUID());
-        toast.success(`Essay graded and saved! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
+        toast.success(`Graded and saved! IELTS Band: ${data.bandScore}`);
       }
     } catch (err) {
       console.error("Error:", err);
