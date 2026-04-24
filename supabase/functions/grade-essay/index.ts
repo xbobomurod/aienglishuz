@@ -5,40 +5,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const getSystemPrompt = (taskType: string, isInformal: boolean = false) => {
-  const basePrompt = `You are an expert language examiner certified in both CEFR (Multi-level) and IELTS standards. You provide dual scoring for all evaluations.
+const getSystemPrompt = (taskType: string) => {
+  const basePrompt = `You are an official IELTS Writing examiner. You score strictly using the public IELTS Band Descriptors (0-9, in .5 increments). You do NOT use CEFR.
 
-SCORING GUIDELINES:
-
-IELTS Bands:
-- Band 9: Expert user (C2)
-- Band 8-8.5: Very good user (C1-C2)
-- Band 7-7.5: Good user (C1)
-- Band 6-6.5: Competent user (B2)
-- Band 5-5.5: Modest user (B1-B2)
-- Band 4-4.5: Limited user (B1)
-- Band 3 and below: Very limited (A2 or below)
-
-CEFR Levels:
-- C2: Proficiency - Can express with precision, differentiate finer shades of meaning
-- C1: Advanced - Can express fluently and spontaneously, use flexible and effective language
-- B2: Upper-Intermediate - Can interact with degree of fluency, clear detailed text
-- B1: Intermediate - Can deal with most situations, produce simple connected text`;
+IELTS Band Descriptors (overview):
+- Band 9: Expert user — fully operational command, accurate, appropriate, fluent.
+- Band 8: Very good user — fully operational with only occasional unsystematic inaccuracies.
+- Band 7: Good user — operational command, occasional inaccuracies, handles complex language well.
+- Band 6: Competent user — generally effective despite some inaccuracies.
+- Band 5: Modest user — partial command, many mistakes, basic communication.
+- Band 4: Limited user — basic competence in familiar situations only.
+- Band 3 and below: Extremely limited or non-user.`;
 
   if (taskType === "task1") {
-    const toneGuidance = isInformal 
-      ? "INFORMAL LETTER (50 words minimum): Focus on casual, friendly tone, contractions allowed, personal expressions."
-      : "FORMAL LETTER (120 words minimum): Focus on professional tone, proper salutations, formal language, no contractions.";
-    
     return `${basePrompt}
 
-TASK 1 EVALUATION - ${toneGuidance}
-Focus on: Purpose achievement, tone appropriateness (${isInformal ? 'informal/friendly' : 'formal/professional'}), opening and closing conventions, coherent organization.
+TASK 1 EVALUATION — IELTS ACADEMIC WRITING TASK 1 (150+ words, 20 minutes recommended):
+The candidate describes visual information (graph, chart, table, diagram, map or process) in their own words.
+Score using the four official Task 1 criteria, each weighted equally:
+1. Task Achievement — selects and reports key features, accurate data, clear overview.
+2. Coherence and Cohesion — logical organisation, paragraphing, cohesive devices.
+3. Lexical Resource — range, accuracy, appropriate paraphrase of the prompt.
+4. Grammatical Range and Accuracy — variety of structures, error-free sentences.
+Penalise: under 150 words; copying prompt verbatim; opinions/personal commentary; lack of overview.
 
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "breakdown": {
     "taskAchievement": <number 0-9>,
     "coherence": <number 0-9>,
@@ -49,24 +42,28 @@ Return JSON:
     {
       "mistake": "<exact phrase>",
       "correction": "<corrected version>",
-      "cefrTip": "<tip at appropriate CEFR level>"
+      "tip": "<short improvement tip mapped to a band descriptor>"
     }
   ],
-  "suggestions": ["<upgrade suggestions>"],
-  "overallFeedback": "<summary>",
-  "modelAnswer": "<C1 level model answer for the same task>"
+  "suggestions": ["<concrete band-up suggestions>"],
+  "overallFeedback": "<summary referencing band descriptors>",
+  "modelAnswer": "<Band 8+ model answer (150-180 words) for the same prompt>"
 }`;
   }
 
   return `${basePrompt}
 
-TASK 2 EVALUATION (Essay - 250 words minimum):
-Focus on: Task response (addressing all parts), coherence & cohesion, lexical resource, grammatical range & accuracy.
+TASK 2 EVALUATION — IELTS WRITING TASK 2 (250+ words, 40 minutes recommended):
+Score using the four official Task 2 criteria, each weighted equally:
+1. Task Response — addresses all parts of the question, clear position, developed ideas.
+2. Coherence and Cohesion — paragraphing, progression, cohesive devices.
+3. Lexical Resource — range, precision, collocation, paraphrasing.
+4. Grammatical Range and Accuracy — varied structures, error-free sentences.
+Penalise: under 250 words; off-topic; memorised content; lack of position.
 
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "breakdown": {
     "taskResponse": <number 0-9>,
     "coherence": <number 0-9>,
@@ -77,29 +74,22 @@ Return JSON:
     {
       "mistake": "<exact phrase>",
       "correction": "<corrected version>",
-      "cefrTip": "<tip at appropriate CEFR level>"
+      "tip": "<short improvement tip mapped to a band descriptor>"
     }
   ],
-  "suggestions": ["<upgrade suggestions>"],
-  "overallFeedback": "<summary>",
-  "modelAnswer": "<C1 level model answer for the same topic>"
+  "suggestions": ["<concrete band-up suggestions>"],
+  "overallFeedback": "<summary referencing band descriptors>",
+  "modelAnswer": "<Band 8+ model answer (around 270 words) for the same topic>"
 }`;
 };
 
 const taskPrompts = {
-  task1Informal: [
-    "Write an email to a friend inviting them to visit you. Describe your area, suggest activities, and propose dates.",
-    "Write a letter to your friend apologizing for missing their birthday party. Explain what happened and suggest meeting up soon.",
-    "Write an email to a friend asking for advice about choosing a new hobby. Mention your interests and what you're looking for.",
-    "Write a letter to a close friend thanking them for the gift they sent you. Describe how you've been using it.",
-    "Write an email to your roommate about sharing household chores. Be friendly but suggest a fair arrangement."
-  ],
-  task1Formal: [
-    "Write a letter to your landlord complaining about a problem with your apartment. Include what the problem is, how it affects you, and what action you want them to take.",
-    "Write a formal letter applying for a volunteer position at a local charity. Explain why you are interested and what skills you can offer.",
-    "Write an email to your manager requesting time off work. Explain why you need it and how your work will be covered.",
-    "Write a letter of complaint to a company about a faulty product. Describe the issue and what resolution you expect.",
-    "Write a formal letter to the local council about a traffic problem in your area. Describe the issue and suggest solutions."
+  task1: [
+    "The chart below shows the percentage of households with internet access in three countries (UK, Germany, Japan) between 2000 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "The graph below shows the average monthly temperature and rainfall in a major Asian city. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "The table below shows the proportion of energy produced from different sources in four countries in 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "The diagram below shows the process of recycling plastic bottles. Summarise the information by selecting and reporting the main stages of the process.",
+    "The two maps below show a town centre in 1990 and today. Summarise the information by selecting and reporting the main changes."
   ],
   task2: [
     "Some people believe that technology has made our lives more complicated. To what extent do you agree or disagree?",
@@ -116,19 +106,14 @@ serve(async (req) => {
   }
 
   try {
-    const { essay, topic, taskType = "task2", isInformal = false, generatePrompt = false } = await req.json();
-    
+    const { essay, topic, taskType = "task2", generatePrompt = false } = await req.json();
+
     // If user wants a new prompt
     if (generatePrompt) {
-      let prompts: string[];
-      if (taskType === "task1") {
-        prompts = isInformal ? taskPrompts.task1Informal : taskPrompts.task1Formal;
-      } else {
-        prompts = taskPrompts.task2;
-      }
+      const prompts = taskType === "task1" ? taskPrompts.task1 : taskPrompts.task2;
       const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
       return new Response(
-        JSON.stringify({ prompt: randomPrompt, taskType, isInformal }),
+        JSON.stringify({ prompt: randomPrompt, taskType }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -149,15 +134,13 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = getSystemPrompt(taskType, isInformal);
-    const taskLabel = taskType === "task1" 
-      ? (isInformal ? "Informal Letter (Task 1)" : "Formal Letter (Task 1)") 
-      : "Essay (Task 2)";
-    const userMessage = topic 
-      ? `Task Type: ${taskLabel}\nTopic: ${topic}\n\nSubmission:\n${essay}`
-      : `Task Type: ${taskLabel}\n\nSubmission:\n${essay}`;
+    const systemPrompt = getSystemPrompt(taskType);
+    const taskLabel = taskType === "task1" ? "IELTS Academic Task 1" : "IELTS Task 2 Essay";
+    const userMessage = topic
+      ? `Task Type: ${taskLabel}\nPrompt: ${topic}\n\nCandidate response:\n${essay}`
+      : `Task Type: ${taskLabel}\n\nCandidate response:\n${essay}`;
 
-    console.log(`Grading ${taskType} (${isInformal ? 'informal' : 'formal'}), word count:`, essay.split(/\s+/).length);
+    console.log(`Grading ${taskType}, word count:`, essay.split(/\s+/).length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -228,7 +211,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Essay graded successfully, band score:", feedback.bandScore, "CEFR:", feedback.cefrLevel);
+    console.log("Essay graded successfully, band score:", feedback.bandScore);
 
     return new Response(
       JSON.stringify(feedback),
