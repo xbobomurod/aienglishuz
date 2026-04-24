@@ -1,8 +1,8 @@
-import { FileText, MessageSquare, Image, Clock, Users, Mail, Briefcase } from "lucide-react";
+import { FileText, MessageSquare, Image, Clock, Users, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export type WritingTaskType = "task1-informal" | "task1-formal" | "task2";
+export type WritingTaskType = "task1" | "task2";
 export type SpeakingTaskType = "interview" | "picture" | "talk" | "discussion";
 
 interface WritingTaskSelectorProps {
@@ -21,23 +21,16 @@ type TaskSelectorProps = WritingTaskSelectorProps | SpeakingTaskSelectorProps;
 
 const writingTasks = [
   {
-    id: "task1-informal" as const,
-    title: "Task 1: Informal",
-    description: "Personal letter to a friend or family member.",
-    icon: Mail,
-    wordCount: 50,
-  },
-  {
-    id: "task1-formal" as const,
-    title: "Task 1: Formal",
-    description: "Business letter or official correspondence.",
-    icon: Briefcase,
-    wordCount: 120,
+    id: "task1" as const,
+    title: "Task 1: Academic",
+    description: "Describe a graph, chart, table, diagram or process.",
+    icon: BarChart3,
+    wordCount: 150,
   },
   {
     id: "task2" as const,
     title: "Task 2: Essay",
-    description: "Academic argumentation essay.",
+    description: "Academic argumentation essay (250+ words).",
     icon: FileText,
     wordCount: 250,
   },
@@ -89,7 +82,7 @@ export function TaskSelector(props: TaskSelectorProps) {
   return (
     <div className={cn(
       "grid gap-2 sm:gap-3",
-      type === "writing" ? "grid-cols-3" : "grid-cols-2"
+      type === "writing" ? "grid-cols-2" : "grid-cols-2"
     )}>
       {tasks.map((task) => {
         const Icon = task.icon;
