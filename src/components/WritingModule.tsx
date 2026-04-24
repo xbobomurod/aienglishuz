@@ -293,18 +293,14 @@ export function WritingModule({ onBack }: WritingModuleProps) {
                 />
               )}
 
-              {/* Dual Score Display */}
+              {/* Score Display */}
               <Card>
                 <CardHeader className="pb-2 px-3 sm:px-6">
-                  <CardTitle className="text-base sm:text-lg">📝 Overall Grade</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">📝 Overall Band Score</CardTitle>
                 </CardHeader>
                 <CardContent className="px-3 sm:px-6">
                   <div className="flex flex-col sm:flex-row items-center justify-around gap-4">
-                    <DualScoreDisplay 
-                      bandScore={feedback.bandScore} 
-                      cefrLevel={feedback.cefrLevel} 
-                      size="lg" 
-                    />
+                    <ScoreDisplay score={feedback.bandScore} label="IELTS Band" size="lg" />
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       <ScoreDisplay 
                         score={feedback.breakdown.taskResponse || feedback.breakdown.taskAchievement || 0} 
