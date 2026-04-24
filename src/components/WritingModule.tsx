@@ -183,7 +183,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
             Writing Examiner
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm truncate">
-            IELTS + CEFR dual scoring with model answers
+            Official IELTS band scoring with model answers
           </p>
         </div>
       </div>
@@ -349,7 +349,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
 
               {/* Model Answer */}
               {feedback.modelAnswer && (
-                <ModelAnswer answer={feedback.modelAnswer} level="C1" />
+                <ModelAnswer answer={feedback.modelAnswer} level="Band 8+" />
               )}
             </>
           ) : (
@@ -357,7 +357,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
               <div className="text-center text-muted-foreground p-4">
                 <PenIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">Submit your {getTaskLabel(taskType).toLowerCase()} to see detailed feedback</p>
-                <p className="text-xs mt-2">Includes IELTS band score, CEFR level, and model answer</p>
+                <p className="text-xs mt-2">Includes IELTS band breakdown and a model answer</p>
               </div>
             </div>
           )}
