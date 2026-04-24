@@ -1,164 +1,165 @@
-import { BookOpen, Mic, PenTool, Sparkles, Headphones, Trophy, Clock } from "lucide-react";
-import { ModuleCard } from "./ModuleCard";
+import { BookOpen, Mic, PenTool, Headphones, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 interface HomeModuleProps {
   onSelectModule: (module: "writing" | "speaking" | "reading" | "listening" | "mocktest") => void;
 }
 
-const dailyChallenges = [
-  "Should governments invest more in public transportation or road infrastructure?",
-  "What are the advantages and disadvantages of remote work?",
-  "How has technology changed the way we communicate?",
-  "Is it better to learn from books or from experience?",
+const skills = [
+  {
+    id: "reading" as const,
+    letter: "R",
+    title: "Reading",
+    spec: "3 passages • 40 questions • 60 min",
+    icon: BookOpen,
+  },
+  {
+    id: "listening" as const,
+    letter: "L",
+    title: "Listening",
+    spec: "4 sections • 40 questions • 30 min",
+    icon: Headphones,
+  },
+  {
+    id: "writing" as const,
+    letter: "W",
+    title: "Writing",
+    spec: "Task 1 + Task 2 • 60 min",
+    icon: PenTool,
+  },
+  {
+    id: "speaking" as const,
+    letter: "S",
+    title: "Speaking",
+    spec: "Parts 1–3 • 11–14 min",
+    icon: Mic,
+  },
 ];
 
 export function HomeModule({ onSelectModule }: HomeModuleProps) {
-  const todayChallenge = dailyChallenges[new Date().getDay() % dailyChallenges.length];
-
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in">
-      {/* Hero Section */}
-      <div className="text-center space-y-3 sm:space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
-          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          AI-Powered English Learning
-        </div>
-        <h1 className="font-display text-2xl sm:text-4xl md:text-5xl font-bold text-foreground px-2">
-          Master Your English Skills
-        </h1>
-        <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-          Get instant, detailed feedback on your writing and speaking. Our AI examiner 
-          evaluates your work using IELTS/CEFR standards to help you improve faster.
-        </p>
-      </div>
-
-      {/* Mock Test Feature */}
-      <Card className="max-w-5xl mx-auto bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 border-primary/20">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+    <div className="animate-fade-in">
+      <div className="max-w-7xl mx-auto px-1 sm:px-4 lg:px-6 py-6 sm:py-12 lg:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-20 items-center">
+          {/* Editorial copy */}
+          <div className="flex flex-col items-start">
+            <div className="inline-flex items-center gap-3 px-3 py-1.5 border border-primary/15 rounded-md bg-card shadow-soft mb-6 sm:mb-8">
+              <span className="block w-1.5 h-1.5 rounded-full bg-accent" />
+              <span className="text-[11px] sm:text-xs font-semibold tracking-[0.2em] uppercase text-primary/80">
+                Private IELTS Coach
+              </span>
             </div>
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 mb-1 sm:mb-2">
-                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">Full Mock Test</h3>
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  <Clock className="w-3 h-3" />
-                  ~2h 45m
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Experience a complete IELTS simulation with official timing. Test all 4 modules 
-                and receive your estimated overall band score.
-              </p>
-            </div>
-            <Button 
-              onClick={() => onSelectModule("mocktest")}
-              size="lg"
-              className="gap-2 bg-primary hover:bg-primary/90 w-full sm:w-auto"
-            >
-              <Trophy className="w-5 h-5" />
-              Start Mock Test
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Module Selection */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
-        <ModuleCard
-          icon={BookOpen}
-          title="Reading"
-          description="Practice with AI-generated passages and various question types."
-          accentColor="success"
-          onClick={() => onSelectModule("reading")}
-        />
-        <ModuleCard
-          icon={Headphones}
-          title="Listening"
-          description="Listen to audio scripts and answer comprehension questions."
-          accentColor="accent"
-          onClick={() => onSelectModule("listening")}
-        />
-        <ModuleCard
-          icon={PenTool}
-          title="Writing"
-          description="Submit essays for detailed band scores and improvement tips."
-          accentColor="primary"
-          onClick={() => onSelectModule("writing")}
-        />
-        <ModuleCard
-          icon={Mic}
-          title="Speaking"
-          description="Record transcripts for fluency analysis and vocabulary feedback."
-          accentColor="accent"
-          onClick={() => onSelectModule("speaking")}
-        />
-      </div>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl text-primary tracking-tight leading-[1.05] mb-5 sm:mb-6 text-balance">
+              Secure your Band 8.5
+              <br />
+              <span className="italic font-normal text-primary/75">with quiet certainty.</span>
+            </h1>
 
-      {/* Daily Challenge */}
-      <div className="max-w-3xl mx-auto px-2">
-        <div className="relative p-4 sm:p-6 rounded-xl bg-gradient-to-br from-primary/5 via-accent/5 to-success/5 border border-border/50">
-          <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-accent/10 rounded-full blur-3xl" />
-          <div className="relative">
-            <div className="flex items-center gap-2 text-accent font-semibold mb-2 sm:mb-3">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-sm sm:text-base">Daily Challenge</span>
-            </div>
-            <p className="text-foreground font-medium text-sm sm:text-lg mb-3 sm:mb-4">
-              "{todayChallenge}"
+            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-[48ch] mb-8 sm:mb-10">
+              An elite, AI-driven evaluation calibrated to official IELTS band descriptors.
+              Forensic diagnostics across all four skills, delivered instantly.
             </p>
-            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
-              <Button 
+
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+              <Button
+                onClick={() => onSelectModule("mocktest")}
+                size="lg"
+                className="px-6 sm:px-8 py-5 sm:py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-card"
+              >
+                Commence Mock Test
+              </Button>
+              <Button
                 onClick={() => onSelectModule("writing")}
-                className="bg-primary hover:bg-primary/90 text-sm"
-                size="sm"
-              >
-                Write an Essay
-              </Button>
-              <Button 
                 variant="outline"
-                onClick={() => onSelectModule("speaking")}
-                size="sm"
-                className="text-sm"
+                size="lg"
+                className="px-6 sm:px-8 py-5 sm:py-6 border-primary/20 hover:bg-primary/5 text-primary font-medium"
               >
-                Practice Speaking
+                Refine a Skill
               </Button>
-              <Button 
-                variant="outline"
-                onClick={() => onSelectModule("reading")}
-                size="sm"
-                className="text-sm"
-              >
-                Try Reading
-              </Button>
+            </div>
+
+            {/* Trust strip */}
+            <div className="mt-12 sm:mt-16 pt-6 sm:pt-8 border-t border-primary/10 w-full grid grid-cols-3 gap-4 sm:gap-12">
+              <div className="flex flex-col gap-1">
+                <span className="font-display text-xl sm:text-2xl text-primary">100%</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide uppercase">
+                  Band 9 Rubric
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="font-display text-xl sm:text-2xl text-primary">Instant</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide uppercase">
+                  AI Feedback
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="font-display text-xl sm:text-2xl text-primary">4 / 4</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide uppercase">
+                  Skill Coverage
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* How It Works */}
-      <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4 px-2">
-        <h2 className="font-display text-xl sm:text-2xl font-semibold text-center text-foreground">
-          How It Works
-        </h2>
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          {[
-            { step: "1", title: "Choose", desc: "Select a module" },
-            { step: "2", title: "Submit", desc: "Enter your work" },
-            { step: "3", title: "Learn", desc: "Get AI feedback" },
-          ].map((item) => (
-            <div key={item.step} className="text-center p-2 sm:p-4">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full gradient-hero text-primary-foreground font-bold text-sm sm:text-base flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                {item.step}
+          {/* Active syllabus card */}
+          <div className="relative">
+            <div className="bg-card border border-primary/10 rounded-xl p-5 sm:p-8 shadow-elevated">
+              <div className="flex justify-between items-end mb-5 sm:mb-6">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-primary uppercase">
+                    Active Syllabus
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    Select a module to begin.
+                  </p>
+                </div>
+                <span className="px-2 py-1 bg-accent/10 text-accent font-medium text-[10px] sm:text-xs rounded uppercase tracking-wider">
+                  Ready
+                </span>
               </div>
-              <h3 className="font-semibold text-foreground text-sm sm:text-base">{item.title}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">{item.desc}</p>
+
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                {skills.map((skill) => (
+                  <button
+                    key={skill.id}
+                    onClick={() => onSelectModule(skill.id)}
+                    className="group p-4 sm:p-5 rounded-lg border border-primary/10 bg-secondary/50 hover:bg-secondary hover:border-accent/40 transition-colors text-left flex flex-col justify-between aspect-square focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="font-display text-2xl sm:text-3xl text-primary/30 group-hover:text-accent transition-colors">
+                        {skill.letter}
+                      </span>
+                      <span className="w-2 h-2 rounded-full bg-primary/20 group-hover:bg-primary transition-colors" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-primary mb-1 text-sm sm:text-base">
+                        {skill.title}
+                      </h4>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground leading-snug">
+                        {skill.spec}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => onSelectModule("mocktest")}
+                className="w-full p-4 rounded-lg bg-primary text-primary-foreground flex items-center justify-between hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <div className="flex flex-col text-left">
+                  <span className="text-sm font-semibold">Full IELTS Mock Test</span>
+                  <span className="text-xs text-primary-foreground/70 mt-0.5">
+                    2h 45m • All 4 modules • Estimated band score
+                  </span>
+                </div>
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-foreground/10">
+                  <Plus className="w-4 h-4" />
+                </span>
+              </button>
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>
