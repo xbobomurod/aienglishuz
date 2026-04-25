@@ -115,8 +115,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
         body: { 
           transcript, 
           topic: topic || undefined, 
-          taskType,
-          imageDescription: undefined
+          taskType
         }
       });
 
