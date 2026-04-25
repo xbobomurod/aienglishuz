@@ -70,7 +70,7 @@ interface TestResult {
 
 export function ListeningModule({ onBack }: ListeningModuleProps) {
   const { user } = useAuth();
-  const [section, setSection] = useState<"1" | "2" | "3" | "4">("1");
+  const [section, setSection] = useState<"full-test" | "1" | "2" | "3" | "4">("full-test");
   const [test, setTest] = useState<ListeningTest | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -248,6 +248,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
   const getSectionDescription = (s: string) => {
     switch (s) {
+      case "full-test": return "All four IELTS sections, 40 questions";
       case "1": return "Everyday conversation (e.g., booking, appointments)";
       case "2": return "Monologue in social context (e.g., tour guide)";
       case "3": return "Educational discussion (e.g., student project)";
@@ -299,6 +300,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="full-test">Full Test - {getSectionDescription("full-test")}</SelectItem>
                   <SelectItem value="1">Section 1 - {getSectionDescription("1")}</SelectItem>
                   <SelectItem value="2">Section 2 - {getSectionDescription("2")}</SelectItem>
                   <SelectItem value="3">Section 3 - {getSectionDescription("3")}</SelectItem>
@@ -310,9 +312,9 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
             <div className="p-4 rounded-lg bg-accent/10 text-sm text-muted-foreground">
               <p className="font-medium text-foreground mb-2">What to expect:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>One audio script played via text-to-speech</li>
-                <li>10 questions: fill-in-the-blank and multiple choice</li>
-                <li>You can replay the audio as needed</li>
+                <li>Full Listening option: 4 sections, 40 questions, official sequence</li>
+                <li>Question types include completion, matching, short answer and multiple choice</li>
+                <li>Practice mode allows replay before scoring</li>
                 <li>Instant scoring with IELTS band feedback</li>
               </ul>
             </div>
