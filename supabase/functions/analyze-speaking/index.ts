@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const getSystemPrompt = (taskType: string, hasImage: boolean = false) => {
-  const basePrompt = `You are an official IELTS Speaking Examiner. You score strictly with IELTS Speaking Band Descriptors only (0-9 in .5 increments). Do not use CEFR levels.
+  const basePrompt = `You are an official IELTS Speaking Examiner. You score strictly with IELTS Speaking Band Descriptors only (0-9 in .5 increments). Do not use alternative level systems.
 
 SCORING GUIDELINES:
 
