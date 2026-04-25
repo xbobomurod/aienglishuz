@@ -111,17 +111,8 @@ export default function Auth() {
     }
   };
 
-  // Use production URL if available, otherwise fall back to current origin
   const getRedirectUrl = () => {
-    const productionUrl = "https://aienglishcoach.vercel.app";
-    const currentHost = window.location.hostname;
-    
-    // If we're on the production domain, use it
-    if (currentHost === "aienglishcoach.vercel.app") {
-      return `${productionUrl}/auth`;
-    }
-    // For preview/dev environments, use current origin
-    return `${window.location.origin}/auth`;
+    return "https://aienglishcoach.vercel.app/auth/reset-password";
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
