@@ -246,14 +246,6 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     }
   };
 
-  const getCefrFromBand = (band: number): string => {
-    if (band >= 8) return "C2";
-    if (band >= 7) return "C1";
-    if (band >= 5.5) return "B2";
-    if (band >= 4) return "B1";
-    return "A2";
-  };
-
   const getSectionDescription = (s: string) => {
     switch (s) {
       case "1": return "Everyday conversation (e.g., booking, appointments)";
@@ -321,7 +313,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                 <li>One audio script played via text-to-speech</li>
                 <li>10 questions: fill-in-the-blank and multiple choice</li>
                 <li>You can replay the audio as needed</li>
-                <li>Instant scoring with IELTS band and CEFR level</li>
+                <li>Instant scoring with IELTS band feedback</li>
               </ul>
             </div>
 
@@ -490,14 +482,10 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid sm:grid-cols-3 gap-4 mb-6">
                 <div className="text-center p-4 rounded-lg bg-accent/10">
                   <p className="text-3xl font-bold text-accent">{result.bandScore}</p>
                   <p className="text-sm text-muted-foreground">IELTS Band</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-primary/10">
-                  <p className="text-3xl font-bold text-primary">{getCefrFromBand(result.bandScore)}</p>
-                  <p className="text-sm text-muted-foreground">CEFR Level</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-success/10">
                   <p className="text-3xl font-bold text-success">{result.correctCount}/{result.totalQuestions}</p>

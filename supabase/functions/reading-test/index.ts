@@ -40,8 +40,9 @@ serve(async (req) => {
     if (action === "generate") {
       console.log("Generating reading test with difficulty:", difficulty);
 
-      const difficultyLevel = difficulty || "intermediate";
-      const wordCount = difficultyLevel === "beginner" ? "300-400" : difficultyLevel === "advanced" ? "600-800" : "450-550";
+      const difficultyLevel = difficulty || "passage-2";
+      const wordCount = difficultyLevel === "passage-1" ? "300-400" : difficultyLevel === "passage-3" ? "600-800" : "450-550";
+      const passageLabel = difficultyLevel === "passage-1" ? "IELTS Passage 1" : difficultyLevel === "passage-3" ? "IELTS Passage 3" : "IELTS Passage 2";
 
       const systemPrompt = `You are an IELTS Reading test generator. Create authentic IELTS-style reading passages with questions.
 
@@ -80,7 +81,7 @@ Include a mix of question types:
 - 3 true/false/not given questions
 - 3 fill-in-the-blank questions
 
-Difficulty level: ${difficultyLevel}
+Difficulty level: ${passageLabel}
 Make questions progressively harder. Ensure all answers are clearly derivable from the passage.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -93,7 +94,7 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Generate a new ${difficultyLevel} level IELTS reading test. Return only valid JSON.` }
+            { role: "user", content: `Generate a new ${passageLabel} reading test. Return only valid JSON.` }
           ],
           temperature: 0.7,
         }),

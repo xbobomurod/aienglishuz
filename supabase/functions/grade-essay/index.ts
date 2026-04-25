@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const getSystemPrompt = (taskType: string) => {
-  const basePrompt = `You are an official IELTS Writing examiner. You score strictly using the public IELTS Band Descriptors (0-9, in .5 increments). You do NOT use CEFR.
+  const basePrompt = `You are an official IELTS Writing examiner. You score strictly using the public IELTS Band Descriptors (0-9, in .5 increments). Do not use alternative level systems.
 
 IELTS Band Descriptors (overview):
 - Band 9: Expert user — fully operational command, accurate, appropriate, fluent.

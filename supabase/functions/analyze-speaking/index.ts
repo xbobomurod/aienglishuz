@@ -6,24 +6,17 @@ const corsHeaders = {
 };
 
 const getSystemPrompt = (taskType: string, hasImage: boolean = false) => {
-  const basePrompt = `You are an expert IELTS Speaking Examiner and CEFR Certified Assessor. You provide dual scoring (IELTS 0-9 + CEFR B1-C2) for all evaluations.
+  const basePrompt = `You are an official IELTS Speaking Examiner. You score strictly with IELTS Speaking Band Descriptors only (0-9 in .5 increments). Do not use alternative level systems.
 
 SCORING GUIDELINES:
 
-IELTS Bands:
-- Band 9: Expert user (C2)
-- Band 8-8.5: Very good user (C1-C2)
-- Band 7-7.5: Good user (C1)
-- Band 6-6.5: Competent user (B2)
-- Band 5-5.5: Modest user (B1-B2)
-- Band 4-4.5: Limited user (B1)
-- Band 3 and below: Very limited (A2 or below)
+IELTS Speaking criteria:
+- Fluency and Coherence
+- Lexical Resource
+- Grammatical Range and Accuracy
+- Pronunciation
 
-CEFR Levels:
-- C2: Proficiency - Can express with precision, differentiate finer shades of meaning
-- C1: Advanced - Can express fluently and spontaneously, use flexible and effective language
-- B2: Upper-Intermediate - Can interact with degree of fluency, clear detailed text
-- B1: Intermediate - Can deal with most situations, produce simple connected text`;
+Use concise examiner-style feedback and return valid JSON only.`;
 
   if (taskType === "interview") {
     return `${basePrompt}
@@ -35,7 +28,6 @@ Focus on: Fluency, ability to expand answers, pronunciation clarity, basic vocab
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -44,8 +36,8 @@ Return JSON:
   "transcriptWithHighlights": "<transcript with **bold** on errors>",
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model answer>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model answer>",
   "dailyPracticeTip": "<specific exercise>",
   "overallFeedback": "<summary>"
 }`;
@@ -62,7 +54,6 @@ Also evaluate: Spatial vocabulary, descriptive adjectives, present continuous fo
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -76,8 +67,8 @@ Return JSON:
   },
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model description>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model description>",
   "dailyPracticeTip": "<specific exercise for picture description>",
   "overallFeedback": "<summary>"
 }`;
@@ -93,7 +84,6 @@ Focus on: Coherent extended speech, topic development, use of discourse markers,
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -107,8 +97,8 @@ Return JSON:
   },
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model response to the same cue card>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model response to the same cue card>",
   "dailyPracticeTip": "<specific exercise>",
   "overallFeedback": "<summary>"
 }`;
@@ -124,7 +114,6 @@ Focus on: Complex ideas, speculation, hypothetical language, balanced arguments,
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -138,8 +127,8 @@ Return JSON:
   },
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model discussion response>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model discussion response>",
   "dailyPracticeTip": "<specific exercise>",
   "overallFeedback": "<summary>"
 }`;
@@ -292,7 +281,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Speaking analyzed successfully, band score:", feedback.bandScore, "CEFR:", feedback.cefrLevel);
+    console.log("Speaking analyzed successfully, band score:", feedback.bandScore);
 
     return new Response(
       JSON.stringify(feedback),

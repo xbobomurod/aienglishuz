@@ -25,7 +25,6 @@ interface SpeakingModuleProps {
 
 interface SpeakingFeedback {
   bandScore: number;
-  cefrLevel: string;
   scoreJustification: string;
   fluencyScore: number;
   vocabularyScore: number;
@@ -63,7 +62,6 @@ interface SpeakingFeedback {
   grammarCorrections: Array<{
     mistake: string;
     correction: string;
-    cefrTip?: string;
     explanation?: string;
   }>;
   nativeUpgrade: string;
@@ -153,10 +151,10 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
       });
 
       if (saveError) {
-        toast.success(`Speaking analyzed! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
+        toast.success(`Speaking analyzed! IELTS Band: ${data.bandScore}`);
       } else {
         setSavedTaskId(crypto.randomUUID());
-        toast.success(`Speaking analyzed and saved! IELTS: ${data.bandScore} | CEFR: ${data.cefrLevel}`);
+        toast.success(`Speaking analyzed and saved! IELTS Band: ${data.bandScore}`);
       }
     } catch (err) {
       console.error("Error:", err);
@@ -212,7 +210,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
             Speaking Analyst
           </h1>
           <p className="text-muted-foreground text-sm">
-            IELTS + CEFR dual scoring with detailed analysis
+            IELTS Speaking band scoring with detailed examiner feedback
           </p>
         </div>
       </div>
@@ -381,7 +379,6 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                   <div className="flex items-center justify-around mb-4">
                     <DualScoreDisplay 
                       bandScore={feedback.bandScore} 
-                      cefrLevel={feedback.cefrLevel} 
                       size="lg" 
                     />
                     <div className="space-y-3">
@@ -552,14 +549,14 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                 </CardContent>
               </Card>
 
-              {/* Grammar Corrections with CEFR Tips */}
+              {/* Grammar Corrections */}
               <CorrectionTable 
                 items={feedback.grammarCorrections} 
                 title="Grammar Corrections" 
               />
 
               {/* Native Model Answer */}
-              <ModelAnswer answer={feedback.nativeUpgrade} level="C1" />
+              <ModelAnswer answer={feedback.nativeUpgrade} level="Band 8+" />
 
               {/* Daily Practice Tip */}
               <Card className="border-primary/30 bg-primary/5">
@@ -589,7 +586,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               <div className="text-center text-muted-foreground">
                 <MicIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>Submit your transcript to see detailed analysis</p>
-                <p className="text-xs mt-2">Includes IELTS band, CEFR level, and C1 model answer</p>
+                <p className="text-xs mt-2">Includes IELTS band, examiner feedback, and a Band 8+ model answer</p>
               </div>
             </div>
           )}

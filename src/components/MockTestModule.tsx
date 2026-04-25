@@ -100,14 +100,6 @@ function getBandColor(band: number): string {
   return "text-destructive";
 }
 
-function getCefrFromBand(band: number): string {
-  if (band >= 8.5) return "C2";
-  if (band >= 7.0) return "C1";
-  if (band >= 5.5) return "B2";
-  if (band >= 4.0) return "B1";
-  return "A2";
-}
-
 export function MockTestModule({ onBack }: MockTestModuleProps) {
   const [currentSection, setCurrentSection] = useState<TestSection>("intro");
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -300,7 +292,6 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
   // Results Screen
   if (currentSection === "results") {
     const overallBand = calculateOverallBand();
-    const cefr = getCefrFromBand(overallBand);
 
     return (
       <div className="space-y-6 animate-fade-in">
@@ -327,9 +318,6 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
               <div className={`text-6xl font-bold ${getBandColor(overallBand)}`}>
                 {overallBand.toFixed(1)}
               </div>
-              <Badge className="mt-3" variant="secondary">
-                CEFR Level: {cefr}
-              </Badge>
               <p className="text-sm text-muted-foreground mt-4">
                 Total time: {formatTime(totalElapsed)} / {formatTime(TOTAL_DURATION)}
               </p>
