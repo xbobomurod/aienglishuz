@@ -43,37 +43,6 @@ Return JSON:
 }`;
   }
 
-  if (taskType === "picture") {
-    return `${basePrompt}
-
-TASK 1.2 - PICTURE DESCRIPTION EVALUATION:
-${hasImage ? "Evaluate their description of the provided image." : "Evaluate their description of the hypothetical scene they described."}
-CRITICAL FOCUS: Use of prepositions of place (in the background, next to, in front of, behind, on the left/right, at the top/bottom, between, among).
-Also evaluate: Spatial vocabulary, descriptive adjectives, present continuous for actions.
-
-Return JSON:
-{
-  "bandScore": <number 0-9 with .5 increments>,
-  "scoreJustification": "<brief justification>",
-  "fluencyScore": <number 0-9>,
-  "vocabularyScore": <number 0-9>,
-  "grammarScore": <number 0-9>,
-  "spatialLanguageScore": <number 0-9>,
-  "transcriptWithHighlights": "<transcript with **bold** on errors>",
-  "prepositionAnalysis": {
-    "used": ["<prepositions they used>"],
-    "missing": ["<prepositions they could have used>"],
-    "feedback": "<specific feedback on spatial language>"
-  },
-  "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
-  "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
-  "nativeUpgrade": "<Band 8+ model description>",
-  "dailyPracticeTip": "<specific exercise for picture description>",
-  "overallFeedback": "<summary>"
-}`;
-  }
-
   if (taskType === "talk") {
     return `${basePrompt}
 
