@@ -21,8 +21,22 @@ export default function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Check for error in URL hash (from Supabase redirect)
+  // Check for recovery token or error in URL
   useEffect(() => {
+    const tokenHash = searchParams.get("token_hash");
+
+    if (tokenHash) {
+      setIsLoading(true);
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" })
+        .then(({ error: verifyError }) => {
+          if (verifyError) {
+            setError("This password reset link is invalid or has expired. Please request a new one.");
+          }
+        })
+        .finally(() => setIsLoading(false));
+      return;
+    }
+
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const errorCode = hashParams.get("error_code");
     const errorDescription = hashParams.get("error_description");
@@ -36,7 +50,7 @@ export default function ResetPassword() {
         setError(errorDescription?.replace(/\+/g, " ") || "An error occurred. Please try again.");
       }
     }
-  }, []);
+  }, [searchParams]);
 
   const validatePassword = () => {
     try {
