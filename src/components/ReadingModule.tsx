@@ -63,7 +63,7 @@ interface TestResult {
 
 export function ReadingModule({ onBack }: ReadingModuleProps) {
   const { user } = useAuth();
-  const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
+  const [difficulty, setDifficulty] = useState<"passage-1" | "passage-2" | "passage-3">("passage-2");
   const [test, setTest] = useState<ReadingTest | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -165,14 +165,6 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     }
   };
 
-  const getCefrFromBand = (band: number): string => {
-    if (band >= 8) return "C2";
-    if (band >= 7) return "C1";
-    if (band >= 5.5) return "B2";
-    if (band >= 4) return "B1";
-    return "A2";
-  };
-
   const answeredCount = Object.keys(answers).length;
   const progress = test ? (answeredCount / test.questions.length) * 100 : 0;
 
@@ -210,15 +202,15 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-sm font-medium mb-2 block">Difficulty Level</Label>
+              <Label className="text-sm font-medium mb-2 block">IELTS Passage Level</Label>
               <Select value={difficulty} onValueChange={(v) => setDifficulty(v as typeof difficulty)}>
                 <SelectTrigger className="w-full max-w-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="beginner">Beginner (A2-B1)</SelectItem>
-                  <SelectItem value="intermediate">Intermediate (B1-B2)</SelectItem>
-                  <SelectItem value="advanced">Advanced (C1-C2)</SelectItem>
+                  <SelectItem value="passage-1">Passage 1 - easier academic text</SelectItem>
+                  <SelectItem value="passage-2">Passage 2 - standard IELTS difficulty</SelectItem>
+                  <SelectItem value="passage-3">Passage 3 - most challenging text</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -229,7 +221,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                 <li>One academic-style reading passage</li>
                 <li>10 questions of various types</li>
                 <li>Multiple choice, True/False/Not Given, and fill-in-the-blank</li>
-                <li>Instant scoring with IELTS band and CEFR level</li>
+                <li>Instant scoring with IELTS band feedback</li>
               </ul>
             </div>
 
@@ -346,14 +338,10 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid sm:grid-cols-3 gap-4 mb-6">
                 <div className="text-center p-4 rounded-lg bg-primary/10">
                   <p className="text-3xl font-bold text-primary">{result.bandScore}</p>
                   <p className="text-sm text-muted-foreground">IELTS Band</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-accent/10">
-                  <p className="text-3xl font-bold text-accent">{getCefrFromBand(result.bandScore)}</p>
-                  <p className="text-sm text-muted-foreground">CEFR Level</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-success/10">
                   <p className="text-3xl font-bold text-success">{result.correctCount}/{result.totalQuestions}</p>
