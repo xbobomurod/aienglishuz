@@ -31,7 +31,10 @@ export default function ResetPassword() {
         .then(({ error: verifyError }) => {
           if (verifyError) {
             setError("This password reset link is invalid or has expired. Please request a new one.");
+            return;
           }
+
+          window.history.replaceState({}, document.title, window.location.pathname);
         })
         .finally(() => setIsLoading(false));
       return;
