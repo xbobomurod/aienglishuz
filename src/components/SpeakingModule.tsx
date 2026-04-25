@@ -8,7 +8,6 @@ import { CorrectionTable } from "./CorrectionTable";
 import { ModelAnswer } from "./ModelAnswer";
 import { ProgressReport } from "./ProgressReport";
 import { TaskSelector, SpeakingTaskType } from "./TaskSelector";
-import { ImageUpload } from "./ImageUpload";
 import { PracticeTimer } from "./PracticeTimer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +72,6 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const [taskType, setTaskType] = useState<SpeakingTaskType>("interview");
   const [topic, setTopic] = useState("");
   const [transcript, setTranscript] = useState("");
-  const [imageData, setImageData] = useState<{ url: string; description: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [feedback, setFeedback] = useState<SpeakingFeedback | null>(null);
@@ -118,7 +116,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
           transcript, 
           topic: topic || undefined, 
           taskType,
-          imageDescription: taskType === "picture" ? imageData?.description : undefined
+          imageDescription: undefined
         }
       });
 
@@ -192,7 +190,6 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const getTaskLabel = () => {
     switch (taskType) {
       case "interview": return "Part 1: Interview";
-      case "picture": return "Part 1.2: Picture Description";
       case "talk": return "Part 2: Long Turn";
       case "discussion": return "Part 3: Discussion";
     }
@@ -257,16 +254,6 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               onSelectTask={setTaskType}
             />
           </div>
-
-          {/* Image Upload for Picture Task */}
-          {taskType === "picture" && (
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                🖼️ Image/Scene to Describe
-              </label>
-              <ImageUpload onImageChange={setImageData} />
-            </div>
-          )}
 
           {/* Topic/Question */}
           <div>
@@ -346,9 +333,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 text-primary text-sm">
             <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>
-              {taskType === "picture" 
-                ? "Focus on prepositions of place: 'in the background', 'next to', 'on the left'..."
-                : "Speak naturally and include all filler words for accurate analysis."}
+              Speak naturally and include pauses, hesitation and self-correction for accurate IELTS Speaking analysis.
             </span>
           </div>
         </div>
