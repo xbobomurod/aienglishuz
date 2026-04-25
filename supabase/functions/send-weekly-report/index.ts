@@ -29,14 +29,6 @@ interface UserReport {
   recommendations: string[];
 }
 
-function getCefrFromBand(band: number): string {
-  if (band >= 8) return "C2";
-  if (band >= 7) return "C1";
-  if (band >= 5.5) return "B2";
-  if (band >= 4) return "B1";
-  return "A2";
-}
-
 function generateRecommendations(report: UserReport): string[] {
   const recommendations: string[] = [];
 
@@ -83,7 +75,6 @@ function generateEmailHtml(report: UserReport): string {
     (report.speakingStats.count > 0 ? 1 : 0)
   ) || 0;
 
-  const cefrLevel = getCefrFromBand(overallAvg);
   const totalPractice = report.writingStats.count + report.speakingStats.count;
 
   return `
@@ -123,8 +114,8 @@ function generateEmailHtml(report: UserReport): string {
                   </td>
                   <td width="50%" style="padding: 10px;">
                     <div style="background-color: #eff6ff; border-radius: 8px; padding: 20px; text-align: center;">
-                      <p style="margin: 0; font-size: 32px; font-weight: 700; color: #2563eb;">${cefrLevel}</p>
-                      <p style="margin: 5px 0 0; color: #4b5563; font-size: 14px;">Current Level</p>
+                      <p style="margin: 0; font-size: 32px; font-weight: 700; color: #2563eb;">${overallAvg.toFixed(1)}</p>
+                      <p style="margin: 5px 0 0; color: #4b5563; font-size: 14px;">Avg IELTS Band</p>
                     </div>
                   </td>
                 </tr>
