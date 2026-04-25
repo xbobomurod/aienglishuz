@@ -40,18 +40,19 @@ serve(async (req) => {
     if (action === "generate") {
       console.log("Generating reading test with difficulty:", difficulty);
 
-      const difficultyLevel = difficulty || "passage-2";
-      const wordCount = difficultyLevel === "passage-1" ? "300-400" : difficultyLevel === "passage-3" ? "600-800" : "450-550";
-      const passageLabel = difficultyLevel === "passage-1" ? "IELTS Passage 1" : difficultyLevel === "passage-3" ? "IELTS Passage 3" : "IELTS Passage 2";
+      const difficultyLevel = difficulty || "full-test";
+      const isFullTest = difficultyLevel === "full-test";
+      const wordCount = isFullTest ? "1800-2400 total across three passages" : difficultyLevel === "passage-1" ? "700-800" : difficultyLevel === "passage-3" ? "850-950" : "750-850";
+      const passageLabel = isFullTest ? "Full IELTS Academic Reading Test" : difficultyLevel === "passage-1" ? "IELTS Passage 1" : difficultyLevel === "passage-3" ? "IELTS Passage 3" : "IELTS Passage 2";
 
       const systemPrompt = `You are an IELTS Reading test generator. Create authentic IELTS-style reading passages with questions.
 
-Generate a reading passage and 10 questions. The passage should be ${wordCount} words, academic in tone, and cover topics like science, history, social issues, or technology.
+Generate ${isFullTest ? "three academic reading passages and 40 questions total" : "one academic reading passage and 13-14 questions"}. The passage content should be ${wordCount}, academic in tone, and cover topics like science, history, social issues, or technology.
 
 You MUST respond with ONLY valid JSON in this exact format:
 {
   "topic": "Brief topic title",
-  "passage": "The full passage text here...",
+  "passage": "Use headings: PASSAGE 1, PASSAGE 2, PASSAGE 3 when generating a full test. Include the full passage text here...",
   "questions": [
     {
       "id": 1,
@@ -76,10 +77,14 @@ You MUST respond with ONLY valid JSON in this exact format:
   ]
 }
 
-Include a mix of question types:
-- 4 multiple-choice questions
-- 3 true/false/not given questions
-- 3 fill-in-the-blank questions
+Include authentic IELTS question types:
+- Multiple choice
+- True/False/Not Given
+- Matching headings or information
+- Sentence completion / fill-in-the-blank
+- Summary completion
+
+For a full test, create exactly 40 questions spread across the three passages: 13 for Passage 1, 13 for Passage 2, and 14 for Passage 3.
 
 Difficulty level: ${passageLabel}
 Make questions progressively harder. Ensure all answers are clearly derivable from the passage.`;
