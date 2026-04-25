@@ -28,7 +28,6 @@ Focus on: Fluency, ability to expand answers, pronunciation clarity, basic vocab
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -37,8 +36,8 @@ Return JSON:
   "transcriptWithHighlights": "<transcript with **bold** on errors>",
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model answer>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model answer>",
   "dailyPracticeTip": "<specific exercise>",
   "overallFeedback": "<summary>"
 }`;
@@ -55,7 +54,6 @@ Also evaluate: Spatial vocabulary, descriptive adjectives, present continuous fo
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -69,8 +67,8 @@ Return JSON:
   },
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model description>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model description>",
   "dailyPracticeTip": "<specific exercise for picture description>",
   "overallFeedback": "<summary>"
 }`;
@@ -86,7 +84,6 @@ Focus on: Coherent extended speech, topic development, use of discourse markers,
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -100,8 +97,8 @@ Return JSON:
   },
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model response to the same cue card>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model response to the same cue card>",
   "dailyPracticeTip": "<specific exercise>",
   "overallFeedback": "<summary>"
 }`;
@@ -117,7 +114,6 @@ Focus on: Complex ideas, speculation, hypothetical language, balanced arguments,
 Return JSON:
 {
   "bandScore": <number 0-9 with .5 increments>,
-  "cefrLevel": "<B1|B2|C1|C2>",
   "scoreJustification": "<brief justification>",
   "fluencyScore": <number 0-9>,
   "vocabularyScore": <number 0-9>,
@@ -131,8 +127,8 @@ Return JSON:
   },
   "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
   "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "cefrTip": "<CEFR-specific tip>"}],
-  "nativeUpgrade": "<C1 level model discussion response>",
+  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
+  "nativeUpgrade": "<Band 8+ model discussion response>",
   "dailyPracticeTip": "<specific exercise>",
   "overallFeedback": "<summary>"
 }`;
@@ -285,7 +281,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Speaking analyzed successfully, band score:", feedback.bandScore, "CEFR:", feedback.cefrLevel);
+    console.log("Speaking analyzed successfully, band score:", feedback.bandScore);
 
     return new Response(
       JSON.stringify(feedback),
