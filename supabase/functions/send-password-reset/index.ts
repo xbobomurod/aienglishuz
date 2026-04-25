@@ -63,7 +63,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const resetLink = data?.properties?.action_link;
+    const tokenHash = data?.properties?.hashed_token;
+    const resetLink = tokenHash
+      ? `${productionRedirectUrl}?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`
+      : data?.properties?.action_link;
 
     if (!resetLink) {
       throw new Error("Failed to generate reset link");
