@@ -6,24 +6,17 @@ const corsHeaders = {
 };
 
 const getSystemPrompt = (taskType: string, hasImage: boolean = false) => {
-  const basePrompt = `You are an expert IELTS Speaking Examiner and CEFR Certified Assessor. You provide dual scoring (IELTS 0-9 + CEFR B1-C2) for all evaluations.
+  const basePrompt = `You are an official IELTS Speaking Examiner. You score strictly with IELTS Speaking Band Descriptors only (0-9 in .5 increments). Do not use CEFR levels.
 
 SCORING GUIDELINES:
 
-IELTS Bands:
-- Band 9: Expert user (C2)
-- Band 8-8.5: Very good user (C1-C2)
-- Band 7-7.5: Good user (C1)
-- Band 6-6.5: Competent user (B2)
-- Band 5-5.5: Modest user (B1-B2)
-- Band 4-4.5: Limited user (B1)
-- Band 3 and below: Very limited (A2 or below)
+IELTS Speaking criteria:
+- Fluency and Coherence
+- Lexical Resource
+- Grammatical Range and Accuracy
+- Pronunciation
 
-CEFR Levels:
-- C2: Proficiency - Can express with precision, differentiate finer shades of meaning
-- C1: Advanced - Can express fluently and spontaneously, use flexible and effective language
-- B2: Upper-Intermediate - Can interact with degree of fluency, clear detailed text
-- B1: Intermediate - Can deal with most situations, produce simple connected text`;
+Use concise examiner-style feedback and return valid JSON only.`;
 
   if (taskType === "interview") {
     return `${basePrompt}
