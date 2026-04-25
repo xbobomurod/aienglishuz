@@ -328,9 +328,7 @@ export default function Dashboard() {
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Overall
               </CardTitle>
-              <Badge variant="outline" className="text-primary border-primary text-xs">
-                {combinedAverage !== "—" ? getCefrFromBand(parseFloat(combinedAverage)) : "—"}
-              </Badge>
+              <Badge variant="outline" className="text-primary border-primary text-xs">IELTS</Badge>
             </CardHeader>
             <CardContent className="px-3 sm:px-6">
               <div className="text-xl sm:text-2xl font-bold">{combinedAverage}</div>
@@ -594,7 +592,6 @@ export default function Dashboard() {
                             <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
                             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -634,7 +631,6 @@ export default function Dashboard() {
                             <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
                             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -673,7 +669,6 @@ export default function Dashboard() {
                             <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
                             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -712,7 +707,6 @@ export default function Dashboard() {
                             <Badge className={`${getScoreColor(evaluation.band_score)} text-xs`}>
                               {evaluation.band_score}/9
                             </Badge>
-                            <Badge variant="outline" className="text-xs">{getCefrFromBand(evaluation.band_score)}</Badge>
                             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                               <Eye className="w-4 h-4" />
                             </Button>
