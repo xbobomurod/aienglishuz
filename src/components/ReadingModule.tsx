@@ -63,7 +63,7 @@ interface TestResult {
 
 export function ReadingModule({ onBack }: ReadingModuleProps) {
   const { user } = useAuth();
-  const [difficulty, setDifficulty] = useState<"passage-1" | "passage-2" | "passage-3">("passage-2");
+  const [difficulty, setDifficulty] = useState<"full-test" | "passage-1" | "passage-2" | "passage-3">("full-test");
   const [test, setTest] = useState<ReadingTest | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -208,7 +208,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="passage-1">Passage 1 - easier academic text</SelectItem>
+                  <SelectItem value="full-test">Full Academic Reading Test - 3 passages / 40 questions</SelectItem>
+                  <SelectItem value="passage-1">Passage 1 - 13 questions</SelectItem>
                   <SelectItem value="passage-2">Passage 2 - standard IELTS difficulty</SelectItem>
                   <SelectItem value="passage-3">Passage 3 - most challenging text</SelectItem>
                 </SelectContent>
@@ -218,9 +219,9 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
             <div className="p-4 rounded-lg bg-primary/10 text-sm text-muted-foreground">
               <p className="font-medium text-foreground mb-2">What to expect:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>One academic-style reading passage</li>
-                <li>10 questions of various types</li>
-                <li>Multiple choice, True/False/Not Given, and fill-in-the-blank</li>
+                <li>Full Academic option: 3 passages, 40 questions, 60-minute standard</li>
+                <li>Single-passage practice: Passage 1, 2, or 3 focus</li>
+                <li>Multiple choice, matching, True/False/Not Given, and completion tasks</li>
                 <li>Instant scoring with IELTS band feedback</li>
               </ul>
             </div>

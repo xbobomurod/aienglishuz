@@ -207,7 +207,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-foreground">
-                {isTask1(taskType) ? "Letter Prompt" : "Essay Topic"}
+                {isTask1(taskType) ? "Academic Task 1 Visual Prompt" : "Task 2 Essay Topic"}
               </label>
               <Button
                 variant="outline"
@@ -225,7 +225,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
             </div>
             <Textarea
               placeholder={isTask1(taskType) 
-                ? "Click 'Generate' for a prompt, or enter your own letter task..."
+                ? "Click 'Generate' for a graph, chart, map, table, diagram or process task..."
                 : "Click 'Generate' for a topic, or enter your own essay question..."
               }
               value={topic}

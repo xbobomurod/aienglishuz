@@ -41,11 +41,15 @@ serve(async (req) => {
     if (action === "generate") {
       console.log("Generating listening test for section:", section);
 
-      const sectionType = section || "1";
+      const sectionType = section || "full-test";
+      const isFullTest = sectionType === "full-test";
       let scenarioDescription = "";
-      let questionCount = 10;
+      let questionCount = isFullTest ? 40 : 10;
 
       switch (sectionType) {
+        case "full-test":
+          scenarioDescription = "A complete IELTS Listening test: Section 1 everyday conversation, Section 2 social monologue, Section 3 educational discussion, Section 4 academic lecture";
+          break;
         case "1":
           scenarioDescription = "A conversation between two people in an everyday social context (e.g., booking a hotel, making an appointment, discussing travel plans)";
           break;
@@ -64,15 +68,15 @@ serve(async (req) => {
 
       const systemPrompt = `You are an IELTS Listening test generator. Create authentic IELTS-style listening scripts with questions.
 
-Section ${sectionType} scenario: ${scenarioDescription}
+${isFullTest ? "Full IELTS Listening test" : `Section ${sectionType}`} scenario: ${scenarioDescription}
 
-Generate a realistic dialogue/monologue transcript (250-350 words) and ${questionCount} questions.
+Generate ${isFullTest ? "four labelled transcripts (SECTION 1-4) with realistic speaker labels and" : "a realistic dialogue/monologue transcript (250-350 words) and"} ${questionCount} questions.
 
 You MUST respond with ONLY valid JSON in this exact format:
 {
   "topic": "Brief topic title",
   "scenario": "Brief description of the setting and speakers",
-  "transcript": "The full transcript with speaker labels like 'Speaker A:', 'Speaker B:', or 'Narrator:' where appropriate...",
+  "transcript": "The full transcript. For a full test, label SECTION 1, SECTION 2, SECTION 3, SECTION 4 clearly, with speaker labels where appropriate...",
   "questions": [
     {
       "id": 1,
@@ -90,9 +94,14 @@ You MUST respond with ONLY valid JSON in this exact format:
   ]
 }
 
-Include a mix of question types:
-- 5 fill-in-the-blank questions (for specific details like names, numbers, dates, places)
-- 5 multiple-choice questions
+Include authentic IELTS question types:
+- Form/note/table completion
+- Multiple choice
+- Matching
+- Sentence completion
+- Short answer
+
+For a full test, create exactly 40 questions: 10 questions per section.
 
 Make the transcript natural and conversational. Include specific details that can be tested.
 Ensure all answers are clearly stated in the transcript.`;

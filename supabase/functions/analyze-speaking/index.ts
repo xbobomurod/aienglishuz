@@ -43,37 +43,6 @@ Return JSON:
 }`;
   }
 
-  if (taskType === "picture") {
-    return `${basePrompt}
-
-TASK 1.2 - PICTURE DESCRIPTION EVALUATION:
-${hasImage ? "Evaluate their description of the provided image." : "Evaluate their description of the hypothetical scene they described."}
-CRITICAL FOCUS: Use of prepositions of place (in the background, next to, in front of, behind, on the left/right, at the top/bottom, between, among).
-Also evaluate: Spatial vocabulary, descriptive adjectives, present continuous for actions.
-
-Return JSON:
-{
-  "bandScore": <number 0-9 with .5 increments>,
-  "scoreJustification": "<brief justification>",
-  "fluencyScore": <number 0-9>,
-  "vocabularyScore": <number 0-9>,
-  "grammarScore": <number 0-9>,
-  "spatialLanguageScore": <number 0-9>,
-  "transcriptWithHighlights": "<transcript with **bold** on errors>",
-  "prepositionAnalysis": {
-    "used": ["<prepositions they used>"],
-    "missing": ["<prepositions they could have used>"],
-    "feedback": "<specific feedback on spatial language>"
-  },
-  "fillerWords": [{"word": "<filler>", "count": <n>, "suggestion": "<tip>"}],
-  "vocabularyUpgrades": [{"original": "<word>", "upgrade": "<better word>", "example": "<sentence>"}],
-  "grammarCorrections": [{"mistake": "<error>", "correction": "<fix>", "explanation": "<brief correction explanation>"}],
-  "nativeUpgrade": "<Band 8+ model description>",
-  "dailyPracticeTip": "<specific exercise for picture description>",
-  "overallFeedback": "<summary>"
-}`;
-  }
-
   if (taskType === "talk") {
     return `${basePrompt}
 
@@ -146,13 +115,6 @@ const taskPrompts = {
     "Tell me about your family. Do you have any siblings?",
     "What kind of music do you enjoy listening to?"
   ],
-  picture: [
-    "Describe a busy city street scene with people, vehicles, and buildings.",
-    "Describe a peaceful park scene with people enjoying outdoor activities.",
-    "Describe a classroom during a lesson with students and a teacher.",
-    "Describe a family gathering or celebration scene.",
-    "Describe a market or shopping area with vendors and customers."
-  ],
   talk: [
     "Describe a memorable journey you have taken.\nYou should say:\n• where you went\n• how you traveled\n• who you traveled with\nand explain why this journey was memorable.",
     "Describe a skill you would like to learn.\nYou should say:\n• what the skill is\n• how you would learn it\n• why you want to learn it\nand explain how this skill would benefit you.",
@@ -174,7 +136,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, topic, taskType = "interview", generatePrompt = false, imageDescription } = await req.json();
+    const { transcript, topic, taskType = "interview", generatePrompt = false } = await req.json();
     
     // If user wants a new prompt
     if (generatePrompt) {
@@ -202,12 +164,10 @@ serve(async (req) => {
       );
     }
 
-    const hasImage = taskType === "picture" && imageDescription;
-    const systemPrompt = getSystemPrompt(taskType, hasImage);
+    const systemPrompt = getSystemPrompt(taskType, false);
     
     let userMessage = `Task Type: ${taskType.charAt(0).toUpperCase() + taskType.slice(1)}`;
     if (topic) userMessage += `\nTopic/Question: ${topic}`;
-    if (hasImage) userMessage += `\nImage Context: ${imageDescription}`;
     userMessage += `\n\nTranscript:\n${transcript}`;
 
     console.log(`Analyzing ${taskType} speaking, word count:`, transcript.split(/\s+/).length);

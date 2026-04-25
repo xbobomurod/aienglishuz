@@ -1,9 +1,9 @@
-import { FileText, MessageSquare, Image, Clock, Users, BarChart3 } from "lucide-react";
+import { FileText, MessageSquare, Clock, Users, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export type WritingTaskType = "task1" | "task2";
-export type SpeakingTaskType = "interview" | "picture" | "talk" | "discussion";
+export type SpeakingTaskType = "interview" | "talk" | "discussion";
 
 interface WritingTaskSelectorProps {
   type: "writing";
@@ -45,13 +45,6 @@ const speakingTasks = [
     duration: "4-5 min",
   },
   {
-    id: "picture" as const,
-    title: "Part 1.2: Picture Description",
-    description: "Describe an image or scene in detail.",
-    icon: Image,
-    duration: "1-2 min",
-  },
-  {
     id: "talk" as const,
     title: "Part 2: Long Turn",
     description: "1-2 minute talk on a cue card topic.",
@@ -82,7 +75,7 @@ export function TaskSelector(props: TaskSelectorProps) {
   return (
     <div className={cn(
       "grid gap-2 sm:gap-3",
-      type === "writing" ? "grid-cols-2" : "grid-cols-2"
+      type === "writing" ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3"
     )}>
       {tasks.map((task) => {
         const Icon = task.icon;
