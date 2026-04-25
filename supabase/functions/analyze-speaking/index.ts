@@ -115,13 +115,6 @@ const taskPrompts = {
     "Tell me about your family. Do you have any siblings?",
     "What kind of music do you enjoy listening to?"
   ],
-  picture: [
-    "Describe a busy city street scene with people, vehicles, and buildings.",
-    "Describe a peaceful park scene with people enjoying outdoor activities.",
-    "Describe a classroom during a lesson with students and a teacher.",
-    "Describe a family gathering or celebration scene.",
-    "Describe a market or shopping area with vendors and customers."
-  ],
   talk: [
     "Describe a memorable journey you have taken.\nYou should say:\n• where you went\n• how you traveled\n• who you traveled with\nand explain why this journey was memorable.",
     "Describe a skill you would like to learn.\nYou should say:\n• what the skill is\n• how you would learn it\n• why you want to learn it\nand explain how this skill would benefit you.",
@@ -143,7 +136,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, topic, taskType = "interview", generatePrompt = false, imageDescription } = await req.json();
+    const { transcript, topic, taskType = "interview", generatePrompt = false } = await req.json();
     
     // If user wants a new prompt
     if (generatePrompt) {
@@ -171,12 +164,10 @@ serve(async (req) => {
       );
     }
 
-    const hasImage = taskType === "picture" && imageDescription;
-    const systemPrompt = getSystemPrompt(taskType, hasImage);
+    const systemPrompt = getSystemPrompt(taskType, false);
     
     let userMessage = `Task Type: ${taskType.charAt(0).toUpperCase() + taskType.slice(1)}`;
     if (topic) userMessage += `\nTopic/Question: ${topic}`;
-    if (hasImage) userMessage += `\nImage Context: ${imageDescription}`;
     userMessage += `\n\nTranscript:\n${transcript}`;
 
     console.log(`Analyzing ${taskType} speaking, word count:`, transcript.split(/\s+/).length);
