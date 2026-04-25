@@ -150,14 +150,6 @@ export default function Dashboard() {
     return "bg-destructive/10 text-destructive";
   };
 
-  const getCefrFromBand = (band: number): string => {
-    if (band >= 8) return "C2";
-    if (band >= 7) return "C1";
-    if (band >= 5.5) return "B2";
-    if (band >= 4) return "B1";
-    return "A2";
-  };
-
   const formatTime = (seconds: number | null) => {
     if (!seconds) return "—";
     const mins = Math.floor(seconds / 60);
@@ -748,9 +740,6 @@ export default function Dashboard() {
                 <Badge className={`${getScoreColor(selectedReading.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedReading.band_score}/9
                 </Badge>
-                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
-                  CEFR: {getCefrFromBand(selectedReading.band_score)}
-                </Badge>
               </div>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -800,9 +789,6 @@ export default function Dashboard() {
                 <Badge className={`${getScoreColor(selectedListening.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedListening.band_score}/9
                 </Badge>
-                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
-                  CEFR: {getCefrFromBand(selectedListening.band_score)}
-                </Badge>
               </div>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -851,9 +837,6 @@ export default function Dashboard() {
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <Badge className={`${getScoreColor(selectedWriting.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedWriting.band_score}/9
-                </Badge>
-                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
-                  CEFR: {getCefrFromBand(selectedWriting.band_score)}
                 </Badge>
               </div>
 
@@ -906,9 +889,6 @@ export default function Dashboard() {
                 <Badge className={`${getScoreColor(selectedSpeaking.band_score)} text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1`}>
                   IELTS: {selectedSpeaking.band_score}/9
                 </Badge>
-                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
-                  CEFR: {getCefrFromBand(selectedSpeaking.band_score)}
-                </Badge>
               </div>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -935,7 +915,7 @@ export default function Dashboard() {
 
               {selectedSpeaking.native_upgrade && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Native Upgrade (C1)</p>
+                  <p className="text-sm font-medium mb-2">Band 8+ Model Upgrade</p>
                   <p className="text-xs sm:text-sm text-primary italic bg-primary/10 p-3 sm:p-4 rounded-lg">
                     {selectedSpeaking.native_upgrade}
                   </p>
