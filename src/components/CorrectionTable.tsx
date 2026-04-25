@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 interface CorrectionItem {
   mistake: string;
   correction: string;
-  cefrTip?: string;
   logic?: string;
   explanation?: string;
 }
@@ -40,7 +39,7 @@ export function CorrectionTable({ items, title = "Correction Table" }: Correctio
             <TableRow>
               <TableHead className="w-[30%]">Mistake</TableHead>
               <TableHead className="w-[30%]">Correction</TableHead>
-              <TableHead className="w-[40%]">CEFR Tip</TableHead>
+              <TableHead className="w-[40%]">Examiner Note</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,7 +56,7 @@ export function CorrectionTable({ items, title = "Correction Table" }: Correctio
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {item.cefrTip || item.logic || item.explanation || "—"}
+                  {item.logic || item.explanation || "—"}
                 </TableCell>
               </TableRow>
             ))}
