@@ -210,6 +210,16 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
 
   const answeredCount = Object.keys(answers).length;
   const progress = (answeredCount / test.questions.length) * 100;
+  const sectionRanges = [
+    { label: "Section 1", start: 0, end: 10 },
+    { label: "Section 2", start: 10, end: 20 },
+    { label: "Section 3", start: 20, end: 30 },
+    { label: "Section 4", start: 30, end: 40 },
+  ];
+  const activeRange = sectionRanges[currentPart];
+  const visibleQuestions = test.questions.slice(activeRange.start, activeRange.end);
+  const transcriptBlocks = test.transcript.split(/(?=SECTION\s+[1-4])/i);
+  const visibleTranscript = transcriptBlocks[currentPart]?.trim() || test.transcript;
 
   return (
     <div className="space-y-6">
