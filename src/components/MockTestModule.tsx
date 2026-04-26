@@ -241,6 +241,8 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
           Back to Home
         </Button>
 
+        <TestSessionControls testId={testSessionId} title={testTitle} onLoad={loadTestById} />
+
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
             <Trophy className="w-4 h-4" />
@@ -446,6 +448,8 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Progress Bar */}
+      <TestSessionControls testId={testSessionId} title={testTitle} onLoad={loadTestById} />
+
       <div className="sticky top-20 z-40 bg-background/95 backdrop-blur-sm py-3 px-4 rounded-xl border border-border/50">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
