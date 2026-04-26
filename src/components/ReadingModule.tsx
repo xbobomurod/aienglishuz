@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { useSearchParams } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTestSession } from "@/hooks/useTestSession";
 import { toast } from "sonner";
 
 interface ReadingModuleProps {
@@ -63,8 +65,11 @@ interface TestResult {
 
 export function ReadingModule({ onBack }: ReadingModuleProps) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { saveSession, loadSession } = useTestSession("reading");
   const [difficulty, setDifficulty] = useState<"full-test" | "passage-1" | "passage-2" | "passage-3">("full-test");
   const [test, setTest] = useState<ReadingTest | null>(null);
+  const [testSessionId, setTestSessionId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,6 +87,25 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     }
     return () => clearInterval(interval);
   }, [startTime, result]);
+
+  useEffect(() => {
+    const id = searchParams.get("test");
+    if (!id || testSessionId === id) return;
+
+    setIsLoading(true);
+    loadSession<ReadingTest>(id)
+      .then((session) => {
+        if (!session) return;
+        setTest(session.content);
+        setTestSessionId(session.id);
+        setResult(null);
+        setAnswers({});
+        setStartTime(Date.now());
+        setElapsedTime(0);
+      })
+      .catch(() => toast.error("Could not load this reading test ID."))
+      .finally(() => setIsLoading(false));
+  }, [loadSession, searchParams, testSessionId]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -103,9 +127,20 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
       if (data.error) throw new Error(data.error);
 
       setTest(data);
+      if (user) {
+        const session = await saveSession({
+          variant: difficulty,
+          title: data.topic,
+          content: data,
+        });
+        if (session) {
+          setTestSessionId(session.id);
+          setSearchParams({ test: session.id });
+        }
+      }
       setStartTime(Date.now());
       setElapsedTime(0);
-      toast.success("Reading test generated!");
+      toast.success("Reading test generated and saved with an ID!");
     } catch (err) {
       console.error("Error generating test:", err);
       toast.error("Failed to generate test. Please try again.");
