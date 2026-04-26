@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send, Loader2, ArrowLeft, Volume2, Lightbulb, Sparkles, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
+import { useTestSession } from "@/hooks/useTestSession";
 import { toast } from "sonner";
 
 interface SpeakingModuleProps {
@@ -69,8 +71,11 @@ interface SpeakingFeedback {
 }
 
 export function SpeakingModule({ onBack }: SpeakingModuleProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { saveSession, loadSession } = useTestSession("speaking");
   const [taskType, setTaskType] = useState<SpeakingTaskType>("interview");
   const [topic, setTopic] = useState("");
+  const [testSessionId, setTestSessionId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
@@ -83,6 +88,20 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
     getPreviousSpeakingScore,
     speakingHistory 
   } = useEvaluationHistory();
+
+  useEffect(() => {
+    const id = searchParams.get("test");
+    if (!id || testSessionId === id) return;
+
+    loadSession<{ taskType: SpeakingTaskType; topic: string }>(id)
+      .then((session) => {
+        if (!session) return;
+        setTaskType(session.content.taskType);
+        setTopic(session.content.topic);
+        setTestSessionId(session.id);
+      })
+      .catch(() => toast.error("Could not load this speaking test ID."));
+  }, [loadSession, searchParams, testSessionId]);
 
   const handleGeneratePrompt = async () => {
     setIsGeneratingPrompt(true);
@@ -97,7 +116,16 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
       }
 
       setTopic(data.prompt);
-      toast.success("New prompt generated!");
+      const session = await saveSession({
+        variant: taskType,
+        title: data.prompt.slice(0, 80),
+        content: { taskType, topic: data.prompt },
+      });
+      if (session) {
+        setTestSessionId(session.id);
+        setSearchParams({ test: session.id });
+      }
+      toast.success("New prompt generated and saved with an ID!");
     } catch (err) {
       toast.error("Something went wrong");
     } finally {
