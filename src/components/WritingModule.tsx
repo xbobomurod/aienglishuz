@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send, Loader2, ArrowLeft, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,9 @@ import { ProgressReport } from "./ProgressReport";
 import { TaskSelector, WritingTaskType } from "./TaskSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
+import { useTestSession } from "@/hooks/useTestSession";
 import { toast } from "sonner";
 
 interface WritingModuleProps {
@@ -53,8 +55,11 @@ const getTaskLabel = (taskType: WritingTaskType) => {
 };
 
 export function WritingModule({ onBack }: WritingModuleProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { saveSession, loadSession } = useTestSession("writing");
   const [taskType, setTaskType] = useState<WritingTaskType>("task2");
   const [topic, setTopic] = useState("");
+  const [testSessionId, setTestSessionId] = useState<string | null>(null);
   const [essay, setEssay] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
@@ -69,6 +74,20 @@ export function WritingModule({ onBack }: WritingModuleProps) {
 
   const minWordCount = getMinWordCount(taskType);
 
+  useEffect(() => {
+    const id = searchParams.get("test");
+    if (!id || testSessionId === id) return;
+
+    loadSession<{ taskType: WritingTaskType; topic: string }>(id)
+      .then((session) => {
+        if (!session) return;
+        setTaskType(session.content.taskType);
+        setTopic(session.content.topic);
+        setTestSessionId(session.id);
+      })
+      .catch(() => toast.error("Could not load this writing test ID."));
+  }, [loadSession, searchParams, testSessionId]);
+
   const handleGeneratePrompt = async () => {
     setIsGeneratingPrompt(true);
     try {
@@ -82,7 +101,16 @@ export function WritingModule({ onBack }: WritingModuleProps) {
       }
 
       setTopic(data.prompt);
-      toast.success("New prompt generated!");
+      const session = await saveSession({
+        variant: taskType,
+        title: data.prompt.slice(0, 80),
+        content: { taskType, topic: data.prompt },
+      });
+      if (session) {
+        setTestSessionId(session.id);
+        setSearchParams({ test: session.id });
+      }
+      toast.success("New prompt generated and saved with an ID!");
     } catch (err) {
       toast.error("Something went wrong");
     } finally {
