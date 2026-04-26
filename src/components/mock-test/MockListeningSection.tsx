@@ -105,7 +105,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(test.transcript);
+    const utterance = new SpeechSynthesisUtterance(visibleTranscript);
     utterance.rate = speechRate;
     utterance.pitch = 1;
     
@@ -121,7 +121,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
     };
     utterance.onpause = () => setIsPlaying(false);
     utterance.onboundary = (e) => {
-      const progress = (e.charIndex / test.transcript.length) * 100;
+      const progress = (e.charIndex / visibleTranscript.length) * 100;
       setPlaybackProgress(progress);
     };
 
