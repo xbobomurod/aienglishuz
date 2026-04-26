@@ -142,12 +142,6 @@ const Index = () => {
                 ))}
               </TabsList>
             </Tabs>
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
 
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")} className="hidden sm:inline-flex gap-2">
