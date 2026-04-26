@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, CheckCircle2, Headphones, Play, Pause, Volume2, Eye, EyeOff } from "lucide-react";
+import { Loader2, CheckCircle2, Headphones, Play, Pause, Volume2, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -40,6 +40,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState<number>(Date.now());
+  const [currentPart, setCurrentPart] = useState(0);
   
   // Audio controls
   const [isPlaying, setIsPlaying] = useState(false);
@@ -70,7 +71,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
   const generateTest = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("listening-test", {
-        body: { action: "generate", section: "1" }
+        body: { action: "generate", section: "full-test" }
       });
 
       if (error) throw error;
