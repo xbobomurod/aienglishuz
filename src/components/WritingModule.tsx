@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send, Loader2, ArrowLeft, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,9 +74,9 @@ export function WritingModule({ onBack }: WritingModuleProps) {
 
   const minWordCount = getMinWordCount(taskType);
 
-  useState(() => {
+  useEffect(() => {
     const id = searchParams.get("test");
-    if (!id) return;
+    if (!id || testSessionId === id) return;
 
     loadSession<{ taskType: WritingTaskType; topic: string }>(id)
       .then((session) => {
@@ -86,7 +86,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
         setTestSessionId(session.id);
       })
       .catch(() => toast.error("Could not load this writing test ID."));
-  });
+  }, [loadSession, searchParams, testSessionId]);
 
   const handleGeneratePrompt = async () => {
     setIsGeneratingPrompt(true);
