@@ -10,7 +10,7 @@ import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard, Headpho
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,9 +20,15 @@ import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 
 type Module = "home" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
 
+const moduleIds = ["home", "writing", "speaking", "reading", "listening", "mocktest"] as const;
+
+const isModule = (value: string | null): value is Module =>
+  moduleIds.includes(value as Module);
+
 const Index = () => {
   const [activeModule, setActiveModule] = useState<Module>("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchParams] = useSearchParams();
   const {
     user,
     isLoading,
@@ -33,18 +39,24 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const moduleParam = searchParams.get("module");
+    setActiveModule(isModule(moduleParam) ? moduleParam : "home");
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/auth");
     }
   }, [isLoading, isAuthenticated, navigate]);
 
-  const handleSelectModule = (module: "writing" | "speaking" | "reading" | "listening" | "mocktest") => {
+  const handleSelectModule = (module: Module) => {
     setActiveModule(module);
     setMobileMenuOpen(false);
+    navigate(module === "home" ? "/" : `/?module=${module}`);
   };
 
   const handleBack = () => {
-    setActiveModule("home");
+    handleSelectModule("home");
   };
 
   const handleSignOut = async () => {
@@ -94,7 +106,7 @@ const Index = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as Module)} className="hidden lg:block">
+          <Tabs value={activeModule} onValueChange={(v) => handleSelectModule(v as Module)} className="hidden lg:block">
             <TabsList>
               {moduleItems.map((item) => (
                 <TabsTrigger key={item.id} value={item.id} className="gap-2">
@@ -106,6 +118,10 @@ const Index = () => {
           </Tabs>
 
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")} className="hidden sm:inline-flex gap-2">
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </Button>
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="lg:hidden">
@@ -134,6 +150,17 @@ const Index = () => {
                       {item.label}
                     </Button>
                   ))}
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-12"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate("/dashboard");
+                    }}
+                  >
+                    <LayoutDashboard className="w-5 h-5" />
+                    Dashboard
+                  </Button>
                 </nav>
               </SheetContent>
             </Sheet>
