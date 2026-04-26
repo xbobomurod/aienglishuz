@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, CheckCircle2, BookOpen } from "lucide-react";
+import { Loader2, CheckCircle2, BookOpen, ChevronRight, ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -38,6 +38,7 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState<number>(Date.now());
+  const [currentPassage, setCurrentPassage] = useState(0);
 
   useEffect(() => {
     generateTest();
@@ -46,7 +47,7 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
   const generateTest = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("reading-test", {
-        body: { action: "generate", difficulty: "intermediate" }
+        body: { action: "generate", difficulty: "full-test" }
       });
 
       if (error) throw error;
@@ -135,6 +136,15 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
 
   const answeredCount = Object.keys(answers).length;
   const progress = (answeredCount / test.questions.length) * 100;
+  const passageRanges = [
+    { label: "Passage 1", start: 0, end: 13 },
+    { label: "Passage 2", start: 13, end: 26 },
+    { label: "Passage 3", start: 26, end: 40 },
+  ];
+  const activeRange = passageRanges[currentPassage];
+  const visibleQuestions = test.questions.slice(activeRange.start, activeRange.end);
+  const passageBlocks = test.passage.split(/(?=PASSAGE\s+[123])/i);
+  const visiblePassage = passageBlocks[currentPassage]?.trim() || test.passage;
 
   return (
     <div className="grid lg:grid-cols-2 gap-6">
@@ -143,12 +153,12 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <BookOpen className="w-5 h-5 text-primary" />
-            {test.topic}
+            {activeRange.label}: {test.topic}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px] pr-4">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{test.passage}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{visiblePassage}</p>
           </ScrollArea>
         </CardContent>
       </Card>
@@ -164,11 +174,11 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
 
         <ScrollArea className="h-[400px]">
           <div className="space-y-4 pr-4">
-            {test.questions.map((q, index) => (
+            {visibleQuestions.map((q, index) => (
               <Card key={q.id} className={answers[q.id] ? "border-primary/50" : ""}>
                 <CardContent className="p-4">
                   <p className="font-medium text-sm mb-3">
-                    <span className="text-primary mr-2">Q{index + 1}.</span>
+                    <span className="text-primary mr-2">Q{activeRange.start + index + 1}.</span>
                     {q.question}
                   </p>
 
@@ -201,6 +211,15 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
             ))}
           </div>
         </ScrollArea>
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setCurrentPassage((p) => Math.max(0, p - 1))} disabled={currentPassage === 0 || isPaused} className="flex-1 gap-2">
+            <ChevronLeft className="w-4 h-4" /> Previous Passage
+          </Button>
+          <Button variant="outline" onClick={() => setCurrentPassage((p) => Math.min(2, p + 1))} disabled={currentPassage === 2 || isPaused} className="flex-1 gap-2">
+            Next Passage <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
 
         <Button 
           onClick={submitTest} 
