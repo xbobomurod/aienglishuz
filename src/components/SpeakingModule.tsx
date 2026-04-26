@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
 import { useTestSession } from "@/hooks/useTestSession";
+import { TestSessionControls } from "@/components/TestSessionControls";
 import { toast } from "sonner";
 
 interface SpeakingModuleProps {
@@ -88,6 +89,10 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
     getPreviousSpeakingScore,
     speakingHistory 
   } = useEvaluationHistory();
+
+  const loadTestById = (id: string) => {
+    setSearchParams({ test: id });
+  };
 
   useEffect(() => {
     const id = searchParams.get("test");
@@ -238,6 +243,8 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
           </p>
         </div>
       </div>
+
+      <TestSessionControls testId={testSessionId} title={topic} onLoad={loadTestById} />
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Input Section */}

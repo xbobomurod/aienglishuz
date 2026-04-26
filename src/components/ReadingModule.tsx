@@ -29,6 +29,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTestSession } from "@/hooks/useTestSession";
+import { TestSessionControls } from "@/components/TestSessionControls";
 import { toast } from "sonner";
 
 interface ReadingModuleProps {
@@ -111,6 +112,10 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const loadTestById = (id: string) => {
+    setSearchParams({ test: id });
   };
 
   const generateTest = async () => {
@@ -225,6 +230,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
           </Badge>
         )}
       </div>
+
+      <TestSessionControls testId={testSessionId} title={test?.topic} onLoad={loadTestById} />
 
       {/* Test not started */}
       {!test && !isLoading && (

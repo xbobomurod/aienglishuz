@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, CheckCircle2, Headphones, Play, Pause, Volume2, Eye, EyeOff } from "lucide-react";
+import { Loader2, CheckCircle2, Headphones, Play, Pause, Volume2, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -40,6 +40,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState<number>(Date.now());
+  const [currentPart, setCurrentPart] = useState(0);
   
   // Audio controls
   const [isPlaying, setIsPlaying] = useState(false);
@@ -70,7 +71,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
   const generateTest = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("listening-test", {
-        body: { action: "generate", section: "1" }
+        body: { action: "generate", section: "full-test" }
       });
 
       if (error) throw error;
@@ -104,7 +105,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(test.transcript);
+    const utterance = new SpeechSynthesisUtterance(visibleTranscript);
     utterance.rate = speechRate;
     utterance.pitch = 1;
     
@@ -120,7 +121,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
     };
     utterance.onpause = () => setIsPlaying(false);
     utterance.onboundary = (e) => {
-      const progress = (e.charIndex / test.transcript.length) * 100;
+      const progress = (e.charIndex / visibleTranscript.length) * 100;
       setPlaybackProgress(progress);
     };
 
@@ -209,6 +210,16 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
 
   const answeredCount = Object.keys(answers).length;
   const progress = (answeredCount / test.questions.length) * 100;
+  const sectionRanges = [
+    { label: "Section 1", start: 0, end: 10 },
+    { label: "Section 2", start: 10, end: 20 },
+    { label: "Section 3", start: 20, end: 30 },
+    { label: "Section 4", start: 30, end: 40 },
+  ];
+  const activeRange = sectionRanges[currentPart];
+  const visibleQuestions = test.questions.slice(activeRange.start, activeRange.end);
+  const transcriptBlocks = test.transcript.split(/(?=SECTION\s+[1-4])/i);
+  const visibleTranscript = transcriptBlocks[currentPart]?.trim() || test.transcript;
 
   return (
     <div className="space-y-6">
@@ -218,7 +229,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Volume2 className="w-5 h-5 text-accent" />
-              {test.topic}
+              {activeRange.label}: {test.topic}
             </CardTitle>
             <Badge variant="secondary">Listening</Badge>
           </div>
@@ -264,7 +275,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
 
           {showTranscript && (
             <ScrollArea className="h-[150px] p-4 rounded-lg bg-secondary/50">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{test.transcript}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{visibleTranscript}</p>
             </ScrollArea>
           )}
         </CardContent>
@@ -285,13 +296,13 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
         <CardContent>
           <ScrollArea className="h-[300px]">
             <div className="space-y-4 pr-4">
-              {test.questions.map((q, index) => (
+              {visibleQuestions.map((q, index) => (
                 <div 
                   key={q.id} 
                   className={`p-4 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
                 >
                   <p className="font-medium text-sm mb-3">
-                    <span className="text-accent mr-2">Q{index + 1}.</span>
+                    <span className="text-accent mr-2">Q{activeRange.start + index + 1}.</span>
                     {q.question}
                   </p>
 
@@ -323,6 +334,15 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
               ))}
             </div>
           </ScrollArea>
+
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" onClick={() => setCurrentPart((p) => Math.max(0, p - 1))} disabled={currentPart === 0 || isPaused} className="flex-1 gap-2">
+              <ChevronLeft className="w-4 h-4" /> Previous Section
+            </Button>
+            <Button variant="outline" onClick={() => setCurrentPart((p) => Math.min(3, p + 1))} disabled={currentPart === 3 || isPaused} className="flex-1 gap-2">
+              Next Section <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
 
           <Button 
             onClick={submitTest} 
