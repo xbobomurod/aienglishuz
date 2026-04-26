@@ -85,11 +85,50 @@ Return JSON:
 
 const taskPrompts = {
   task1: [
-    "The chart below shows the percentage of households with internet access in three countries (UK, Germany, Japan) between 2000 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
-    "The graph below shows the average monthly temperature and rainfall in a major Asian city. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
-    "The table below shows the proportion of energy produced from different sources in four countries in 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
-    "The diagram below shows the process of recycling plastic bottles. Summarise the information by selecting and reporting the main stages of the process.",
-    "The two maps below show a town centre in 1990 and today. Summarise the information by selecting and reporting the main changes."
+    `The line graph below shows the percentage of households with internet access in three countries between 2000 and 2020.
+
+Year | UK | Germany | Japan
+2000 | 38% | 31% | 22%
+2005 | 55% | 47% | 39%
+2010 | 73% | 68% | 61%
+2015 | 86% | 80% | 77%
+2020 | 94% | 91% | 89%
+
+Summarise the information by selecting and reporting the main features, and make comparisons where relevant.`,
+    `The bar chart below shows the number of international students enrolled at four universities in 2010 and 2020.
+
+University | 2010 | 2020
+Northbridge | 1,200 | 2,850
+Eastford | 950 | 1,600
+Westmere | 1,750 | 2,100
+Southgate | 650 | 1,950
+
+Summarise the information by selecting and reporting the main features, and make comparisons where relevant.`,
+    `The table below shows the proportion of energy produced from different sources in four countries in 2020.
+
+Country | Coal | Natural gas | Nuclear | Renewables
+Australia | 54% | 21% | 0% | 25%
+France | 5% | 9% | 67% | 19%
+Germany | 24% | 18% | 11% | 47%
+Canada | 8% | 27% | 15% | 50%
+
+Summarise the information by selecting and reporting the main features, and make comparisons where relevant.`,
+    `The process diagram below shows how plastic bottles are recycled.
+
+Used bottles → Collection bins → Sorting centre → Crushing → Washing → Plastic pellets → Heating and melting → New products
+
+Summarise the information by selecting and reporting the main stages of the process.`,
+    `The pie charts below show household spending in one country in 1990 and 2020.
+
+Category | 1990 | 2020
+Food | 32% | 18%
+Housing | 22% | 34%
+Transport | 14% | 19%
+Healthcare | 8% | 13%
+Leisure | 12% | 10%
+Other | 12% | 6%
+
+Summarise the information by selecting and reporting the main features, and make comparisons where relevant.`
   ],
   task2: [
     "Some people believe that technology has made our lives more complicated. To what extent do you agree or disagree?",
