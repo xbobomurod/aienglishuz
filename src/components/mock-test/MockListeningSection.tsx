@@ -229,7 +229,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Volume2 className="w-5 h-5 text-accent" />
-              {test.topic}
+              {activeRange.label}: {test.topic}
             </CardTitle>
             <Badge variant="secondary">Listening</Badge>
           </div>
@@ -275,7 +275,7 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
 
           {showTranscript && (
             <ScrollArea className="h-[150px] p-4 rounded-lg bg-secondary/50">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{test.transcript}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{visibleTranscript}</p>
             </ScrollArea>
           )}
         </CardContent>
@@ -296,13 +296,13 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
         <CardContent>
           <ScrollArea className="h-[300px]">
             <div className="space-y-4 pr-4">
-              {test.questions.map((q, index) => (
+              {visibleQuestions.map((q, index) => (
                 <div 
                   key={q.id} 
                   className={`p-4 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
                 >
                   <p className="font-medium text-sm mb-3">
-                    <span className="text-accent mr-2">Q{index + 1}.</span>
+                    <span className="text-accent mr-2">Q{activeRange.start + index + 1}.</span>
                     {q.question}
                   </p>
 
@@ -334,6 +334,15 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
               ))}
             </div>
           </ScrollArea>
+
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" onClick={() => setCurrentPart((p) => Math.max(0, p - 1))} disabled={currentPart === 0 || isPaused} className="flex-1 gap-2">
+              <ChevronLeft className="w-4 h-4" /> Previous Section
+            </Button>
+            <Button variant="outline" onClick={() => setCurrentPart((p) => Math.min(3, p + 1))} disabled={currentPart === 3 || isPaused} className="flex-1 gap-2">
+              Next Section <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
 
           <Button 
             onClick={submitTest} 
