@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { useSearchParams } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTestSession } from "@/hooks/useTestSession";
 import { toast } from "sonner";
 
 interface ListeningModuleProps {
@@ -70,8 +72,11 @@ interface TestResult {
 
 export function ListeningModule({ onBack }: ListeningModuleProps) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { saveSession, loadSession } = useTestSession("listening");
   const [section, setSection] = useState<"full-test" | "1" | "2" | "3" | "4">("full-test");
   const [test, setTest] = useState<ListeningTest | null>(null);
+  const [testSessionId, setTestSessionId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,6 +111,27 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const id = searchParams.get("test");
+    if (!id || testSessionId === id) return;
+
+    setIsLoading(true);
+    loadSession<ListeningTest>(id)
+      .then((session) => {
+        if (!session) return;
+        setTest(session.content);
+        setTestSessionId(session.id);
+        setResult(null);
+        setAnswers({});
+        setShowTranscript(false);
+        setPlaybackProgress(0);
+        setStartTime(Date.now());
+        setElapsedTime(0);
+      })
+      .catch(() => toast.error("Could not load this listening test ID."))
+      .finally(() => setIsLoading(false));
+  }, [loadSession, searchParams, testSessionId]);
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -128,9 +154,20 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       if (data.error) throw new Error(data.error);
 
       setTest(data);
+      if (user) {
+        const session = await saveSession({
+          variant: section,
+          title: data.topic,
+          content: data,
+        });
+        if (session) {
+          setTestSessionId(session.id);
+          setSearchParams({ test: session.id });
+        }
+      }
       setStartTime(Date.now());
       setElapsedTime(0);
-      toast.success("Listening test generated!");
+      toast.success("Listening test generated and saved with an ID!");
     } catch (err) {
       console.error("Error generating test:", err);
       toast.error("Failed to generate test. Please try again.");
