@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
 import { useTestSession } from "@/hooks/useTestSession";
+import { TestSessionControls } from "@/components/TestSessionControls";
 import { toast } from "sonner";
 
 interface WritingModuleProps {
@@ -73,6 +74,10 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   } = useEvaluationHistory();
 
   const minWordCount = getMinWordCount(taskType);
+
+  const loadTestById = (id: string) => {
+    setSearchParams({ test: id });
+  };
 
   useEffect(() => {
     const id = searchParams.get("test");
@@ -215,6 +220,8 @@ export function WritingModule({ onBack }: WritingModuleProps) {
           </p>
         </div>
       </div>
+
+      <TestSessionControls testId={testSessionId} title={topic} onLoad={loadTestById} />
 
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Input Section */}
