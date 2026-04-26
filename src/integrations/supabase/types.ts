@@ -203,6 +203,42 @@ export type Database = {
         }
         Relationships: []
       }
+      test_sessions: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          status: string
+          test_type: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          variant: string | null
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          status?: string
+          test_type: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          variant?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          status?: string
+          test_type?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          variant?: string | null
+        }
+        Relationships: []
+      }
       writing_evaluations: {
         Row: {
           band_score: number
