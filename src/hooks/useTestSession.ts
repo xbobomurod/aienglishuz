@@ -38,7 +38,7 @@ export function useTestSession(testType: TestSessionType) {
       .single();
 
     if (error) throw error;
-    return data as TestSession;
+    return data as unknown as TestSession;
   }, [testType, user]);
 
   const loadSession = useCallback(async <T,>(id: string) => {
@@ -52,7 +52,7 @@ export function useTestSession(testType: TestSessionType) {
       .single();
 
     if (error) throw error;
-    return data as TestSession<T>;
+    return data as unknown as TestSession<T>;
   }, [testType, user]);
 
   return { saveSession, loadSession };
