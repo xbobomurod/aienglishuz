@@ -19,6 +19,9 @@ import {
   RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
+import { useTestSession } from "@/hooks/useTestSession";
+import { TestSessionControls } from "@/components/TestSessionControls";
 import { MockReadingSection } from "./mock-test/MockReadingSection";
 import { MockListeningSection } from "./mock-test/MockListeningSection";
 import { MockWritingSection } from "./mock-test/MockWritingSection";
@@ -101,7 +104,11 @@ function getBandColor(band: number): string {
 }
 
 export function MockTestModule({ onBack }: MockTestModuleProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { saveSession, loadSession } = useTestSession("mocktest");
   const [currentSection, setCurrentSection] = useState<TestSection>("intro");
+  const [testSessionId, setTestSessionId] = useState<string | null>(searchParams.get("test"));
+  const [testTitle, setTestTitle] = useState("Full IELTS Mock Test");
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -137,7 +144,28 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
     handleCompleteSection(5.0, true); // Default score on timeout
   }, [currentSectionIndex]);
 
-  const startTest = () => {
+  const loadTestById = (id: string) => {
+    setSearchParams({ test: id });
+    loadSession(id)
+      .then((session) => {
+        if (!session) return;
+        setTestSessionId(session.id);
+        setTestTitle(session.title || "Full IELTS Mock Test");
+        toast.success("Mock test ID loaded");
+      })
+      .catch(() => toast.error("Could not load this mock test ID."));
+  };
+
+  const startTest = async () => {
+    const session = await saveSession({
+      variant: "full-test",
+      title: "Full IELTS Mock Test",
+      content: { sections: SECTIONS.map(({ id, title, duration }) => ({ id, title, duration })) },
+    });
+    if (session) {
+      setTestSessionId(session.id);
+      setSearchParams({ test: session.id });
+    }
     setCurrentSection("listening");
     setCurrentSectionIndex(0);
     setTimeRemaining(SECTIONS[0].duration);
