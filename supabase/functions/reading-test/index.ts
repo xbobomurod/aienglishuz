@@ -85,6 +85,8 @@ serve(async (req) => {
 
 Generate ${isFullTest ? "three academic reading passages and 40 questions total" : "one academic reading passage and 13-14 questions"}. The passage content should be ${wordCount}, academic in tone, and cover topics like science, history, social issues, or technology.
 
+Critical quality requirement: write the passage first, then write questions ONLY from facts, claims, names, dates, numbers, causes, contrasts, or paragraph ideas that are explicitly present in that passage. Do not invent any answer, heading, option, or statement that cannot be proven by the passage text.
+
 You MUST respond with ONLY valid JSON in this exact format:
 {
   "topic": "Brief topic title",
@@ -95,27 +97,31 @@ You MUST respond with ONLY valid JSON in this exact format:
       "type": "multiple-choice",
       "question": "Question text",
       "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
-      "correctAnswer": "A"
+      "correctAnswer": "A",
+      "evidenceQuote": "Exact short quote copied from the passage proving the answer"
     },
     {
       "id": 2,
       "type": "true-false-not-given",
       "question": "Statement to evaluate",
       "options": ["True", "False", "Not Given"],
-      "correctAnswer": "True"
+      "correctAnswer": "True",
+      "evidenceQuote": "Exact short quote copied from the passage proving True/False, or exact area showing Not Given context"
     },
     {
       "id": 3,
       "type": "fill-blank",
       "question": "Complete the sentence: The main cause was _____.",
-      "correctAnswer": "specific word or phrase"
+      "correctAnswer": "specific word or phrase",
+      "evidenceQuote": "Exact sentence fragment copied from the passage containing the answer"
     },
     {
       "id": 4,
       "type": "matching",
       "question": "Match the paragraph with the heading: Paragraph B",
       "options": ["A) Early commercial failure", "B) A change in public attitudes", "C) New evidence from field studies", "D) Future research priorities"],
-      "correctAnswer": "C"
+      "correctAnswer": "C",
+      "evidenceQuote": "Exact short quote copied from Paragraph B proving the heading"
     }
   ]
 }
@@ -137,6 +143,10 @@ Passage quality rules:
 - Do not make answers depend on outside knowledge.
 Question quality rules:
 - Group questions by passage for a full test and write question text with the target passage/paragraph when useful.
+- Every question MUST include evidenceQuote: an exact 8-25 word quote copied character-for-character from the passage.
+- The correct answer must be directly supported by evidenceQuote. If no exact quote exists, rewrite the question.
+- Distractor options must be plausible but contradicted by, narrower than, broader than, or absent from the passage.
+- Do not ask about ideas, people, dates, definitions, or examples that are not in the passage.
 - Use matching questions with options and correctAnswer as a letter only.
 - Multiple-choice correctAnswer must be A, B, C, or D. True/False/Not Given must use the full words.
 - Fill-blank answers must be short exact words/phrases copied from the passage.
