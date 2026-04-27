@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -78,6 +79,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [result, setResult] = useState<TestResult | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [activePassage, setActivePassage] = useState("0");
 
   // Timer effect
   useEffect(() => {
@@ -102,6 +104,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
         setTestSessionId(session.id);
         setResult(null);
         setAnswers({});
+        setActivePassage("0");
         setStartTime(Date.now());
         setElapsedTime(0);
       })
@@ -123,6 +126,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     setIsLoading(true);
     setResult(null);
     setAnswers({});
+    setActivePassage("0");
     
     try {
       const { data, error } = await supabase.functions.invoke("reading-test", {
@@ -210,6 +214,23 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     .split(/(?=PASSAGE\s+\d\b)/i)
     .map((section) => section.trim())
     .filter(Boolean) || [];
+
+  const visiblePassages = passageSections.length ? passageSections : test ? [test.passage] : [];
+
+  const getQuestionsForPassage = (passageIndex: number) => {
+    if (!test) return [];
+    if (visiblePassages.length < 2) return test.questions;
+
+    const ranges = visiblePassages.length === 3
+      ? [[1, 13], [14, 26], [27, 40]]
+      : visiblePassages.map((_, index) => {
+          const perPassage = Math.ceil(test.questions.length / visiblePassages.length);
+          return [index * perPassage + 1, Math.min((index + 1) * perPassage, test.questions.length)];
+        });
+
+    const [start, end] = ranges[passageIndex] || [1, test.questions.length];
+    return test.questions.filter((question) => question.id >= start && question.id <= end);
+  };
 
   const formatPassageText = (text: string) => text
     .replace(/^(PASSAGE\s+\d.*)$/gim, "\n$1")
@@ -299,41 +320,49 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
       {/* Test in progress */}
       {test && !result && !isLoading && (
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Passage */}
-          <Card className="lg:row-span-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{test.topic}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="space-y-6 text-sm leading-relaxed text-foreground/90">
-                  {(passageSections.length ? passageSections : [test.passage]).map((sectionText, index) => (
-                    <div key={index} className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4">
-                      {formatPassageText(sectionText)}
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+        <Tabs value={activePassage} onValueChange={setActivePassage} className="space-y-4">
+          {visiblePassages.length > 1 && (
+            <TabsList className="grid w-full grid-cols-3">
+              {visiblePassages.map((_, index) => (
+                <TabsTrigger key={index} value={String(index)}>Passage {index + 1}</TabsTrigger>
+              ))}
+            </TabsList>
+          )}
 
-          {/* Questions */}
-          <div className="space-y-4">
+          {visiblePassages.map((sectionText, passageIndex) => {
+            const passageQuestions = getQuestionsForPassage(passageIndex);
+            const passageAnswered = passageQuestions.filter((question) => answers[question.id]).length;
+
+            return (
+              <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-6">
+                <Card className="lg:row-span-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{test.topic}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[500px] pr-4">
+                      <div className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4 text-sm leading-relaxed text-foreground/90">
+                        {formatPassageText(sectionText)}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {answeredCount}/{test.questions.length} answered
+                {passageAnswered}/{passageQuestions.length} answered in this passage
               </span>
               <Progress value={progress} className="w-32 h-2" />
             </div>
 
             <ScrollArea className="h-[450px]">
               <div className="space-y-4 pr-4">
-                {test.questions.map((q, index) => (
+                {passageQuestions.map((q) => (
                   <Card key={q.id} className={answers[q.id] ? "border-primary/50" : ""}>
                     <CardContent className="p-4">
                       <p className="font-medium text-sm mb-3">
-                        <span className="text-primary mr-2">Q{index + 1}.</span>
+                        <span className="text-primary mr-2">Q{q.id}.</span>
                         {q.question}
                       </p>
 
@@ -382,8 +411,11 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                 </>
               )}
             </Button>
-          </div>
-        </div>
+                </div>
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       )}
 
       {/* Results */}
