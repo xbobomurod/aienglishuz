@@ -380,6 +380,23 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     }
   };
 
+  const transcriptSections = test?.transcript
+    .split(/(?=\bSection\s+\d\b|\bSECTION\s+\d\b)/i)
+    .map((sectionText) => sectionText.trim())
+    .filter(Boolean) || [];
+
+  const visibleSections = transcriptSections.length > 1 ? transcriptSections : test ? [test.transcript] : [];
+
+  const getQuestionsForSection = (sectionIndex: number) => {
+    if (!test) return [];
+    if (visibleSections.length < 2) return test.questions;
+
+    const perSection = Math.ceil(test.questions.length / visibleSections.length);
+    const start = sectionIndex * perSection + 1;
+    const end = Math.min((sectionIndex + 1) * perSection, test.questions.length);
+    return test.questions.filter((question) => question.id >= start && question.id <= end);
+  };
+
   const answeredCount = Object.keys(answers).length;
   const progress = test ? (answeredCount / test.questions.length) * 100 : 0;
 
