@@ -25,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -96,6 +97,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [speechRate, setSpeechRate] = useState(1);
   const [voiceStyle, setVoiceStyle] = useState<"exam" | "natural" | "expressive">("natural");
+  const [activeSection, setActiveSection] = useState("0");
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechQueueRef = useRef<SpeechLine[]>([]);
   const speechIndexRef = useRef(0);
@@ -136,6 +138,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
         setAnswers({});
         setShowTranscript(false);
         setPlaybackProgress(0);
+        setActiveSection("0");
         setStartTime(Date.now());
         setElapsedTime(0);
       })
@@ -160,6 +163,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setAnswers({});
     setShowTranscript(false);
     setPlaybackProgress(0);
+    setActiveSection("0");
     
     try {
       const { data, error } = await supabase.functions.invoke("listening-test", {
@@ -376,6 +380,23 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     }
   };
 
+  const transcriptSections = test?.transcript
+    .split(/(?=\bSection\s+\d\b|\bSECTION\s+\d\b)/i)
+    .map((sectionText) => sectionText.trim())
+    .filter(Boolean) || [];
+
+  const visibleSections = transcriptSections.length > 1 ? transcriptSections : test ? [test.transcript] : [];
+
+  const getQuestionsForSection = (sectionIndex: number) => {
+    if (!test) return [];
+    if (visibleSections.length < 2) return test.questions;
+
+    const perSection = Math.ceil(test.questions.length / visibleSections.length);
+    const start = sectionIndex * perSection + 1;
+    const end = Math.min((sectionIndex + 1) * perSection, test.questions.length);
+    return test.questions.filter((question) => question.id >= start && question.id <= end);
+  };
+
   const answeredCount = Object.keys(answers).length;
   const progress = test ? (answeredCount / test.questions.length) * 100 : 0;
 
@@ -461,6 +482,16 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       {/* Test in progress */}
       {test && !result && !isLoading && (
         <div className="space-y-6">
+          {visibleSections.length > 1 && (
+            <Tabs value={activeSection} onValueChange={setActiveSection}>
+              <TabsList className="grid w-full grid-cols-4">
+                {visibleSections.map((_, index) => (
+                  <TabsTrigger key={index} value={String(index)}>Section {index + 1}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+
           {/* Audio Player */}
           <Card>
             <CardHeader className="pb-3">
@@ -530,7 +561,9 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               {/* Transcript (hidden by default) */}
               {showTranscript && (
                 <ScrollArea className="h-[200px] p-4 rounded-lg bg-secondary/50">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{test.transcript}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {visibleSections[Number(activeSection)] || test.transcript}
+                  </p>
                 </ScrollArea>
               )}
             </CardContent>
@@ -550,13 +583,13 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
             <CardContent>
               <ScrollArea className="h-[350px]">
                 <div className="space-y-4 pr-4">
-                  {test.questions.map((q, index) => (
+                  {getQuestionsForSection(Number(activeSection)).map((q) => (
                     <div 
                       key={q.id} 
                       className={`p-4 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
                     >
                       <p className="font-medium text-sm mb-3">
-                        <span className="text-accent mr-2">Q{index + 1}.</span>
+                        <span className="text-accent mr-2">Q{q.id}.</span>
                         {q.question}
                       </p>
 
