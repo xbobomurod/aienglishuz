@@ -103,7 +103,9 @@ Include authentic IELTS question types:
 
 For a full test, create exactly 40 questions: 10 questions per section.
 
-Make the transcript natural and conversational. Include specific details that can be tested.
+Make the transcript natural, human, and emotionally believable while staying IELTS-appropriate: include hesitation, polite interruptions, mild surprise, clarification requests, enthusiasm, uncertainty, and natural discourse markers like "actually", "right", "let me check", and "that's helpful".
+Use varied speaker turns instead of flat monologues when the section is conversational. Add punctuation that supports expressive listening: commas, dashes, ellipses, and question marks.
+Include specific details that can be tested.
 Ensure all answers are clearly stated in the transcript.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -118,7 +120,7 @@ Ensure all answers are clearly stated in the transcript.`;
             { role: "system", content: systemPrompt },
             { role: "user", content: `Generate a new IELTS Listening Section ${sectionType} test. Return only valid JSON.` }
           ],
-          temperature: 0.7,
+          temperature: 0.85,
         }),
       });
 
