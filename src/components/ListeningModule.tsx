@@ -25,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -96,6 +97,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [speechRate, setSpeechRate] = useState(1);
   const [voiceStyle, setVoiceStyle] = useState<"exam" | "natural" | "expressive">("natural");
+  const [activeSection, setActiveSection] = useState("0");
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechQueueRef = useRef<SpeechLine[]>([]);
   const speechIndexRef = useRef(0);
@@ -136,6 +138,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
         setAnswers({});
         setShowTranscript(false);
         setPlaybackProgress(0);
+        setActiveSection("0");
         setStartTime(Date.now());
         setElapsedTime(0);
       })
@@ -160,6 +163,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setAnswers({});
     setShowTranscript(false);
     setPlaybackProgress(0);
+    setActiveSection("0");
     
     try {
       const { data, error } = await supabase.functions.invoke("listening-test", {
