@@ -2,7 +2,7 @@ import { BookOpen, Mic, PenTool, Headphones, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HomeModuleProps {
-  onSelectModule: (module: "writing" | "speaking" | "reading" | "listening" | "mocktest") => void;
+  onSelectModule: (module: "learning" | "writing" | "speaking" | "reading" | "listening" | "mocktest") => void;
 }
 
 const skills = [
@@ -70,12 +70,12 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
                 Commence Mock Test
               </Button>
               <Button
-                onClick={() => onSelectModule("writing")}
+                onClick={() => onSelectModule("learning")}
                 variant="outline"
                 size="lg"
                 className="px-6 sm:px-8 py-5 sm:py-6 border-primary/20 hover:bg-primary/5 text-primary font-medium"
               >
-                Refine a Skill
+                Open Learning Hub
               </Button>
             </div>
 
