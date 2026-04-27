@@ -152,6 +152,10 @@ Question quality rules:
 - Fill-blank answers must be short exact words/phrases copied from the passage.
 Make questions progressively harder. Ensure all answers are clearly derivable from the passage.`;
 
+      const expectedQuestionCount = isFullTest ? 40 : 13;
+      let lastParseError = "";
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -162,9 +166,9 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Generate a new ${passageLabel} reading test. Return only valid JSON.` }
+            { role: "user", content: `Generate a new ${passageLabel} reading test. Return only valid JSON. Attempt ${attempt}: make sure every question has an exact evidenceQuote copied from the passage.` }
           ],
-          temperature: 0.7,
+          temperature: 0.45,
         }),
       });
 
@@ -194,15 +198,20 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
           .replace(/\n{3,}/g, "\n\n")
           .replace(/(^|\n)(PASSAGE\s+\d)/gi, "$1$2")
           .trim();
+        validateReadingTest(test, expectedQuestionCount);
         console.log("Generated test with", test.questions?.length, "questions");
         return new Response(
           JSON.stringify(test),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (parseError) {
+        lastParseError = parseError instanceof Error ? parseError.message : "Failed to parse generated test";
         console.error("Failed to parse AI response:", content);
-        throw new Error("Failed to parse generated test");
+        if (attempt === 2) throw new Error(lastParseError);
       }
+      }
+
+      throw new Error(lastParseError || "Failed to generate a validated reading test");
     }
 
     // Score the test
