@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -78,6 +79,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [result, setResult] = useState<TestResult | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [activePassage, setActivePassage] = useState("0");
 
   // Timer effect
   useEffect(() => {
@@ -102,6 +104,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
         setTestSessionId(session.id);
         setResult(null);
         setAnswers({});
+        setActivePassage("0");
         setStartTime(Date.now());
         setElapsedTime(0);
       })
@@ -123,6 +126,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     setIsLoading(true);
     setResult(null);
     setAnswers({});
+    setActivePassage("0");
     
     try {
       const { data, error } = await supabase.functions.invoke("reading-test", {
