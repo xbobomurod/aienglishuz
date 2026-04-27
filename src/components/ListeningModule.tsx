@@ -219,23 +219,24 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
   const selectEnglishVoice = (speaker?: string) => {
     const voices = window.speechSynthesis.getVoices();
+    const englishVoices = voices.filter(v => v.lang.startsWith("en-"));
     const normalized = speaker?.toLowerCase() || "";
     const preferFemale = /customer|woman|student|speaker\s*b|speaker\s*d/i.test(normalized);
     const preferMale = /agent|man|tutor|guide|lecturer|speaker\s*a|speaker\s*c/i.test(normalized);
 
     if (preferFemale) {
-      const femaleVoice = voices.find(v => v.lang.startsWith("en-") && /Samantha|Karen|Moira|Jenny|Aria|Female|Google UK English Female/i.test(v.name));
-      if (femaleVoice) return femaleVoice;
+      const femaleVoice = englishVoices.find(v => /Samantha|Karen|Moira|Jenny|Aria|Zira|Susan|Hazel|Catherine|Female|Google UK English Female/i.test(v.name));
+      return femaleVoice || englishVoices[1] || englishVoices[0];
     }
 
     if (preferMale) {
-      const maleVoice = voices.find(v => v.lang.startsWith("en-") && /Daniel|George|Ryan|David|Male|Google UK English Male/i.test(v.name));
-      if (maleVoice) return maleVoice;
+      const maleVoice = englishVoices.find(v => /Daniel|George|Ryan|David|Mark|Male|Google UK English Male/i.test(v.name));
+      return maleVoice || englishVoices[0];
     }
 
-    return voices.find(v => v.lang.startsWith("en-") && /Samantha|Daniel|Karen|Moira|Google|Microsoft|Natural|Online/i.test(v.name)) ||
+    return englishVoices.find(v => /Samantha|Daniel|Karen|Moira|Google|Microsoft|Natural|Online/i.test(v.name)) ||
       voices.find(v => v.lang.startsWith("en-GB")) ||
-      voices.find(v => v.lang.startsWith("en-"));
+      englishVoices[0];
   };
 
   const speakQueuedLine = (index: number) => {
