@@ -90,7 +90,12 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [showTranscript, setShowTranscript] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [speechRate, setSpeechRate] = useState(1);
+  const [voiceStyle, setVoiceStyle] = useState<"exam" | "natural" | "expressive">("natural");
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechQueueRef = useRef<string[]>([]);
+  const speechIndexRef = useRef(0);
+  const spokenCharsRef = useRef(0);
+  const isStoppingRef = useRef(false);
 
   // Timer effect
   useEffect(() => {
@@ -182,6 +187,71 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     }
   };
 
+  const getVoiceSettings = () => {
+    switch (voiceStyle) {
+      case "exam":
+        return { rate: speechRate * 0.92, pitch: 1, volume: 0.95 };
+      case "expressive":
+        return { rate: speechRate * 1.02, pitch: 1.12, volume: 1 };
+      default:
+        return { rate: speechRate, pitch: 1.06, volume: 1 };
+    }
+  };
+
+  const prepareSpeechLines = (transcript: string) => {
+    return transcript
+      .replace(/\bSECTION\s+(\d)\b/gi, "\nSection $1.\n")
+      .replace(/\b(Part|Speaker|Tutor|Student|Guide|Lecturer|Woman|Man)\s*([A-D]?)\s*:/gi, "\n$1 $2 says, ")
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.replace(/([.!?])\s+/g, "$1 ... "));
+  };
+
+  const selectEnglishVoice = () => {
+    const voices = window.speechSynthesis.getVoices();
+    return voices.find(v => v.lang.startsWith("en-") && /Samantha|Daniel|Karen|Moira|Google|Microsoft|Natural|Online/i.test(v.name)) ||
+      voices.find(v => v.lang.startsWith("en-GB")) ||
+      voices.find(v => v.lang.startsWith("en-"));
+  };
+
+  const speakQueuedLine = (index: number) => {
+    if (!test || typeof window === "undefined" || !window.speechSynthesis) return;
+    const line = speechQueueRef.current[index];
+
+    if (!line) {
+      setIsPlaying(false);
+      setPlaybackProgress(100);
+      return;
+    }
+
+    const settings = getVoiceSettings();
+    const utterance = new SpeechSynthesisUtterance(line);
+    utterance.rate = settings.rate;
+    utterance.pitch = /says,|\?/.test(line) && voiceStyle !== "exam" ? settings.pitch + 0.04 : settings.pitch;
+    utterance.volume = settings.volume;
+
+    const englishVoice = selectEnglishVoice();
+    if (englishVoice) utterance.voice = englishVoice;
+
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onboundary = (e) => {
+      const totalChars = test.transcript.length || 1;
+      const progress = ((spokenCharsRef.current + e.charIndex) / totalChars) * 100;
+      setPlaybackProgress(Math.min(progress, 99));
+    };
+    utterance.onend = () => {
+      if (isStoppingRef.current) return;
+      spokenCharsRef.current += line.length + 1;
+      speechIndexRef.current = index + 1;
+      window.setTimeout(() => speakQueuedLine(index + 1), voiceStyle === "expressive" ? 220 : 120);
+    };
+    utterance.onpause = () => setIsPlaying(false);
+
+    speechSynthRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
   const playAudio = () => {
     if (!test || typeof window === "undefined" || !window.speechSynthesis) {
       toast.error("Text-to-speech is not available in your browser");
@@ -200,36 +270,17 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       return;
     }
 
-    // Cancel any existing speech
+    isStoppingRef.current = false;
     window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(test.transcript);
-    utterance.rate = speechRate;
-    utterance.pitch = 1;
-    
-    // Try to get a good English voice
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang.startsWith("en-") && v.name.includes("Google")) ||
-                         voices.find(v => v.lang.startsWith("en-"));
-    if (englishVoice) utterance.voice = englishVoice;
-
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => {
-      setIsPlaying(false);
-      setPlaybackProgress(100);
-    };
-    utterance.onpause = () => setIsPlaying(false);
-    utterance.onboundary = (e) => {
-      const progress = (e.charIndex / test.transcript.length) * 100;
-      setPlaybackProgress(progress);
-    };
-
-    speechSynthRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+    speechQueueRef.current = prepareSpeechLines(test.transcript);
+    speechIndexRef.current = 0;
+    spokenCharsRef.current = 0;
+    speakQueuedLine(0);
   };
 
   const stopAudio = () => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
+      isStoppingRef.current = true;
       window.speechSynthesis.cancel();
       setIsPlaying(false);
       setPlaybackProgress(0);
