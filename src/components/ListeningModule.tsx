@@ -482,6 +482,16 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       {/* Test in progress */}
       {test && !result && !isLoading && (
         <div className="space-y-6">
+          {visibleSections.length > 1 && (
+            <Tabs value={activeSection} onValueChange={setActiveSection}>
+              <TabsList className="grid w-full grid-cols-4">
+                {visibleSections.map((_, index) => (
+                  <TabsTrigger key={index} value={String(index)}>Section {index + 1}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+
           {/* Audio Player */}
           <Card>
             <CardHeader className="pb-3">
@@ -551,7 +561,9 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               {/* Transcript (hidden by default) */}
               {showTranscript && (
                 <ScrollArea className="h-[200px] p-4 rounded-lg bg-secondary/50">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{test.transcript}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {visibleSections[Number(activeSection)] || test.transcript}
+                  </p>
                 </ScrollArea>
               )}
             </CardContent>
@@ -571,13 +583,13 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
             <CardContent>
               <ScrollArea className="h-[350px]">
                 <div className="space-y-4 pr-4">
-                  {test.questions.map((q, index) => (
+                  {getQuestionsForSection(Number(activeSection)).map((q) => (
                     <div 
                       key={q.id} 
                       className={`p-4 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
                     >
                       <p className="font-medium text-sm mb-3">
-                        <span className="text-accent mr-2">Q{index + 1}.</span>
+                        <span className="text-accent mr-2">Q{q.id}.</span>
                         {q.question}
                       </p>
 
