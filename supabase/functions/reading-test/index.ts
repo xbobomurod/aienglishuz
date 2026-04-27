@@ -11,6 +11,7 @@ interface Question {
   question: string;
   options?: string[];
   correctAnswer: string;
+  evidenceQuote?: string;
 }
 
 interface ReadingTest {
@@ -18,6 +19,41 @@ interface ReadingTest {
   passage: string;
   questions: Question[];
 }
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[^a-z0-9\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const validateReadingTest = (test: ReadingTest, expectedQuestions: number) => {
+  const passage = normalizeText(test.passage || "");
+  if (!test.topic || passage.length < 1200 || !Array.isArray(test.questions)) {
+    throw new Error("Generated reading test was incomplete");
+  }
+  if (test.questions.length !== expectedQuestions) {
+    throw new Error(`Expected ${expectedQuestions} questions, got ${test.questions.length}`);
+  }
+
+  test.questions.forEach((question, index) => {
+    if (question.id !== index + 1) question.id = index + 1;
+    if (!question.question || !question.correctAnswer) {
+      throw new Error(`Question ${index + 1} is missing required fields`);
+    }
+
+    const quote = normalizeText(question.evidenceQuote || "");
+    if (quote.length < 16 || !passage.includes(quote)) {
+      throw new Error(`Question ${index + 1} does not cite an exact passage quote`);
+    }
+
+    if (["multiple-choice", "matching"].includes(question.type) && (!question.options || question.options.length < 3)) {
+      throw new Error(`Question ${index + 1} is missing answer options`);
+    }
+  });
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
