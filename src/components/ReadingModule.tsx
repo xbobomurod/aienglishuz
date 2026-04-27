@@ -215,6 +215,23 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     .map((section) => section.trim())
     .filter(Boolean) || [];
 
+  const visiblePassages = passageSections.length ? passageSections : test ? [test.passage] : [];
+
+  const getQuestionsForPassage = (passageIndex: number) => {
+    if (!test) return [];
+    if (visiblePassages.length < 2) return test.questions;
+
+    const ranges = visiblePassages.length === 3
+      ? [[1, 13], [14, 26], [27, 40]]
+      : visiblePassages.map((_, index) => {
+          const perPassage = Math.ceil(test.questions.length / visiblePassages.length);
+          return [index * perPassage + 1, Math.min((index + 1) * perPassage, test.questions.length)];
+        });
+
+    const [start, end] = ranges[passageIndex] || [1, test.questions.length];
+    return test.questions.filter((question) => question.id >= start && question.id <= end);
+  };
+
   const formatPassageText = (text: string) => text
     .replace(/^(PASSAGE\s+\d.*)$/gim, "\n$1")
     .replace(/^([A-H])\.\s+/gm, "\n$1. ")
