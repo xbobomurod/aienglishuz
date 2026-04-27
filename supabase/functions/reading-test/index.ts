@@ -11,6 +11,7 @@ interface Question {
   question: string;
   options?: string[];
   correctAnswer: string;
+  evidenceQuote?: string;
 }
 
 interface ReadingTest {
@@ -18,6 +19,41 @@ interface ReadingTest {
   passage: string;
   questions: Question[];
 }
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[^a-z0-9\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const validateReadingTest = (test: ReadingTest, expectedQuestions: number) => {
+  const passage = normalizeText(test.passage || "");
+  if (!test.topic || passage.length < 1200 || !Array.isArray(test.questions)) {
+    throw new Error("Generated reading test was incomplete");
+  }
+  if (test.questions.length !== expectedQuestions) {
+    throw new Error(`Expected ${expectedQuestions} questions, got ${test.questions.length}`);
+  }
+
+  test.questions.forEach((question, index) => {
+    if (question.id !== index + 1) question.id = index + 1;
+    if (!question.question || !question.correctAnswer) {
+      throw new Error(`Question ${index + 1} is missing required fields`);
+    }
+
+    const quote = normalizeText(question.evidenceQuote || "");
+    if (quote.length < 16 || !passage.includes(quote)) {
+      throw new Error(`Question ${index + 1} does not cite an exact passage quote`);
+    }
+
+    if (["multiple-choice", "matching"].includes(question.type) && (!question.options || question.options.length < 3)) {
+      throw new Error(`Question ${index + 1} is missing answer options`);
+    }
+  });
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -49,6 +85,8 @@ serve(async (req) => {
 
 Generate ${isFullTest ? "three academic reading passages and 40 questions total" : "one academic reading passage and 13-14 questions"}. The passage content should be ${wordCount}, academic in tone, and cover topics like science, history, social issues, or technology.
 
+Critical quality requirement: write the passage first, then write questions ONLY from facts, claims, names, dates, numbers, causes, contrasts, or paragraph ideas that are explicitly present in that passage. Do not invent any answer, heading, option, or statement that cannot be proven by the passage text.
+
 You MUST respond with ONLY valid JSON in this exact format:
 {
   "topic": "Brief topic title",
@@ -59,27 +97,31 @@ You MUST respond with ONLY valid JSON in this exact format:
       "type": "multiple-choice",
       "question": "Question text",
       "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
-      "correctAnswer": "A"
+      "correctAnswer": "A",
+      "evidenceQuote": "Exact short quote copied from the passage proving the answer"
     },
     {
       "id": 2,
       "type": "true-false-not-given",
       "question": "Statement to evaluate",
       "options": ["True", "False", "Not Given"],
-      "correctAnswer": "True"
+      "correctAnswer": "True",
+      "evidenceQuote": "Exact short quote copied from the passage proving True/False, or exact area showing Not Given context"
     },
     {
       "id": 3,
       "type": "fill-blank",
       "question": "Complete the sentence: The main cause was _____.",
-      "correctAnswer": "specific word or phrase"
+      "correctAnswer": "specific word or phrase",
+      "evidenceQuote": "Exact sentence fragment copied from the passage containing the answer"
     },
     {
       "id": 4,
       "type": "matching",
       "question": "Match the paragraph with the heading: Paragraph B",
       "options": ["A) Early commercial failure", "B) A change in public attitudes", "C) New evidence from field studies", "D) Future research priorities"],
-      "correctAnswer": "C"
+      "correctAnswer": "C",
+      "evidenceQuote": "Exact short quote copied from Paragraph B proving the heading"
     }
   ]
 }
@@ -101,11 +143,19 @@ Passage quality rules:
 - Do not make answers depend on outside knowledge.
 Question quality rules:
 - Group questions by passage for a full test and write question text with the target passage/paragraph when useful.
+- Every question MUST include evidenceQuote: an exact 8-25 word quote copied character-for-character from the passage.
+- The correct answer must be directly supported by evidenceQuote. If no exact quote exists, rewrite the question.
+- Distractor options must be plausible but contradicted by, narrower than, broader than, or absent from the passage.
+- Do not ask about ideas, people, dates, definitions, or examples that are not in the passage.
 - Use matching questions with options and correctAnswer as a letter only.
 - Multiple-choice correctAnswer must be A, B, C, or D. True/False/Not Given must use the full words.
 - Fill-blank answers must be short exact words/phrases copied from the passage.
 Make questions progressively harder. Ensure all answers are clearly derivable from the passage.`;
 
+      const expectedQuestionCount = isFullTest ? 40 : 13;
+      let lastParseError = "";
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -116,9 +166,9 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Generate a new ${passageLabel} reading test. Return only valid JSON.` }
+            { role: "user", content: `Generate a new ${passageLabel} reading test. Return only valid JSON. Attempt ${attempt}: make sure every question has an exact evidenceQuote copied from the passage.` }
           ],
-          temperature: 0.7,
+          temperature: 0.45,
         }),
       });
 
@@ -148,15 +198,20 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
           .replace(/\n{3,}/g, "\n\n")
           .replace(/(^|\n)(PASSAGE\s+\d)/gi, "$1$2")
           .trim();
+        validateReadingTest(test, expectedQuestionCount);
         console.log("Generated test with", test.questions?.length, "questions");
         return new Response(
           JSON.stringify(test),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (parseError) {
+        lastParseError = parseError instanceof Error ? parseError.message : "Failed to parse generated test";
         console.error("Failed to parse AI response:", content);
-        throw new Error("Failed to parse generated test");
+        if (attempt === 2) throw new Error(lastParseError);
       }
+      }
+
+      throw new Error(lastParseError || "Failed to generate a validated reading test");
     }
 
     // Score the test
