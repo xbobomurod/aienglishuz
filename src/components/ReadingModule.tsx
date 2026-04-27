@@ -42,6 +42,7 @@ interface Question {
   question: string;
   options?: string[];
   correctAnswer: string;
+  evidenceQuote?: string;
 }
 
 interface ReadingTest {
@@ -427,40 +428,46 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
           {/* Answer Review */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Answer Review</CardTitle>
+              <CardTitle className="text-lg">Answer Review with Passage Evidence</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[300px]">
+              <ScrollArea className="h-[420px]">
                 <div className="space-y-3 pr-4">
-                  {result.results.map((r, index) => (
-                    <div 
-                      key={r.questionId}
-                      className={`p-3 rounded-lg ${r.correct ? "bg-success/10" : "bg-destructive/10"}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        {r.correct ? (
-                          <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-destructive mt-0.5" />
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Q{index + 1}: {test.questions[index]?.question}
-                          </p>
-                          <div className="flex gap-4 mt-1 text-sm">
-                            <span className={r.correct ? "text-success" : "text-destructive"}>
-                              Your answer: {r.userAnswer || "(blank)"}
-                            </span>
-                            {!r.correct && (
-                              <span className="text-success">
+                  {result.results.map((r, index) => {
+                    const question = test.questions[index];
+                    return (
+                      <div 
+                        key={r.questionId}
+                        className={`p-4 rounded-lg border ${r.correct ? "bg-success/10 border-success/20" : "bg-destructive/10 border-destructive/20"}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          {r.correct ? (
+                            <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-destructive mt-0.5" />
+                          )}
+                          <div className="flex-1 space-y-3">
+                            <p className="text-sm font-medium">
+                              Q{index + 1}: {question?.question}
+                            </p>
+                            <div className="flex flex-wrap gap-3 text-sm">
+                              <Badge variant={r.correct ? "default" : "destructive"}>
+                                Your answer: {r.userAnswer || "blank"}
+                              </Badge>
+                              <Badge variant="outline">
                                 Correct: {r.correctAnswer}
-                              </span>
+                              </Badge>
+                            </div>
+                            {question?.evidenceQuote && (
+                              <blockquote className="rounded-md border-l-4 border-primary bg-background/60 px-3 py-2 text-sm text-muted-foreground">
+                                <span className="font-medium text-foreground">Evidence:</span> “{question.evidenceQuote}”
+                              </blockquote>
                             )}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </CardContent>
