@@ -6,7 +6,8 @@ import { SpeakingModule } from "@/components/SpeakingModule";
 import { ReadingModule } from "@/components/ReadingModule";
 import { ListeningModule } from "@/components/ListeningModule";
 import { MockTestModule } from "@/components/MockTestModule";
-import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard, Headphones, Trophy, Menu, KeyRound } from "lucide-react";
+import { LearningModule } from "@/components/LearningModule";
+import { BookOpen, PenTool, Mic, LogOut, User, Loader2, LayoutDashboard, Headphones, Trophy, Menu, KeyRound, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -18,15 +19,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 
-type Module = "home" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
+type Module = "home" | "learning" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
 
-const moduleIds = ["home", "writing", "speaking", "reading", "listening", "mocktest"] as const;
+const moduleIds = ["home", "learning", "writing", "speaking", "reading", "listening", "mocktest"] as const;
 
 const isModule = (value: string | null): value is Module =>
   moduleIds.includes(value as Module);
 
 const moduleRoutes: Record<Module, string> = {
   home: "/",
+  learning: "/learning",
   mocktest: "/mock-test",
   reading: "/reading",
   listening: "/listening",
@@ -36,6 +38,7 @@ const moduleRoutes: Record<Module, string> = {
 
 const routeModules: Record<string, Module> = {
   "/": "home",
+  "/learning": "learning",
   "/mock-test": "mocktest",
   "/reading": "reading",
   "/listening": "listening",
@@ -110,6 +113,7 @@ const Index = () => {
 
   const moduleItems = [
     { id: "home", label: "Home", icon: BookOpen },
+    { id: "learning", label: "Learning", icon: GraduationCap },
     { id: "mocktest", label: "Mock Test", icon: Trophy },
     { id: "reading", label: "Reading", icon: BookOpen },
     { id: "listening", label: "Listening", icon: Headphones },
@@ -248,6 +252,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container py-4 sm:py-8 px-4">
         {activeModule === "home" && <HomeModule onSelectModule={handleSelectModule} />}
+        {activeModule === "learning" && <LearningModule onBack={handleBack} onSelectModule={handleSelectModule} />}
         {activeModule === "writing" && <WritingModule onBack={handleBack} />}
         {activeModule === "speaking" && <SpeakingModule onBack={handleBack} />}
         {activeModule === "reading" && <ReadingModule onBack={handleBack} />}
