@@ -42,6 +42,7 @@ interface Question {
   question: string;
   options?: string[];
   correctAnswer: string;
+  evidenceQuote?: string;
 }
 
 interface ReadingTest {
