@@ -71,6 +71,11 @@ interface TestResult {
   feedback: string;
 }
 
+interface SpeechLine {
+  speaker?: string;
+  text: string;
+}
+
 export function ListeningModule({ onBack }: ListeningModuleProps) {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -92,7 +97,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [speechRate, setSpeechRate] = useState(1);
   const [voiceStyle, setVoiceStyle] = useState<"exam" | "natural" | "expressive">("natural");
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const speechQueueRef = useRef<string[]>([]);
+  const speechQueueRef = useRef<SpeechLine[]>([]);
   const speechIndexRef = useRef(0);
   const spokenCharsRef = useRef(0);
   const isStoppingRef = useRef(false);
@@ -198,18 +203,36 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     }
   };
 
-  const prepareSpeechLines = (transcript: string) => {
+  const prepareSpeechLines = (transcript: string): SpeechLine[] => {
     return transcript
       .replace(/\bSECTION\s+(\d)\b/gi, "\nSection $1.\n")
-      .replace(/\b(Part|Speaker|Tutor|Student|Guide|Lecturer|Woman|Man)\s*([A-D]?)\s*:/gi, "\n$1 $2 says, ")
       .split(/\n+/)
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => line.replace(/([.!?])\s+/g, "$1 ... "));
+      .map((line) => {
+        const match = line.match(/^([A-Z][A-Z\s]*(?:\s+[A-D])?|Speaker\s+[A-D]|Tutor|Student|Guide|Lecturer|Woman|Man|Agent|Customer)\s*:\s*(.+)$/i);
+        const speaker = match?.[1]?.trim();
+        const text = (match?.[2] || line).replace(/([.!?])\s+/g, "$1 ... ");
+        return { speaker, text };
+      });
   };
 
-  const selectEnglishVoice = () => {
+  const selectEnglishVoice = (speaker?: string) => {
     const voices = window.speechSynthesis.getVoices();
+    const normalized = speaker?.toLowerCase() || "";
+    const preferFemale = /customer|woman|student|speaker\s*b|speaker\s*d/i.test(normalized);
+    const preferMale = /agent|man|tutor|guide|lecturer|speaker\s*a|speaker\s*c/i.test(normalized);
+
+    if (preferFemale) {
+      const femaleVoice = voices.find(v => v.lang.startsWith("en-") && /Samantha|Karen|Moira|Jenny|Aria|Female|Google UK English Female/i.test(v.name));
+      if (femaleVoice) return femaleVoice;
+    }
+
+    if (preferMale) {
+      const maleVoice = voices.find(v => v.lang.startsWith("en-") && /Daniel|George|Ryan|David|Male|Google UK English Male/i.test(v.name));
+      if (maleVoice) return maleVoice;
+    }
+
     return voices.find(v => v.lang.startsWith("en-") && /Samantha|Daniel|Karen|Moira|Google|Microsoft|Natural|Online/i.test(v.name)) ||
       voices.find(v => v.lang.startsWith("en-GB")) ||
       voices.find(v => v.lang.startsWith("en-"));
@@ -226,12 +249,13 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     }
 
     const settings = getVoiceSettings();
-    const utterance = new SpeechSynthesisUtterance(line);
-    utterance.rate = settings.rate;
-    utterance.pitch = /says,|\?/.test(line) && voiceStyle !== "exam" ? settings.pitch + 0.04 : settings.pitch;
+    const utterance = new SpeechSynthesisUtterance(line.text);
+    const speakerTone = /customer|woman|student|speaker\s*b|speaker\s*d/i.test(line.speaker || "") ? 0.08 : -0.03;
+    utterance.rate = settings.rate * (/customer/i.test(line.speaker || "") ? 1.02 : 0.98);
+    utterance.pitch = voiceStyle !== "exam" ? settings.pitch + speakerTone + (/\?/.test(line.text) ? 0.04 : 0) : settings.pitch;
     utterance.volume = settings.volume;
 
-    const englishVoice = selectEnglishVoice();
+    const englishVoice = selectEnglishVoice(line.speaker);
     if (englishVoice) utterance.voice = englishVoice;
 
     utterance.onstart = () => setIsPlaying(true);
@@ -242,7 +266,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     };
     utterance.onend = () => {
       if (isStoppingRef.current) return;
-      spokenCharsRef.current += line.length + 1;
+      spokenCharsRef.current += line.text.length + 1;
       speechIndexRef.current = index + 1;
       window.setTimeout(() => speakQueuedLine(index + 1), voiceStyle === "expressive" ? 220 : 120);
     };
