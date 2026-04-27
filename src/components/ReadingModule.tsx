@@ -38,7 +38,7 @@ interface ReadingModuleProps {
 
 interface Question {
   id: number;
-  type: "multiple-choice" | "true-false-not-given" | "fill-blank";
+  type: "multiple-choice" | "true-false-not-given" | "fill-blank" | "matching";
   question: string;
   options?: string[];
   correctAnswer: string;
@@ -205,6 +205,16 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     }
   };
 
+  const passageSections = test?.passage
+    .split(/(?=PASSAGE\s+\d\b)/i)
+    .map((section) => section.trim())
+    .filter(Boolean) || [];
+
+  const formatPassageText = (text: string) => text
+    .replace(/^(PASSAGE\s+\d.*)$/gim, "\n$1")
+    .replace(/^([A-H])\.\s+/gm, "\n$1. ")
+    .trim();
+
   const answeredCount = Object.keys(answers).length;
   const progress = test ? (answeredCount / test.questions.length) * 100 : 0;
 
@@ -296,7 +306,13 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[500px] pr-4">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{test.passage}</p>
+                <div className="space-y-6 text-sm leading-relaxed text-foreground/90">
+                  {(passageSections.length ? passageSections : [test.passage]).map((sectionText, index) => (
+                    <div key={index} className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4">
+                      {formatPassageText(sectionText)}
+                    </div>
+                  ))}
+                </div>
               </ScrollArea>
             </CardContent>
           </Card>
@@ -320,7 +336,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                         {q.question}
                       </p>
 
-                      {q.type === "multiple-choice" || q.type === "true-false-not-given" ? (
+                      {q.type === "multiple-choice" || q.type === "true-false-not-given" || q.type === "matching" ? (
                         <RadioGroup
                           value={answers[q.id] || ""}
                           onValueChange={(v) => setAnswers(prev => ({ ...prev, [q.id]: v }))}

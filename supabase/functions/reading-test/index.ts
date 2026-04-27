@@ -73,6 +73,13 @@ You MUST respond with ONLY valid JSON in this exact format:
       "type": "fill-blank",
       "question": "Complete the sentence: The main cause was _____.",
       "correctAnswer": "specific word or phrase"
+    },
+    {
+      "id": 4,
+      "type": "matching",
+      "question": "Match the paragraph with the heading: Paragraph B",
+      "options": ["A) Early commercial failure", "B) A change in public attitudes", "C) New evidence from field studies", "D) Future research priorities"],
+      "correctAnswer": "C"
     }
   ]
 }
@@ -87,6 +94,16 @@ Include authentic IELTS question types:
 For a full test, create exactly 40 questions spread across the three passages: 13 for Passage 1, 13 for Passage 2, and 14 for Passage 3.
 
 Difficulty level: ${passageLabel}
+Passage quality rules:
+- Use clear IELTS formatting: PASSAGE 1 / PASSAGE 2 / PASSAGE 3, then a title, then paragraphs labelled A, B, C, D, etc.
+- For a single passage, still label paragraphs A-G or A-H.
+- Avoid generic textbook summaries; include specific dates, named studies, places, figures, and contrasting viewpoints.
+- Do not make answers depend on outside knowledge.
+Question quality rules:
+- Group questions by passage for a full test and write question text with the target passage/paragraph when useful.
+- Use matching questions with options and correctAnswer as a letter only.
+- Multiple-choice correctAnswer must be A, B, C, or D. True/False/Not Given must use the full words.
+- Fill-blank answers must be short exact words/phrases copied from the passage.
 Make questions progressively harder. Ensure all answers are clearly derivable from the passage.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -122,9 +139,15 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
       
       // Clean up the response
       content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) content = jsonMatch[0];
       
       try {
         const test: ReadingTest = JSON.parse(content);
+        test.passage = test.passage
+          .replace(/\n{3,}/g, "\n\n")
+          .replace(/(^|\n)(PASSAGE\s+\d)/gi, "$1$2")
+          .trim();
         console.log("Generated test with", test.questions?.length, "questions");
         return new Response(
           JSON.stringify(test),

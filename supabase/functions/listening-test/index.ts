@@ -103,8 +103,13 @@ Include authentic IELTS question types:
 
 For a full test, create exactly 40 questions: 10 questions per section.
 
-Make the transcript natural, human, and emotionally believable while staying IELTS-appropriate: include hesitation, polite interruptions, mild surprise, clarification requests, enthusiasm, uncertainty, and natural discourse markers like "actually", "right", "let me check", and "that's helpful".
-Use varied speaker turns instead of flat monologues when the section is conversational. Add punctuation that supports expressive listening: commas, dashes, ellipses, and question marks.
+Transcript rules:
+- Use speaker labels only as metadata at the start of each turn, e.g. AGENT:, CUSTOMER:, GUIDE:, STUDENT A:. Do not write "Agent says" or "Customer says" in the spoken text.
+- For Section 1, use exactly two speakers with contrasting roles such as AGENT and CUSTOMER.
+- For Section 3, use 2-4 speakers with clear labels such as TUTOR, STUDENT A, STUDENT B.
+- Do not include stage directions, bracketed emotions, sound effects, or narration that should not be spoken.
+- Make the speech natural and emotionally believable while staying IELTS-appropriate: brief hesitation, polite interruption, mild surprise, clarification requests, enthusiasm, uncertainty, and discourse markers like "actually", "right", "let me check", and "that's helpful".
+- Add punctuation that supports expressive listening: commas, dashes, ellipses, and question marks.
 Include specific details that can be tested.
 Ensure all answers are clearly stated in the transcript.`;
 
@@ -141,9 +146,16 @@ Ensure all answers are clearly stated in the transcript.`;
       
       // Clean up the response
       content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) content = jsonMatch[0];
       
       try {
         const test: ListeningTest = JSON.parse(content);
+        test.transcript = test.transcript
+          .replace(/^\s*(AGENT|CUSTOMER|GUIDE|TUTOR|LECTURER|STUDENT\s*[A-D]?|SPEAKER\s*[A-D]?|MAN|WOMAN)\s+says[:,]?\s*/gim, "$1: ")
+          .replace(/\[(?:laughs?|pause|sighs?|music|noise|silence|hesitates?)\]/gi, "")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
         console.log("Generated listening test with", test.questions?.length, "questions");
         return new Response(
           JSON.stringify(test),
