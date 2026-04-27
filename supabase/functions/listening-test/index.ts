@@ -20,6 +20,33 @@ interface ListeningTest {
   questions: Question[];
 }
 
+const normalizeAnswer = (value: unknown) =>
+  (value || "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/\b(pounds?|minutes?|pm|a\.m\.|p\.m\.)\b/g, (match) => match.replace(/\./g, ""))
+    .replace(/[^a-z0-9\s:.'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isAnswerCorrect = (userAnswer: unknown, correctAnswer: unknown) => {
+  const userAns = normalizeAnswer(userAnswer);
+  const correctAns = normalizeAnswer(correctAnswer);
+
+  if (!userAns || !correctAns) return false;
+  if (userAns === correctAns) return true;
+
+  const withoutArticles = (value: string) => value.replace(/^(a|an|the)\s+/, "").trim();
+  if (withoutArticles(userAns) === withoutArticles(correctAns)) return true;
+
+  const compactUser = userAns.replace(/[\s:.'-]/g, "");
+  const compactCorrect = correctAns.replace(/[\s:.'-]/g, "");
+  return compactUser.length > 1 && compactUser === compactCorrect;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -175,13 +202,7 @@ Ensure all answers are clearly stated in the transcript.`;
       const results: { questionId: number; correct: boolean; userAnswer: string; correctAnswer: string }[] = [];
 
       for (let i = 0; i < totalQuestions; i++) {
-        const userAns = (userAnswers[i] || "").toString().toLowerCase().trim();
-        const correctAns = (correctAnswers[i] || "").toString().toLowerCase().trim();
-        
-        // For fill-blank, allow some flexibility
-        const isCorrect = userAns === correctAns || 
-          correctAns.includes(userAns) || 
-          userAns.includes(correctAns);
+        const isCorrect = isAnswerCorrect(userAnswers[i], correctAnswers[i]);
         
         if (isCorrect) correctCount++;
         
