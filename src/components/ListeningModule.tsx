@@ -472,18 +472,34 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                 </Button>
               </div>
 
-              {/* Speed control */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">Speed:</span>
-                <Slider
-                  value={[speechRate]}
-                  onValueChange={([v]) => setSpeechRate(v)}
-                  min={0.5}
-                  max={1.5}
-                  step={0.1}
-                  className="w-32"
-                />
-                <span className="text-sm font-mono">{speechRate.toFixed(1)}x</span>
+              {/* Voice controls */}
+              <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Voice style</Label>
+                  <Select value={voiceStyle} onValueChange={(v) => setVoiceStyle(v as typeof voiceStyle)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="exam">Exam calm</SelectItem>
+                      <SelectItem value="natural">Natural conversation</SelectItem>
+                      <SelectItem value="expressive">Expressive practice</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm text-muted-foreground">Speed</Label>
+                    <span className="text-sm font-mono">{speechRate.toFixed(1)}x</span>
+                  </div>
+                  <Slider
+                    value={[speechRate]}
+                    onValueChange={([v]) => setSpeechRate(v)}
+                    min={0.5}
+                    max={1.5}
+                    step={0.1}
+                  />
+                </div>
               </div>
 
               {/* Transcript (hidden by default) */}
