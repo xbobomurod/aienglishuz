@@ -2,64 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap');
 
 @layer base {
   :root {
-    /* Editorial IELTS palette — passport navy on warm oak paper, brass accent */
-    --background: 45 25% 97%;        /* oak-paper #F9F8F5 */
-    --foreground: 220 28% 15%;       /* ink #2C3545 */
+    /* Neon Mint academy palette — focused IELTS workspace */
+    --background: 211 53% 11%;       /* #0D1B2A */
+    --foreground: 160 56% 94%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 28% 15%;
+    --card: 209 42% 15%;
+    --card-foreground: 160 56% 94%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 28% 15%;
+    --popover: 209 42% 15%;
+    --popover-foreground: 160 56% 94%;
 
-    --primary: 218 44% 14%;          /* passport #132034 */
-    --primary-foreground: 0 0% 100%;
+    --primary: 164 66% 50%;          /* #2DD4A8 */
+    --primary-foreground: 211 53% 11%;
 
-    --secondary: 45 20% 93%;
-    --secondary-foreground: 220 28% 15%;
+    --secondary: 154 43% 18%;        /* #1B4332 */
+    --secondary-foreground: 160 56% 94%;
 
-    --muted: 45 20% 94%;
-    --muted-foreground: 220 14% 41%; /* ink-light #5A6577 */
+    --muted: 210 35% 18%;
+    --muted-foreground: 165 18% 72%;
 
-    --accent: 41 44% 58%;            /* brass #C4A462 */
-    --accent-foreground: 218 44% 14%;
+    --accent: 154 100% 73%;          /* #73FFB8 */
+    --accent-foreground: 211 53% 11%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 45% 38%;          /* forest green tied to editorial palette */
-    --success-foreground: 0 0% 100%;
+    --success: 154 100% 73%;
+    --success-foreground: 211 53% 11%;
 
-    --border: 218 20% 88%;
-    --input: 218 20% 88%;
-    --ring: 218 44% 14%;
+    --border: 164 35% 28%;
+    --input: 164 35% 28%;
+    --ring: 164 66% 50%;
 
     --radius: 0.625rem;
 
     /* Custom tokens */
-    --gradient-hero: linear-gradient(135deg, hsl(218 44% 14%) 0%, hsl(218 38% 22%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(41 44% 58%) 0%, hsl(41 50% 65%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(45 25% 97%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(211 53% 11%) 0%, hsl(154 43% 18%) 55%, hsl(164 66% 50%) 130%);
+    --gradient-accent: linear-gradient(135deg, hsl(164 66% 50%) 0%, hsl(154 100% 73%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(209 42% 15%) 0%, hsl(211 53% 11%) 100%);
 
-    --shadow-soft: 0 1px 2px hsl(218 44% 14% / 0.03), 0 4px 14px -4px hsl(218 44% 14% / 0.06);
-    --shadow-card: 0 4px 24px hsl(218 44% 14% / 0.05);
-    --shadow-elevated: 0 8px 30px -8px hsl(218 44% 14% / 0.12);
+    --shadow-soft: 0 1px 2px hsl(164 66% 50% / 0.08), 0 10px 30px -18px hsl(164 66% 50% / 0.45);
+    --shadow-card: 0 12px 36px -22px hsl(164 66% 50% / 0.55);
+    --shadow-elevated: 0 24px 70px -34px hsl(164 66% 50% / 0.65);
 
-    --font-display: 'Lora', serif;
-    --font-body: 'Plus Jakarta Sans', sans-serif;
+    --font-display: 'Sora', sans-serif;
+    --font-body: 'Manrope', sans-serif;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 211 53% 11%;
+    --sidebar-foreground: 160 56% 94%;
+    --sidebar-primary: 164 66% 50%;
+    --sidebar-primary-foreground: 211 53% 11%;
+    --sidebar-accent: 154 43% 18%;
+    --sidebar-accent-foreground: 160 56% 94%;
+    --sidebar-border: 164 35% 28%;
+    --sidebar-ring: 164 66% 50%;
   }
 
   .dark {
