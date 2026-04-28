@@ -1,4 +1,4 @@
-import { ArrowLeft, BookMarked, CalendarCheck, CheckCircle2, Compass, Headphones, Lightbulb, Mic, PenTool, Target, Trophy, WalletCards } from "lucide-react";
+import { ArrowLeft, BookMarked, CalendarCheck, CheckCircle2, Compass, Headphones, Lightbulb, Mic, NotebookTabs, PenTool, Target, Trophy, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,10 +23,10 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
   const { writingHistory, speakingHistory, readingHistory, listeningHistory, isLoading } = useEvaluationHistory();
 
   const latestScores = [
-    { skill: "Reading", module: "reading" as const, icon: BookMarked, score: readingHistory[0]?.band_score, task: "Complete one passage and review every evidence quote." },
-    { skill: "Listening", module: "listening" as const, icon: Headphones, score: listeningHistory[0]?.band_score, task: "Do one section, then replay missed moments with transcript hidden." },
-    { skill: "Writing", module: "writing" as const, icon: PenTool, score: writingHistory[0]?.band_score, task: "Write Task 2 and upgrade three weak sentences." },
-    { skill: "Speaking", module: "speaking" as const, icon: Mic, score: speakingHistory[0]?.band_score, task: "Record Part 2, then repeat with fewer pauses." },
+    { skill: "Reading", focus: "Evidence & speed", module: "reading" as const, icon: BookMarked, score: readingHistory[0]?.band_score, task: "Complete one passage and review every evidence quote." },
+    { skill: "Listening", focus: "Accuracy & detail", module: "listening" as const, icon: Headphones, score: listeningHistory[0]?.band_score, task: "Do one section, then replay missed moments with transcript hidden." },
+    { skill: "Writing", focus: "Coherence & grammar", module: "writing" as const, icon: PenTool, score: writingHistory[0]?.band_score, task: "Write Task 2 and upgrade three weak sentences." },
+    { skill: "Speaking", focus: "Fluency & range", module: "speaking" as const, icon: Mic, score: speakingHistory[0]?.band_score, task: "Record Part 2, then repeat with fewer pauses." },
   ];
 
   const averageScore = latestScores.filter((item) => item.score).reduce((sum, item) => sum + Number(item.score), 0) / Math.max(1, latestScores.filter((item) => item.score).length);
@@ -42,34 +42,43 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+      <div className="rounded-2xl border border-border bg-card/80 p-4 shadow-sm md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-start gap-3">
+            <Button variant="ghost" size="icon" onClick={onBack} className="mt-1 shrink-0">
           <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="font-display text-2xl font-bold text-foreground">IELTS Learning Hub</h1>
-          <p className="text-muted-foreground text-sm">Daily plan, mistakes, vocabulary, and band roadmap</p>
+            </Button>
+            <div>
+              <Badge variant="secondary" className="mb-3 gap-1"><NotebookTabs className="w-3 h-3" /> IELTS study workspace</Badge>
+              <h1 className="font-display text-3xl font-bold leading-tight text-foreground">IELTS Learning Hub</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">A focused study desk for daily practice, mistakes, topic vocabulary, and your route to the next band.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-primary/10 px-4 py-3 text-primary">
+            <Target className="h-4 w-4" />
+            <span className="text-sm font-semibold">Target Band {targetBand}.0</span>
+          </div>
         </div>
-        <Badge variant="outline" className="gap-1"><Target className="w-3 h-3" /> Target {targetBand}.0</Badge>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         {latestScores.map((item) => (
-          <Card key={item.skill}>
-            <CardContent className="p-4">
+          <Card key={item.skill} className="overflow-hidden">
+            <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <item.icon className="w-5 h-5 text-primary" />
+                <div className="rounded-xl bg-primary/10 p-2 text-primary"><item.icon className="w-5 h-5" /></div>
                 <Badge variant="secondary">{item.score ? `Band ${item.score}` : "Start"}</Badge>
               </div>
               <p className="font-semibold text-foreground">{item.skill}</p>
-              <p className="text-xs text-muted-foreground mt-1">{item.task}</p>
+              <p className="mt-1 text-xs font-medium uppercase text-primary">{item.focus}</p>
+              <p className="text-sm leading-5 text-muted-foreground mt-3">{item.task}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <Tabs defaultValue="plan" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 md:grid-cols-4">
           <TabsTrigger value="plan">Plan</TabsTrigger>
           <TabsTrigger value="mistakes">Mistakes</TabsTrigger>
           <TabsTrigger value="vocab">Vocabulary</TabsTrigger>
