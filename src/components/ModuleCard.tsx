@@ -28,13 +28,13 @@ export function ModuleCard({
     <button
       onClick={onClick}
       className={cn(
-        "group relative w-full p-6 rounded-xl bg-card shadow-card border border-border/50 text-left transition-all duration-300 hover:shadow-elevated hover:-translate-y-1",
-        isActive && "ring-2 ring-primary border-primary/20"
+        "group relative w-full p-6 rounded-2xl bg-card shadow-card border border-border text-left transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 hover:border-primary/30",
+        isActive && "ring-2 ring-primary border-primary/30"
       )}
     >
       <div
         className={cn(
-          "w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-all duration-300",
+          "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300",
           colorVariants[accentColor]
         )}
       >
