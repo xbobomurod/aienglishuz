@@ -151,17 +151,17 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background bg-[linear-gradient(180deg,hsl(var(--secondary)/0.9),transparent_360px)] flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl gradient-accent flex items-center justify-center shadow-card">
               <BookOpen className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">EnglishPro</h1>
-          <p className="text-muted-foreground mt-2">Master your English with AI-powered feedback</p>
+          <h1 className="font-display text-3xl font-bold text-foreground">IELTS Coach</h1>
+          <p className="text-muted-foreground mt-2">Practice IELTS with clear AI feedback</p>
         </div>
 
         {/* Forgot Password View */}
