@@ -122,15 +122,15 @@ const Index = () => {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.18),transparent_34%),radial-gradient(circle_at_10%_20%,hsl(var(--secondary)/0.7),transparent_30%)]">
+    <div className="min-h-screen bg-background bg-[linear-gradient(180deg,hsl(var(--secondary)/0.85),transparent_360px)]">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/75 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-border/70 bg-card/85 backdrop-blur-xl">
         <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg gradient-accent flex items-center justify-center shadow-card">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl gradient-accent flex items-center justify-center shadow-card">
               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg sm:text-xl font-bold text-foreground">IELTS Academy</span>
+            <span className="font-display text-lg sm:text-xl font-bold text-foreground">IELTS Coach</span>
           </div>
 
           {/* Desktop Navigation */}
@@ -159,13 +159,13 @@ const Index = () => {
                   <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[280px]">
+              <SheetContent side="left" className="w-[280px] bg-card">
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg gradient-hero flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-xl gradient-accent flex items-center justify-center">
                       <BookOpen className="w-4 h-4 text-primary-foreground" />
                     </div>
-                    EnglishCoach
+                    IELTS Coach
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-2 mt-6">
@@ -250,7 +250,7 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-          <main className="container py-4 sm:py-8 px-4">
+      <main className="container py-4 sm:py-8 px-4">
         {activeModule === "home" && <HomeModule onSelectModule={handleSelectModule} />}
         {activeModule === "learning" && <LearningModule onBack={handleBack} onSelectModule={handleSelectModule} />}
         {activeModule === "writing" && <WritingModule onBack={handleBack} />}
@@ -261,7 +261,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-4 sm:py-6 mt-auto">
+      <footer className="border-t border-border/60 bg-card/60 py-4 sm:py-6 mt-auto">
         <div className="container text-center text-xs sm:text-sm text-muted-foreground px-4">
           <p>Complete IELTS test simulation with AI-powered feedback</p>
         </div>
