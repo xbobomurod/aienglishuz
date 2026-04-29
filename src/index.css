@@ -6,60 +6,60 @@
 
 @layer base {
   :root {
-    /* Neon Mint academy palette — focused IELTS workspace */
-    --background: 211 53% 11%;       /* #0D1B2A */
-    --foreground: 160 56% 94%;
+    /* Light IELTS academy palette — calm, readable study workspace */
+    --background: 210 40% 98%;
+    --foreground: 218 39% 14%;
 
-    --card: 209 42% 15%;
-    --card-foreground: 160 56% 94%;
+    --card: 0 0% 100%;
+    --card-foreground: 218 39% 14%;
 
-    --popover: 209 42% 15%;
-    --popover-foreground: 160 56% 94%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 218 39% 14%;
 
-    --primary: 164 66% 50%;          /* #2DD4A8 */
-    --primary-foreground: 211 53% 11%;
+    --primary: 217 91% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 154 43% 18%;        /* #1B4332 */
-    --secondary-foreground: 160 56% 94%;
+    --secondary: 212 80% 94%;
+    --secondary-foreground: 218 39% 18%;
 
-    --muted: 210 35% 18%;
-    --muted-foreground: 165 18% 72%;
+    --muted: 214 32% 93%;
+    --muted-foreground: 216 16% 43%;
 
-    --accent: 154 100% 73%;          /* #73FFB8 */
-    --accent-foreground: 211 53% 11%;
+    --accent: 168 76% 36%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 154 100% 73%;
-    --success-foreground: 211 53% 11%;
+    --success: 142 71% 36%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 164 35% 28%;
-    --input: 164 35% 28%;
-    --ring: 164 66% 50%;
+    --border: 214 32% 87%;
+    --input: 214 32% 87%;
+    --ring: 217 91% 45%;
 
     --radius: 0.625rem;
 
     /* Custom tokens */
-    --gradient-hero: linear-gradient(135deg, hsl(211 53% 11%) 0%, hsl(154 43% 18%) 55%, hsl(164 66% 50%) 130%);
-    --gradient-accent: linear-gradient(135deg, hsl(164 66% 50%) 0%, hsl(154 100% 73%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(209 42% 15%) 0%, hsl(211 53% 11%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(212 80% 96%) 52%, hsl(168 70% 92%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(217 91% 45%) 0%, hsl(168 76% 36%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(212 80% 97%) 100%);
 
-    --shadow-soft: 0 1px 2px hsl(164 66% 50% / 0.08), 0 10px 30px -18px hsl(164 66% 50% / 0.45);
-    --shadow-card: 0 12px 36px -22px hsl(164 66% 50% / 0.55);
-    --shadow-elevated: 0 24px 70px -34px hsl(164 66% 50% / 0.65);
+    --shadow-soft: 0 1px 2px hsl(218 39% 14% / 0.05), 0 12px 30px -24px hsl(217 91% 45% / 0.28);
+    --shadow-card: 0 18px 45px -30px hsl(218 39% 14% / 0.28);
+    --shadow-elevated: 0 28px 70px -38px hsl(217 91% 45% / 0.32);
 
     --font-display: 'Sora', sans-serif;
     --font-body: 'Manrope', sans-serif;
 
-    --sidebar-background: 211 53% 11%;
-    --sidebar-foreground: 160 56% 94%;
-    --sidebar-primary: 164 66% 50%;
-    --sidebar-primary-foreground: 211 53% 11%;
-    --sidebar-accent: 154 43% 18%;
-    --sidebar-accent-foreground: 160 56% 94%;
-    --sidebar-border: 164 35% 28%;
-    --sidebar-ring: 164 66% 50%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 218 39% 14%;
+    --sidebar-primary: 217 91% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 212 80% 94%;
+    --sidebar-accent-foreground: 218 39% 18%;
+    --sidebar-border: 214 32% 87%;
+    --sidebar-ring: 217 91% 45%;
   }
 
   .dark {
