@@ -43,44 +43,44 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
         <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-14 items-center">
           {/* Editorial copy */}
           <div className="flex flex-col items-start">
-            <div className="inline-flex items-center gap-3 px-3 py-1.5 border border-primary/30 rounded-md bg-card/80 shadow-soft mb-6 sm:mb-8">
-              <span className="block w-1.5 h-1.5 rounded-full bg-accent animate-pulse-soft" />
-              <span className="text-[11px] sm:text-xs font-semibold tracking-[0.2em] uppercase text-primary">
-                Magazine IELTS Academy
+            <div className="inline-flex items-center gap-3 px-3 py-1.5 border border-border rounded-full bg-card shadow-soft mb-6 sm:mb-8">
+              <span className="block w-1.5 h-1.5 rounded-full bg-accent" />
+              <span className="text-[11px] sm:text-xs font-bold tracking-[0.16em] uppercase text-primary">
+                IELTS Study Workspace
               </span>
             </div>
 
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl text-foreground tracking-tight leading-[1.05] mb-5 sm:mb-6 text-balance">
-              Train for Band 8.5
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl text-foreground leading-[1.05] mb-5 sm:mb-6 text-balance">
+              Study IELTS with a
               <br />
-              <span className="text-primary">with AI precision.</span>
+              <span className="text-primary">clear daily path.</span>
             </h1>
 
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-[48ch] mb-8 sm:mb-10">
-              An elite, AI-driven evaluation calibrated to official IELTS band descriptors.
-              Forensic diagnostics across all four skills, delivered instantly.
+              A comfortable light workspace for Reading, Listening, Writing, Speaking,
+              mock tests, and automatic band-focused practice.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
               <Button
                 onClick={() => onSelectModule("mocktest")}
                 size="lg"
-                className="px-6 sm:px-8 py-5 sm:py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-card"
+                className="px-6 sm:px-8 py-5 sm:py-6 font-bold"
               >
-                Commence Mock Test
+                Start Mock Test
               </Button>
               <Button
                 onClick={() => onSelectModule("learning")}
                 variant="outline"
                 size="lg"
-                className="px-6 sm:px-8 py-5 sm:py-6 border-primary/40 hover:bg-primary/10 text-primary font-bold"
+                className="px-6 sm:px-8 py-5 sm:py-6 text-primary font-bold"
               >
-                Open Learning Hub
+                Open Learning Coach
               </Button>
             </div>
 
             {/* Trust strip */}
-            <div className="mt-12 sm:mt-16 pt-6 sm:pt-8 border-t border-primary/20 w-full grid grid-cols-3 gap-4 sm:gap-12">
+            <div className="mt-12 sm:mt-16 pt-6 sm:pt-8 border-t border-border w-full grid grid-cols-3 gap-4 sm:gap-12">
               <div className="flex flex-col gap-1">
                 <span className="font-display text-xl sm:text-2xl text-primary">100%</span>
                 <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide uppercase">
@@ -104,7 +104,7 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
 
           {/* Active syllabus card */}
           <div className="relative">
-            <div className="bg-card/90 border border-primary/20 rounded-xl p-5 sm:p-8 shadow-elevated backdrop-blur">
+            <div className="bg-card border border-border rounded-2xl p-5 sm:p-8 shadow-elevated">
               <div className="flex justify-between items-end mb-5 sm:mb-6">
                 <div>
                   <h3 className="text-xs sm:text-sm font-semibold tracking-wider text-primary uppercase">
@@ -114,7 +114,7 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
                     Select a module to begin.
                   </p>
                 </div>
-                <span className="px-2 py-1 bg-accent/10 text-accent font-bold text-[10px] sm:text-xs rounded uppercase tracking-wider">
+                <span className="px-2 py-1 bg-accent/10 text-accent font-bold text-[10px] sm:text-xs rounded-full uppercase tracking-wider">
                   Ready
                 </span>
               </div>
@@ -124,10 +124,10 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
                   <button
                     key={skill.id}
                     onClick={() => onSelectModule(skill.id)}
-                    className="group p-4 sm:p-5 rounded-lg border border-primary/20 bg-secondary/60 hover:bg-secondary hover:border-accent/60 transition-colors text-left flex flex-col justify-between aspect-square focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="group p-4 sm:p-5 rounded-xl border border-border bg-secondary/60 hover:bg-card hover:border-primary/40 hover:shadow-card transition-all text-left flex flex-col justify-between aspect-square focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="flex justify-between items-start">
-                      <span className="font-display text-2xl sm:text-3xl text-primary/45 group-hover:text-accent transition-colors">
+                       <span className="font-display text-2xl sm:text-3xl text-primary/45 group-hover:text-primary transition-colors">
                         {skill.letter}
                       </span>
                       <span className="w-2 h-2 rounded-full bg-primary/20 group-hover:bg-primary transition-colors" />
@@ -146,7 +146,7 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
 
               <button
                 onClick={() => onSelectModule("mocktest")}
-                className="w-full p-4 rounded-lg bg-primary text-primary-foreground flex items-center justify-between hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent shadow-card"
+                 className="w-full p-4 rounded-xl bg-primary text-primary-foreground flex items-center justify-between hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-card"
               >
                 <div className="flex flex-col text-left">
                   <span className="text-sm font-semibold">Full IELTS Mock Test</span>
