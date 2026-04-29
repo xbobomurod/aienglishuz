@@ -204,9 +204,9 @@ export default function Dashboard() {
     : "—";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background bg-[linear-gradient(180deg,hsl(var(--secondary)/0.8),transparent_340px)]">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-border/70 bg-card/85 backdrop-blur-xl">
         <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
