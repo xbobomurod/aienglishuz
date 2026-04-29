@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_study_plans: {
+        Row: {
+          completed_tasks: Json
+          created_at: string
+          estimated_minutes: number
+          focus_skill: string
+          id: string
+          next_best_action: string
+          plan_date: string
+          status: string
+          target_band: number
+          tasks: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_tasks?: Json
+          created_at?: string
+          estimated_minutes?: number
+          focus_skill: string
+          id?: string
+          next_best_action: string
+          plan_date?: string
+          status?: string
+          target_band?: number
+          tasks?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_tasks?: Json
+          created_at?: string
+          estimated_minutes?: number
+          focus_skill?: string
+          id?: string
+          next_best_action?: string
+          plan_date?: string
+          status?: string
+          target_band?: number
+          tasks?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_mistakes: {
+        Row: {
+          correct_answer: string | null
+          created_at: string
+          difficulty: number
+          explanation: string
+          id: string
+          last_reviewed_at: string | null
+          next_review_at: string
+          prompt: string
+          review_count: number
+          skill: string
+          source_id: string | null
+          source_type: string
+          status: string
+          updated_at: string
+          user_answer: string | null
+          user_id: string
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string
+          difficulty?: number
+          explanation: string
+          id?: string
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          prompt: string
+          review_count?: number
+          skill: string
+          source_id?: string | null
+          source_type: string
+          status?: string
+          updated_at?: string
+          user_answer?: string | null
+          user_id: string
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string
+          difficulty?: number
+          explanation?: string
+          id?: string
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          prompt?: string
+          review_count?: number
+          skill?: string
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          user_answer?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       listening_evaluations: {
         Row: {
           audio_topic: string | null
@@ -203,6 +305,39 @@ export type Database = {
         }
         Relationships: []
       }
+      study_activity: {
+        Row: {
+          activity_date: string
+          completed_tasks: number
+          created_at: string
+          id: string
+          minutes_studied: number
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          activity_date?: string
+          completed_tasks?: number
+          created_at?: string
+          id?: string
+          minutes_studied?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          activity_date?: string
+          completed_tasks?: number
+          created_at?: string
+          id?: string
+          minutes_studied?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       test_sessions: {
         Row: {
           content: Json
@@ -236,6 +371,60 @@ export type Database = {
           updated_at?: string
           user_id?: string
           variant?: string | null
+        }
+        Relationships: []
+      }
+      vocabulary_progress: {
+        Row: {
+          created_at: string
+          definition: string
+          example_sentence: string
+          id: string
+          last_reviewed_at: string | null
+          mastery_score: number
+          next_review_at: string
+          pronunciation_hint: string | null
+          quiz_answer: string
+          quiz_prompt: string
+          repetition_level: number
+          topic: string
+          updated_at: string
+          user_id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          definition: string
+          example_sentence: string
+          id?: string
+          last_reviewed_at?: string | null
+          mastery_score?: number
+          next_review_at?: string
+          pronunciation_hint?: string | null
+          quiz_answer: string
+          quiz_prompt: string
+          repetition_level?: number
+          topic: string
+          updated_at?: string
+          user_id: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          definition?: string
+          example_sentence?: string
+          id?: string
+          last_reviewed_at?: string | null
+          mastery_score?: number
+          next_review_at?: string
+          pronunciation_hint?: string | null
+          quiz_answer?: string
+          quiz_prompt?: string
+          repetition_level?: number
+          topic?: string
+          updated_at?: string
+          user_id?: string
+          word?: string
         }
         Relationships: []
       }

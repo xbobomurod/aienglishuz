@@ -1,68 +1,129 @@
-import { ArrowLeft, BookOpenCheck, CalendarDays, CheckCircle2, ChevronRight, Compass, Headphones, Mic, PenLine, Sparkles, Target, Trophy, WalletCards } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpenCheck,
+  Brain,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Flame,
+  Headphones,
+  Mic,
+  PenLine,
+  Repeat2,
+  Sparkles,
+  Target,
+  Trophy,
+  Volume2,
+  WalletCards,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
+import { DailyStudyTask, useLearningCoach } from "@/hooks/useLearningCoach";
 
 interface LearningModuleProps {
   onBack: () => void;
   onSelectModule: (module: "writing" | "speaking" | "reading" | "listening" | "mocktest") => void;
 }
 
-const targetBand = 8;
-
-const vocabTopics = [
-  { topic: "Education", words: ["curriculum", "assessment", "literacy", "discipline"] },
-  { topic: "Environment", words: ["sustainable", "emissions", "conservation", "scarcity"] },
-  { topic: "Technology", words: ["automation", "privacy", "innovation", "reliability"] },
-];
+const moduleIcons = {
+  Reading: BookOpenCheck,
+  Listening: Headphones,
+  Writing: PenLine,
+  Speaking: Mic,
+};
 
 export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) {
-  const { writingHistory, speakingHistory, readingHistory, listeningHistory, isLoading } = useEvaluationHistory();
+  const histories = useEvaluationHistory();
+  const coach = useLearningCoach(histories);
 
-  const skills = [
-    { name: "Reading", module: "reading" as const, icon: BookOpenCheck, score: readingHistory[0]?.band_score, metric: readingHistory[0] ? `${readingHistory[0].correct_count}/${readingHistory[0].total_questions}` : "No test", task: "Practice 1 passage and review answers by paragraph evidence." },
-    { name: "Listening", module: "listening" as const, icon: Headphones, score: listeningHistory[0]?.band_score, metric: listeningHistory[0] ? `${listeningHistory[0].correct_count}/${listeningHistory[0].total_questions}` : "No test", task: "Complete 1 section and replay missed names, dates, numbers." },
-    { name: "Writing", module: "writing" as const, icon: PenLine, score: writingHistory[0]?.band_score, metric: writingHistory[0] ? `Band ${writingHistory[0].band_score}` : "No essay", task: "Write one Task 2 paragraph, then improve grammar and linking." },
-    { name: "Speaking", module: "speaking" as const, icon: Mic, score: speakingHistory[0]?.band_score, metric: speakingHistory[0] ? `Band ${speakingHistory[0].band_score}` : "No record", task: "Record Part 2 once, repeat with stronger fluency and examples." },
-  ];
+  const progress = Math.min(100, Math.round((coach.averageBand / coach.targetBand) * 100));
+  const completedTaskCount = coach.dailyPlan?.completed_tasks.length ?? 0;
+  const totalTaskCount = coach.dailyPlan?.tasks.length ?? 4;
+  const nextTask = coach.dailyPlan?.tasks.find((task) => !coach.dailyPlan?.completed_tasks.includes(task.id));
 
-  const completedSkills = skills.filter((skill) => skill.score);
-  const average = completedSkills.reduce((sum, skill) => sum + Number(skill.score), 0) / Math.max(1, completedSkills.length);
-  const weakest = [...completedSkills].sort((a, b) => Number(a.score) - Number(b.score))[0] || skills[0];
-  const progress = Math.min(100, Math.round((average / targetBand) * 100));
-  const automaticPlan = [weakest, ...skills.filter((skill) => skill.name !== weakest.name)].slice(0, 4);
+  const startTask = async (task: DailyStudyTask) => {
+    await coach.completeTask(task);
+    if (task.module) onSelectModule(task.module);
+  };
 
-  const mistakes = [
-    ...readingHistory.slice(0, 2).map((item) => ({ skill: "Reading", title: item.passage_topic || "Reading practice", detail: `${item.correct_count}/${item.total_questions} correct`, fix: "Find the exact sentence that proves the answer." })),
-    ...listeningHistory.slice(0, 2).map((item) => ({ skill: "Listening", title: item.audio_topic || "Listening practice", detail: `${item.correct_count}/${item.total_questions} correct`, fix: "Replay the missed part and write the keyword." })),
-    ...writingHistory.slice(0, 2).map((item) => ({ skill: "Writing", title: item.topic || "Writing task", detail: `Band ${item.band_score}`, fix: item.overall_feedback || "Rewrite the weakest paragraph." })),
-    ...speakingHistory.slice(0, 2).map((item) => ({ skill: "Speaking", title: item.topic || "Speaking task", detail: `Band ${item.band_score}`, fix: item.daily_practice_tip || "Repeat the answer with fewer pauses." })),
-  ].slice(0, 5);
+  const speakWord = (word: string) => {
+    if (!("speechSynthesis" in window)) return;
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = "en-GB";
+    utterance.rate = 0.82;
+    window.speechSynthesis.speak(utterance);
+  };
 
   return (
     <div className="animate-fade-in space-y-5">
-      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="grid gap-0 lg:grid-cols-[1.4fr_0.8fr]">
+      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-elevated">
+        <div className="grid gap-0 lg:grid-cols-[1.35fr_0.85fr]">
           <div className="p-5 md:p-7">
-            <div className="mb-6 flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0"><ArrowLeft className="h-5 w-5" /></Button>
-              <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> Automatic IELTS Coach</Badge>
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <Badge variant="secondary" className="gap-1">
+                <Sparkles className="h-3 w-3" /> Daily IELTS Coach
+              </Badge>
+              <Badge variant="outline" className="gap-1">
+                <Flame className="h-3 w-3 text-accent" /> {coach.streak} day streak
+              </Badge>
             </div>
-            <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-4xl">Today’s smart IELTS study plan is ready</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">The page reads your latest scores, finds the weakest skill, and builds a daily plan for Reading, Listening, Writing, Speaking, mistakes, vocabulary, and band growth.</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-primary/10 p-4"><Target className="mb-2 h-5 w-5 text-primary" /><p className="text-xs text-muted-foreground">Target</p><p className="font-bold text-foreground">Band {targetBand}.0</p></div>
-              <div className="rounded-xl bg-secondary p-4"><Compass className="mb-2 h-5 w-5 text-primary" /><p className="text-xs text-muted-foreground">Auto focus</p><p className="font-bold text-foreground">{weakest.name}</p></div>
-              <div className="rounded-xl bg-accent/10 p-4"><Trophy className="mb-2 h-5 w-5 text-accent" /><p className="text-xs text-muted-foreground">Average</p><p className="font-bold text-foreground">{average ? average.toFixed(1) : "Start"}</p></div>
+
+            <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-5xl">
+              Your automatic study program is ready
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
+              Today’s dashboard updates from your latest IELTS results, saves mistakes into review practice, and schedules vocabulary repetition automatically.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-4">
+              <div className="rounded-xl bg-primary/10 p-4">
+                <Target className="mb-2 h-5 w-5 text-primary" />
+                <p className="text-xs text-muted-foreground">Target</p>
+                <p className="font-bold text-foreground">Band {coach.targetBand}.0</p>
+              </div>
+              <div className="rounded-xl bg-secondary p-4">
+                <Brain className="mb-2 h-5 w-5 text-primary" />
+                <p className="text-xs text-muted-foreground">Weak skill</p>
+                <p className="font-bold text-foreground">{coach.weakSkill}</p>
+              </div>
+              <div className="rounded-xl bg-accent/10 p-4">
+                <WalletCards className="mb-2 h-5 w-5 text-accent" />
+                <p className="text-xs text-muted-foreground">Due mistakes</p>
+                <p className="font-bold text-foreground">{coach.nextReviewCount}</p>
+              </div>
+              <div className="rounded-xl bg-success/10 p-4">
+                <Trophy className="mb-2 h-5 w-5 text-success" />
+                <p className="text-xs text-muted-foreground">Average</p>
+                <p className="font-bold text-foreground">{coach.averageBand ? coach.averageBand.toFixed(1) : "Start"}</p>
+              </div>
             </div>
           </div>
-          <div className="border-t border-border bg-secondary/40 p-5 md:p-7 lg:border-l lg:border-t-0">
-            <div className="mb-3 flex items-center justify-between"><span className="font-semibold text-foreground">Road to Band {targetBand}.0</span><span className="text-sm text-muted-foreground">{progress}%</span></div>
+
+          <div className="border-t border-border bg-secondary/50 p-5 md:p-7 lg:border-l lg:border-t-0">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="font-semibold text-foreground">Road to Band {coach.targetBand}.0</span>
+              <span className="text-sm text-muted-foreground">{progress}%</span>
+            </div>
             <Progress value={progress} className="h-2" />
             <div className="mt-6 space-y-3">
-              {skills.map((skill) => <div key={skill.name} className="flex items-center justify-between rounded-xl bg-card p-3"><div className="flex items-center gap-3"><skill.icon className="h-4 w-4 text-primary" /><span className="font-medium">{skill.name}</span></div><Badge variant="outline">{skill.score ? `Band ${skill.score}` : "Start"}</Badge></div>)}
+              {coach.skillScores.map((skill) => {
+                const Icon = moduleIcons[skill.name];
+                return (
+                  <div key={skill.name} className="flex items-center justify-between rounded-xl bg-card p-3 shadow-soft">
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-4 w-4 text-primary" />
+                      <span className="font-medium">{skill.name}</span>
+                    </div>
+                    <Badge variant="outline">{skill.score ? `Band ${skill.score}` : "Start"}</Badge>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -71,25 +132,139 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card>
           <CardContent className="p-5 md:p-6">
-            <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Automatic daily plan</h2></div>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-xl font-bold">Today’s program</h2>
+              </div>
+              <Badge variant="secondary">{completedTaskCount}/{totalTaskCount} complete</Badge>
+            </div>
+            {nextTask && (
+              <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Next best action</p>
+                <p className="mt-1 font-semibold text-foreground">{nextTask.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{nextTask.detail}</p>
+              </div>
+            )}
             <div className="space-y-3">
-              {automaticPlan.map((item, index) => <button key={item.name} onClick={() => onSelectModule(item.module)} className="group flex w-full items-center gap-4 rounded-xl border border-border p-4 text-left transition-colors hover:bg-secondary"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{index + 1}</div><div className="flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-foreground">{item.name}</span><Badge variant="secondary">{item.metric}</Badge></div><p className="mt-1 text-sm leading-5 text-muted-foreground">{item.task}</p></div><ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" /></button>)}
+              {(coach.dailyPlan?.tasks ?? []).map((task, index) => {
+                const done = coach.dailyPlan?.completed_tasks.includes(task.id);
+                return (
+                  <button key={task.id} onClick={() => startTask(task)} className="group flex w-full items-center gap-4 rounded-xl border border-border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/70">
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${done ? "bg-success text-success-foreground" : "bg-primary text-primary-foreground"}`}>
+                      {done ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-foreground">{task.title}</span>
+                        <Badge variant="secondary">{task.skill}</Badge>
+                        <Badge variant="outline">{task.minutes} min</Badge>
+                      </div>
+                      <p className="mt-1 text-sm leading-5 text-muted-foreground">{task.detail}</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                  </button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-5 md:p-6">
-            <div className="mb-4 flex items-center gap-2"><WalletCards className="h-5 w-5 text-primary" /><h2 className="font-display text-xl font-bold">Mistake notebook</h2></div>
+            <div className="mb-4 flex items-center gap-2">
+              <WalletCards className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-xl font-bold">Real mistake notebook</h2>
+            </div>
             <div className="space-y-3">
-              {isLoading ? <p className="text-sm text-muted-foreground">Loading your practice history...</p> : mistakes.length ? mistakes.map((item, index) => <div key={index} className="rounded-xl border border-border p-3"><div className="mb-1 flex flex-wrap items-center gap-2"><Badge variant="outline">{item.skill}</Badge><span className="text-sm font-semibold">{item.detail}</span></div><p className="text-sm font-medium text-foreground">{item.title}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{item.fix}</p></div>) : <p className="text-sm text-muted-foreground">Finish a practice test and your weak answers will appear here automatically.</p>}
+              {histories.isLoading || coach.isCoachLoading ? (
+                <p className="text-sm text-muted-foreground">Loading your saved review list...</p>
+              ) : coach.mistakes.length ? (
+                coach.mistakes.slice(0, 5).map((item) => (
+                  <div key={item.id} className="rounded-xl border border-border p-3">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{item.skill}</Badge>
+                      <Badge variant={item.status === "mastered" ? "secondary" : "default"}>{item.status}</Badge>
+                      <span className="text-xs text-muted-foreground">Reviewed {item.review_count}x</span>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">{item.prompt}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Your answer: {item.user_answer || "—"}</p>
+                    <p className="text-xs text-muted-foreground">Correct: {item.correct_answer || "—"}</p>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.explanation}</p>
+                    <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => coach.reviewMistake(item)}>
+                      <Repeat2 className="h-4 w-4" /> Review again
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Finish Reading, Listening, Writing, or Speaking practice and mistakes will be saved here automatically.</p>
+              )}
             </div>
           </CardContent>
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {vocabTopics.map((topic) => <Card key={topic.topic}><CardContent className="p-5"><div className="mb-3 flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /><h3 className="font-semibold text-foreground">{topic.topic}</h3></div><div className="flex flex-wrap gap-2">{topic.words.map((word) => <Badge key={word} variant="secondary">{word}</Badge>)}</div><p className="mt-4 text-xs leading-5 text-muted-foreground">Use two words in today’s answer to build IELTS topic range.</p></CardContent></Card>)}
+      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <Card>
+          <CardContent className="p-5 md:p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <BookOpenCheck className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-xl font-bold">Vocabulary builder</h2>
+            </div>
+            <div className="space-y-3">
+              {(coach.dueVocabulary.length ? coach.dueVocabulary : coach.vocabulary).slice(0, 4).map((item) => (
+                <div key={item.id} className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Badge variant="secondary">{item.topic}</Badge>
+                      <h3 className="mt-2 font-display text-lg font-bold text-foreground">{item.word}</h3>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => speakWord(item.word)}>
+                      <Volume2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{item.definition}</p>
+                  <p className="mt-2 text-xs italic leading-5 text-muted-foreground">“{item.example_sentence}”</p>
+                  <div className="mt-3 rounded-lg bg-secondary/60 p-3 text-xs text-muted-foreground">
+                    Quiz: {item.quiz_prompt}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => coach.reviewVocabulary(item, false)}>Again</Button>
+                    <Button size="sm" onClick={() => coach.reviewVocabulary(item, true)}>I know it</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5 md:p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-xl font-bold">Band roadmap</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {coach.skillScores.map((skill) => {
+                const score = Number(skill.score ?? 0);
+                const gap = Math.max(0, coach.targetBand - score);
+                const Icon = moduleIcons[skill.name];
+                return (
+                  <button key={skill.name} onClick={() => onSelectModule(skill.name.toLowerCase() as "writing" | "speaking" | "reading" | "listening")} className="rounded-xl border border-border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/60">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-semibold text-foreground"><Icon className="h-4 w-4 text-primary" /> {skill.name}</div>
+                      <Badge variant="outline">{score ? `Gap ${gap.toFixed(1)}` : "Start"}</Badge>
+                    </div>
+                    <Progress value={score ? Math.min(100, (score / coach.targetBand) * 100) : 6} className="h-2" />
+                    <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                      {score ? `To reach Band ${coach.targetBand}.0, focus on one measurable weakness and review mistakes after each practice.` : "Complete one practice test so the coach can calculate your roadmap."}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );
