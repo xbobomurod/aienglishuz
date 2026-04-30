@@ -78,10 +78,10 @@ serve(async (req) => {
       console.log("Generating reading test with difficulty:", difficulty);
 
       const difficultyLevel = difficulty || "full-test";
-      const isFullTest = difficultyLevel === "full-test";
-      const isFastPractice = Boolean(fastMode) && !isFullTest;
+      const isFastPractice = Boolean(fastMode);
+      const isFullTest = difficultyLevel === "full-test" && !isFastPractice;
       const wordCount = isFullTest ? "1600-1900 total across three passages" : isFastPractice ? "420-520" : difficultyLevel === "passage-1" ? "650-750" : difficultyLevel === "passage-3" ? "800-900" : "700-800";
-      const passageLabel = isFullTest ? "Full IELTS Academic Reading Test" : difficultyLevel === "passage-1" ? "IELTS Passage 1" : difficultyLevel === "passage-3" ? "IELTS Passage 3" : "IELTS Passage 2";
+      const passageLabel = isFastPractice ? "Fast IELTS Reading Practice" : isFullTest ? "Full IELTS Academic Reading Test" : difficultyLevel === "passage-1" ? "IELTS Passage 1" : difficultyLevel === "passage-3" ? "IELTS Passage 3" : "IELTS Passage 2";
 
       const systemPrompt = `You are an IELTS Reading test generator. Create authentic IELTS-style reading passages with questions.
 

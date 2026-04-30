@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -80,6 +81,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [activePassage, setActivePassage] = useState("0");
+  const [fastPractice, setFastPractice] = useState(true);
 
   // Timer effect
   useEffect(() => {
@@ -129,9 +131,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     setActivePassage("0");
     
     try {
-      const fastMode = difficulty !== "full-test";
       const { data, error } = await supabase.functions.invoke("reading-test", {
-        body: { action: "generate", difficulty, fastMode }
+        body: { action: "generate", difficulty, fastMode: fastPractice }
       });
 
       if (error) throw error;
@@ -175,7 +176,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
           action: "score",
           userAnswers,
           correctAnswers,
-          totalQuestions: test.questions.length
+          totalQuestions: test.questions.length,
+          fastMode: fastPractice
         }
       });
 
@@ -292,10 +294,26 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/30 p-4">
+              <div className="space-y-1">
+                <Label htmlFor="reading-fast-practice" className="text-sm font-medium">Fast Practice</Label>
+                <p className="text-xs text-muted-foreground">
+                  Short passage, 8 questions, and instant static feedback without external AI scoring.
+                </p>
+              </div>
+              <Switch
+                id="reading-fast-practice"
+                checked={fastPractice}
+                onCheckedChange={setFastPractice}
+                aria-label="Toggle fast reading practice"
+              />
+            </div>
             
             <div className="p-4 rounded-lg bg-primary/10 text-sm text-muted-foreground">
               <p className="font-medium text-foreground mb-2">What to expect:</p>
               <ul className="list-disc list-inside space-y-1">
+                {fastPractice && <li>Fast Practice forces a shorter passage with 8 questions</li>}
                 <li>Full Academic option: 3 passages, 40 questions, 60-minute standard</li>
                 <li>Single-passage practice: Passage 1, 2, or 3 focus</li>
                 <li>Multiple choice, matching, True/False/Not Given, and completion tasks</li>
