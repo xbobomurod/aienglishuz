@@ -233,34 +233,11 @@ Ensure all answers are clearly stated in the transcript.`;
       else if (percentage >= 30) bandScore = 4.0;
       else bandScore = 3.5;
 
-      // Generate feedback
-      const feedbackPrompt = `Based on an IELTS Listening test result:
-- Score: ${correctCount}/${totalQuestions} (${percentage.toFixed(0)}%)
-- Band Score: ${bandScore}
-
-Provide 2-3 sentences of constructive feedback for improving listening skills. Be encouraging but specific.`;
-
-      const feedbackResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: "You are an IELTS examiner providing brief, helpful feedback." },
-            { role: "user", content: feedbackPrompt }
-          ],
-          temperature: 0.7,
-        }),
-      });
-
-      let feedback = "Practice listening for specific details like names, numbers, and dates. Try shadowing exercises to improve comprehension.";
-      if (feedbackResponse.ok) {
-        const feedbackData = await feedbackResponse.json();
-        feedback = feedbackData.choices?.[0]?.message?.content || feedback;
-      }
+      const feedback = percentage >= 80
+        ? "Strong listening performance. Keep practicing distractor recognition and exact spelling so you can protect high-band accuracy under time pressure."
+        : percentage >= 60
+          ? "Good progress. Focus on names, numbers, dates, and paraphrases, then replay missed sections to understand the distractors."
+          : "Build accuracy with shorter sections first. Listen for keywords, write answers immediately, and review the transcript after each attempt.";
 
       return new Response(
         JSON.stringify({
