@@ -72,10 +72,11 @@ serve(async (req) => {
       const sectionType = section || "full-test";
       const isFastPractice = Boolean(fastMode);
       const isFullTest = sectionType === "full-test" && !isFastPractice;
+      const promptSectionType = isFastPractice && sectionType === "full-test" ? "1" : sectionType;
       let scenarioDescription = "";
       let questionCount = isFullTest ? 40 : isFastPractice ? 6 : 10;
 
-      switch (sectionType) {
+      switch (promptSectionType) {
         case "full-test":
           scenarioDescription = "A complete IELTS Listening test: Section 1 everyday conversation, Section 2 social monologue, Section 3 educational discussion, Section 4 academic lecture";
           break;
@@ -97,7 +98,7 @@ serve(async (req) => {
 
       const systemPrompt = `You are an IELTS Listening test generator. Create authentic IELTS-style listening scripts with questions.
 
-${isFullTest ? "Full IELTS Listening test" : `Section ${sectionType}`} scenario: ${scenarioDescription}
+${isFullTest ? "Full IELTS Listening test" : `Section ${promptSectionType}`} scenario: ${scenarioDescription}
 
 Generate ${isFullTest ? "four labelled transcripts (SECTION 1-4) with realistic speaker labels and" : isFastPractice ? "a short realistic dialogue/monologue transcript (160-220 words) and" : "a realistic dialogue/monologue transcript (250-350 words) and"} ${questionCount} questions.
 
@@ -152,7 +153,7 @@ Ensure all answers are clearly stated in the transcript.`;
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Generate a new IELTS Listening Section ${sectionType} test. Return only valid JSON.` }
+            { role: "user", content: `Generate a new IELTS Listening Section ${promptSectionType} test. Return only valid JSON.` }
           ],
           temperature: 0.85,
         }),
@@ -180,6 +181,7 @@ Ensure all answers are clearly stated in the transcript.`;
       
       try {
         const test: ListeningTest = JSON.parse(content);
+        if (isFastPractice) test.questions = test.questions.slice(0, questionCount);
         test.transcript = test.transcript
           .replace(/^\s*(AGENT|CUSTOMER|GUIDE|TUTOR|LECTURER|STUDENT\s*[A-D]?|SPEAKER\s*[A-D]?|MAN|WOMAN)\s+says[:,]?\s*/gim, "$1: ")
           .replace(/\[(?:laughs?|pause|sighs?|music|noise|silence|hesitates?)\]/gi, "")
