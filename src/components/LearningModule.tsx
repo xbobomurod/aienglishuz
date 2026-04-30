@@ -258,14 +258,19 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                       <Badge variant="outline">{item.skill}</Badge>
                       <Badge variant={item.status === "mastered" ? "secondary" : "default"}>{item.status}</Badge>
                       {due && <Badge variant="destructive">Due now</Badge>}
+                      {item.source_type === "manual_highlight" && <Badge variant="secondary">Highlight</Badge>}
                       <span className="text-xs text-muted-foreground">Reviewed {item.review_count}x</span>
                     </div>
                     <p className="text-sm font-semibold text-foreground">{item.prompt}</p>
+                    <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                      <div className="rounded-lg bg-secondary/70 p-2">Due date: <span className="font-semibold text-foreground">{formatReviewDate(item.next_review_at)}</span></div>
+                      <div className="rounded-lg bg-secondary/70 p-2">Status: <span className="font-semibold text-foreground">{item.status}</span></div>
+                    </div>
                     <p className="mt-1 text-xs text-muted-foreground">Your answer: {item.user_answer || "—"}</p>
                     <p className="text-xs text-muted-foreground">Correct: {item.correct_answer || "—"}</p>
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.explanation}</p>
-                    <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => coach.reviewMistake(item)}>
-                      <Repeat2 className="h-4 w-4" /> Review again
+                    <Button variant={item.source_type === "manual_highlight" ? "default" : "outline"} size="sm" className="mt-3 w-full" onClick={() => item.source_type === "manual_highlight" ? setActiveHighlightId(item.id) : coach.reviewMistake(item)}>
+                      <Repeat2 className="h-4 w-4" /> {item.source_type === "manual_highlight" ? "Open review session" : "Review again"}
                     </Button>
                   </div>
                   );
