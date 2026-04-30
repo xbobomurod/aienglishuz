@@ -213,15 +213,26 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               <WalletCards className="h-5 w-5 text-primary" />
               <h2 className="font-display text-xl font-bold">Real mistake notebook</h2>
             </div>
+            <div className="mb-4 rounded-xl border border-primary/20 bg-secondary/50 p-3">
+              <p className="text-xs font-semibold uppercase text-primary">Text highlighter</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Select any sentence on this page, or paste text below, then save it for review.</p>
+              <textarea value={highlightText} onChange={(event) => setHighlightText(event.target.value)} placeholder="Paste a difficult word, phrase, or grammar mistake..." className="mt-3 min-h-20 w-full resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary" />
+              <Button size="sm" className="mt-2 w-full" onClick={saveSelectedHighlight} disabled={!highlightText.trim() && !window.getSelection()?.toString().trim()}>
+                <Sparkles className="h-4 w-4" /> Save highlight
+              </Button>
+            </div>
             <div className="space-y-3">
               {histories.isLoading || coach.isCoachLoading ? (
                 <p className="text-sm text-muted-foreground">Loading your saved review list...</p>
               ) : coach.mistakes.length ? (
-                coach.mistakes.slice(0, 5).map((item) => (
-                  <div key={item.id} className="rounded-xl border border-border p-3">
+                coach.mistakes.slice(0, 5).map((item) => {
+                  const due = new Date(item.next_review_at) <= new Date() && item.status !== "mastered";
+                  return (
+                  <div key={item.id} className={`rounded-xl border p-3 ${due ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{item.skill}</Badge>
                       <Badge variant={item.status === "mastered" ? "secondary" : "default"}>{item.status}</Badge>
+                      {due && <Badge variant="destructive">Due now</Badge>}
                       <span className="text-xs text-muted-foreground">Reviewed {item.review_count}x</span>
                     </div>
                     <p className="text-sm font-semibold text-foreground">{item.prompt}</p>
@@ -232,7 +243,8 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                       <Repeat2 className="h-4 w-4" /> Review again
                     </Button>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <p className="text-sm text-muted-foreground">Finish Reading, Listening, Writing, or Speaking practice and mistakes will be saved here automatically.</p>
               )}
