@@ -62,18 +62,19 @@ serve(async (req) => {
 
   try {
     const { action, userAnswers, correctAnswers, totalQuestions, difficulty, fastMode } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Generate a new reading test
     if (action === "generate") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+      if (!LOVABLE_API_KEY) {
+        console.error("LOVABLE_API_KEY not configured");
+        return new Response(
+          JSON.stringify({ error: "API key not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       console.log("Generating reading test with difficulty:", difficulty);
 
       const difficultyLevel = difficulty || "full-test";
