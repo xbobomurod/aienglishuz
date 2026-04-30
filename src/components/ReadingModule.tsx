@@ -345,7 +345,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                   <CardContent>
                     <ScrollArea className="h-[500px] pr-4">
                       <div className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4 text-sm leading-relaxed text-foreground/90">
-                        {formatPassageText(sectionText)}
+                        {formattedPassages[passageIndex] || sectionText}
                       </div>
                     </ScrollArea>
                   </CardContent>
