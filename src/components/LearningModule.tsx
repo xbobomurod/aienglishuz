@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   ArrowLeft,
   BookOpenCheck,
   Brain,
@@ -10,12 +11,14 @@ import {
   Mic,
   PenLine,
   Repeat2,
+  SearchCheck,
   Sparkles,
   Target,
   Trophy,
   Volume2,
   WalletCards,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,11 +41,23 @@ const moduleIcons = {
 export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) {
   const histories = useEvaluationHistory();
   const coach = useLearningCoach(histories);
+  const [highlightText, setHighlightText] = useState("");
 
   const progress = Math.min(100, Math.round((coach.averageBand / coach.targetBand) * 100));
   const completedTaskCount = coach.dailyPlan?.completed_tasks.length ?? 0;
   const totalTaskCount = coach.dailyPlan?.tasks.length ?? 4;
   const nextTask = coach.dailyPlan?.tasks.find((task) => !coach.dailyPlan?.completed_tasks.includes(task.id));
+  const weakSkillTask = coach.dailyPlan?.tasks.find((task) => task.skill === coach.weakSkill);
+  const reminderCount = coach.nextReviewCount + coach.dueVocabulary.length;
+  const calendarDays = useMemo(() => {
+    const activityMap = new Map(coach.activity.map((item) => [item.activity_date, item]));
+    return Array.from({ length: 14 }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (13 - index));
+      const key = date.toISOString().slice(0, 10);
+      return { key, label: date.toLocaleDateString("en", { weekday: "short" }).slice(0, 1), active: (activityMap.get(key)?.completed_tasks ?? 0) > 0 };
+    });
+  }, [coach.activity]);
 
   const startTask = async (task: DailyStudyTask) => {
     await coach.completeTask(task);
@@ -55,6 +70,13 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
     utterance.lang = "en-GB";
     utterance.rate = 0.82;
     window.speechSynthesis.speak(utterance);
+  };
+
+  const saveSelectedHighlight = async () => {
+    const selected = window.getSelection()?.toString().trim();
+    await coach.saveHighlight(selected || highlightText, coach.weakSkill);
+    setHighlightText("");
+    window.getSelection()?.removeAllRanges();
   };
 
   return (
@@ -103,6 +125,21 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                 <p className="font-bold text-foreground">{coach.averageBand ? coach.averageBand.toFixed(1) : "Start"}</p>
               </div>
             </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase text-primary"><Sparkles className="h-4 w-4" /> Highlight priority</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{nextTask?.title ?? "All tasks complete"}</p>
+              </div>
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase text-destructive"><AlertCircle className="h-4 w-4" /> Smart reminders</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{reminderCount} review actions due</p>
+              </div>
+              <div className="rounded-xl border border-accent/20 bg-accent/10 p-4">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase text-accent"><SearchCheck className="h-4 w-4" /> Weak-skill drill</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{weakSkillTask?.title ?? `${coach.weakSkill} focused practice`}</p>
+              </div>
+            </div>
           </div>
 
           <div className="border-t border-border bg-secondary/50 p-5 md:p-7 lg:border-l lg:border-t-0">
@@ -140,7 +177,7 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               <Badge variant="secondary">{completedTaskCount}/{totalTaskCount} complete</Badge>
             </div>
             {nextTask && (
-              <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <div className="mb-4 rounded-xl border border-primary/30 bg-primary/10 p-4 shadow-soft">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">Next best action</p>
                 <p className="mt-1 font-semibold text-foreground">{nextTask.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{nextTask.detail}</p>
@@ -150,7 +187,7 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               {(coach.dailyPlan?.tasks ?? []).map((task, index) => {
                 const done = coach.dailyPlan?.completed_tasks.includes(task.id);
                 return (
-                  <button key={task.id} onClick={() => startTask(task)} className="group flex w-full items-center gap-4 rounded-xl border border-border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/70">
+                  <button key={task.id} onClick={() => startTask(task)} className={`group flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/70 ${task.id === nextTask?.id ? "border-primary/40 bg-primary/5 shadow-soft" : task.skill === coach.weakSkill ? "border-accent/40 bg-accent/10" : "border-border"}`}>
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${done ? "bg-success text-success-foreground" : "bg-primary text-primary-foreground"}`}>
                       {done ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
                     </div>
@@ -176,15 +213,26 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               <WalletCards className="h-5 w-5 text-primary" />
               <h2 className="font-display text-xl font-bold">Real mistake notebook</h2>
             </div>
+            <div className="mb-4 rounded-xl border border-primary/20 bg-secondary/50 p-3">
+              <p className="text-xs font-semibold uppercase text-primary">Text highlighter</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Select any sentence on this page, or paste text below, then save it for review.</p>
+              <textarea value={highlightText} onChange={(event) => setHighlightText(event.target.value)} placeholder="Paste a difficult word, phrase, or grammar mistake..." className="mt-3 min-h-20 w-full resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary" />
+              <Button size="sm" className="mt-2 w-full" onClick={saveSelectedHighlight} disabled={!highlightText.trim() && !window.getSelection()?.toString().trim()}>
+                <Sparkles className="h-4 w-4" /> Save highlight
+              </Button>
+            </div>
             <div className="space-y-3">
               {histories.isLoading || coach.isCoachLoading ? (
                 <p className="text-sm text-muted-foreground">Loading your saved review list...</p>
               ) : coach.mistakes.length ? (
-                coach.mistakes.slice(0, 5).map((item) => (
-                  <div key={item.id} className="rounded-xl border border-border p-3">
+                coach.mistakes.slice(0, 5).map((item) => {
+                  const due = new Date(item.next_review_at) <= new Date() && item.status !== "mastered";
+                  return (
+                  <div key={item.id} className={`rounded-xl border p-3 ${due ? "border-destructive/30 bg-destructive/5" : "border-border"}`}>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{item.skill}</Badge>
                       <Badge variant={item.status === "mastered" ? "secondary" : "default"}>{item.status}</Badge>
+                      {due && <Badge variant="destructive">Due now</Badge>}
                       <span className="text-xs text-muted-foreground">Reviewed {item.review_count}x</span>
                     </div>
                     <p className="text-sm font-semibold text-foreground">{item.prompt}</p>
@@ -195,7 +243,8 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                       <Repeat2 className="h-4 w-4" /> Review again
                     </Button>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <p className="text-sm text-muted-foreground">Finish Reading, Listening, Writing, or Speaking practice and mistakes will be saved here automatically.</p>
               )}
@@ -244,16 +293,36 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               <Target className="h-5 w-5 text-primary" />
               <h2 className="font-display text-xl font-bold">Band roadmap</h2>
             </div>
+            <div className="mb-4 grid gap-3 md:grid-cols-[0.85fr_1.15fr]">
+              <div className="rounded-xl border border-border bg-secondary/50 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarDays className="h-4 w-4 text-primary" /> Progress calendar</p>
+                <div className="mt-3 grid grid-cols-7 gap-2">
+                  {calendarDays.map((day) => (
+                    <div key={day.key} className="text-center">
+                      <div className={`mx-auto h-8 w-8 rounded-full border text-xs font-bold leading-8 ${day.active ? "border-success bg-success text-success-foreground" : "border-border bg-card text-muted-foreground"}`}>{day.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><SearchCheck className="h-4 w-4 text-accent" /> Automatic weak-skill drill</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{coach.weakSkill}: {weakSkillTask?.title ?? "Start focused practice"}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{weakSkillTask?.detail ?? "Complete one task so your coach can update the next drill."}</p>
+                <Button size="sm" className="mt-3" onClick={() => weakSkillTask ? startTask(weakSkillTask) : onSelectModule(coach.weakSkill.toLowerCase() as "writing" | "speaking" | "reading" | "listening")}>
+                  Start drill <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {coach.skillScores.map((skill) => {
                 const score = Number(skill.score ?? 0);
                 const gap = Math.max(0, coach.targetBand - score);
                 const Icon = moduleIcons[skill.name];
                 return (
-                  <button key={skill.name} onClick={() => onSelectModule(skill.name.toLowerCase() as "writing" | "speaking" | "reading" | "listening")} className="rounded-xl border border-border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/60">
+                  <button key={skill.name} onClick={() => onSelectModule(skill.name.toLowerCase() as "writing" | "speaking" | "reading" | "listening")} className={`rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/60 ${skill.name === coach.weakSkill ? "border-accent/40 bg-accent/10 shadow-soft" : "border-border"}`}>
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 font-semibold text-foreground"><Icon className="h-4 w-4 text-primary" /> {skill.name}</div>
-                      <Badge variant="outline">{score ? `Gap ${gap.toFixed(1)}` : "Start"}</Badge>
+                      <Badge variant={skill.name === coach.weakSkill ? "default" : "outline"}>{score ? `Gap ${gap.toFixed(1)}` : "Start"}</Badge>
                     </div>
                     <Progress value={score ? Math.min(100, (score / coach.targetBand) * 100) : 6} className="h-2" />
                     <p className="mt-3 text-xs leading-5 text-muted-foreground">
