@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { 
   ArrowLeft, 
   Headphones, 
@@ -166,8 +166,9 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setActiveSection("0");
     
     try {
+      const fastMode = section !== "full-test";
       const { data, error } = await supabase.functions.invoke("listening-test", {
-        body: { action: "generate", section }
+        body: { action: "generate", section, fastMode }
       });
 
       if (error) throw error;
@@ -380,12 +381,12 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     }
   };
 
-  const transcriptSections = test?.transcript
+  const transcriptSections = useMemo(() => test?.transcript
     .split(/(?=\bSection\s+\d\b|\bSECTION\s+\d\b)/i)
     .map((sectionText) => sectionText.trim())
-    .filter(Boolean) || [];
+    .filter(Boolean) || [], [test?.transcript]);
 
-  const visibleSections = transcriptSections.length > 1 ? transcriptSections : test ? [test.transcript] : [];
+  const visibleSections = useMemo(() => transcriptSections.length > 1 ? transcriptSections : test ? [test.transcript] : [], [transcriptSections, test]);
 
   const getQuestionsForSection = (sectionIndex: number) => {
     if (!test) return [];
