@@ -226,6 +226,26 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                 <Sparkles className="h-4 w-4" /> Save highlight
               </Button>
             </div>
+            {savedHighlights.length > 0 && activeHighlight && (
+              <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-soft">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-primary">Highlight review session</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">{activeHighlight.prompt}</p>
+                  </div>
+                  <Badge variant={activeHighlight.status === "mastered" ? "secondary" : "default"}>{activeHighlight.status}</Badge>
+                </div>
+                <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                  <div className="rounded-lg bg-card p-2">Due: <span className="font-semibold text-foreground">{formatReviewDate(activeHighlight.next_review_at)}</span></div>
+                  <div className="rounded-lg bg-card p-2">Skill: <span className="font-semibold text-foreground">{activeHighlight.skill}</span></div>
+                  <div className="rounded-lg bg-card p-2">Reviews: <span className="font-semibold text-foreground">{activeHighlight.review_count}</span></div>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">Session: read it aloud, explain the meaning, then make one IELTS sentence with it.</p>
+                <Button className="mt-3 w-full" onClick={() => coach.reviewMistake(activeHighlight)}>
+                  <Repeat2 className="h-4 w-4" /> Review again session
+                </Button>
+              </div>
+            )}
             <div className="space-y-3">
               {histories.isLoading || coach.isCoachLoading ? (
                 <p className="text-sm text-muted-foreground">Loading your saved review list...</p>
