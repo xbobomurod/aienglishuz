@@ -280,6 +280,22 @@ export function useLearningCoach(histories: {
     await fetchLearningData();
   };
 
+  const saveHighlight = async (text: string, skill: Skill = weakSkill) => {
+    if (!user || !text.trim()) return;
+    const cleanText = text.trim().slice(0, 600);
+    await (supabase as any).from("learning_mistakes").insert({
+      user_id: user.id,
+      skill,
+      source_type: "manual_highlight",
+      prompt: cleanText,
+      user_answer: "Highlighted for review",
+      correct_answer: "Explain this in your own words and use it in one IELTS answer.",
+      explanation: "Saved from your text highlighter. Review it again, say it aloud, then turn it into a stronger IELTS sentence.",
+      difficulty: 1,
+    });
+    await fetchLearningData();
+  };
+
   const streak = useMemo(() => {
     const dates = new Set(activity.filter((item) => item.completed_tasks > 0).map((item) => item.activity_date));
     let count = 0;
@@ -306,8 +322,10 @@ export function useLearningCoach(histories: {
     streak,
     nextReviewCount,
     isCoachLoading,
+    activity,
     completeTask,
     reviewMistake,
     reviewVocabulary,
+    saveHighlight,
   };
 }
