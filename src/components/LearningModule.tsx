@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   ArrowLeft,
   BookOpenCheck,
   Brain,
@@ -10,12 +11,14 @@ import {
   Mic,
   PenLine,
   Repeat2,
+  SearchCheck,
   Sparkles,
   Target,
   Trophy,
   Volume2,
   WalletCards,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,11 +41,23 @@ const moduleIcons = {
 export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) {
   const histories = useEvaluationHistory();
   const coach = useLearningCoach(histories);
+  const [highlightText, setHighlightText] = useState("");
 
   const progress = Math.min(100, Math.round((coach.averageBand / coach.targetBand) * 100));
   const completedTaskCount = coach.dailyPlan?.completed_tasks.length ?? 0;
   const totalTaskCount = coach.dailyPlan?.tasks.length ?? 4;
   const nextTask = coach.dailyPlan?.tasks.find((task) => !coach.dailyPlan?.completed_tasks.includes(task.id));
+  const weakSkillTask = coach.dailyPlan?.tasks.find((task) => task.skill === coach.weakSkill);
+  const reminderCount = coach.nextReviewCount + coach.dueVocabulary.length;
+  const calendarDays = useMemo(() => {
+    const activityMap = new Map(coach.activity.map((item) => [item.activity_date, item]));
+    return Array.from({ length: 14 }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (13 - index));
+      const key = date.toISOString().slice(0, 10);
+      return { key, label: date.toLocaleDateString("en", { weekday: "short" }).slice(0, 1), active: (activityMap.get(key)?.completed_tasks ?? 0) > 0 };
+    });
+  }, [coach.activity]);
 
   const startTask = async (task: DailyStudyTask) => {
     await coach.completeTask(task);
@@ -55,6 +70,13 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
     utterance.lang = "en-GB";
     utterance.rate = 0.82;
     window.speechSynthesis.speak(utterance);
+  };
+
+  const saveSelectedHighlight = async () => {
+    const selected = window.getSelection()?.toString().trim();
+    await coach.saveHighlight(selected || highlightText, coach.weakSkill);
+    setHighlightText("");
+    window.getSelection()?.removeAllRanges();
   };
 
   return (
