@@ -125,6 +125,21 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                 <p className="font-bold text-foreground">{coach.averageBand ? coach.averageBand.toFixed(1) : "Start"}</p>
               </div>
             </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase text-primary"><Sparkles className="h-4 w-4" /> Highlight priority</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{nextTask?.title ?? "All tasks complete"}</p>
+              </div>
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase text-destructive"><AlertCircle className="h-4 w-4" /> Smart reminders</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{reminderCount} review actions due</p>
+              </div>
+              <div className="rounded-xl border border-accent/20 bg-accent/10 p-4">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase text-accent"><SearchCheck className="h-4 w-4" /> Weak-skill drill</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{weakSkillTask?.title ?? `${coach.weakSkill} focused practice`}</p>
+              </div>
+            </div>
           </div>
 
           <div className="border-t border-border bg-secondary/50 p-5 md:p-7 lg:border-l lg:border-t-0">
@@ -162,7 +177,7 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               <Badge variant="secondary">{completedTaskCount}/{totalTaskCount} complete</Badge>
             </div>
             {nextTask && (
-              <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <div className="mb-4 rounded-xl border border-primary/30 bg-primary/10 p-4 shadow-soft">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">Next best action</p>
                 <p className="mt-1 font-semibold text-foreground">{nextTask.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{nextTask.detail}</p>
@@ -172,7 +187,7 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               {(coach.dailyPlan?.tasks ?? []).map((task, index) => {
                 const done = coach.dailyPlan?.completed_tasks.includes(task.id);
                 return (
-                  <button key={task.id} onClick={() => startTask(task)} className="group flex w-full items-center gap-4 rounded-xl border border-border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/70">
+                  <button key={task.id} onClick={() => startTask(task)} className={`group flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/70 ${task.id === nextTask?.id ? "border-primary/40 bg-primary/5 shadow-soft" : task.skill === coach.weakSkill ? "border-accent/40 bg-accent/10" : "border-border"}`}>
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${done ? "bg-success text-success-foreground" : "bg-primary text-primary-foreground"}`}>
                       {done ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
                     </div>
