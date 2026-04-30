@@ -34,7 +34,7 @@ export function useTestSession(testType: TestSessionType) {
         title,
         content: content as any,
       })
-      .select("id, test_type, variant, title, content, status")
+      .select("id, test_type, variant, title, status")
       .single();
 
     if (error) throw error;
