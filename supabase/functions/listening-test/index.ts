@@ -53,25 +53,27 @@ serve(async (req) => {
   }
 
   try {
-    const { action, userAnswers, correctAnswers, totalQuestions, section } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { action, userAnswers, correctAnswers, totalQuestions, section, fastMode } = await req.json();
 
     // Generate a new listening test
     if (action === "generate") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+      if (!LOVABLE_API_KEY) {
+        console.error("LOVABLE_API_KEY not configured");
+        return new Response(
+          JSON.stringify({ error: "API key not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       console.log("Generating listening test for section:", section);
 
       const sectionType = section || "full-test";
       const isFullTest = sectionType === "full-test";
+      const isFastPractice = Boolean(fastMode) && !isFullTest;
       let scenarioDescription = "";
-      let questionCount = isFullTest ? 40 : 10;
+      let questionCount = isFullTest ? 40 : isFastPractice ? 6 : 10;
 
       switch (sectionType) {
         case "full-test":
@@ -97,7 +99,7 @@ serve(async (req) => {
 
 ${isFullTest ? "Full IELTS Listening test" : `Section ${sectionType}`} scenario: ${scenarioDescription}
 
-Generate ${isFullTest ? "four labelled transcripts (SECTION 1-4) with realistic speaker labels and" : "a realistic dialogue/monologue transcript (250-350 words) and"} ${questionCount} questions.
+Generate ${isFullTest ? "four labelled transcripts (SECTION 1-4) with realistic speaker labels and" : isFastPractice ? "a short realistic dialogue/monologue transcript (160-220 words) and" : "a realistic dialogue/monologue transcript (250-350 words) and"} ${questionCount} questions.
 
 You MUST respond with ONLY valid JSON in this exact format:
 {

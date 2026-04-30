@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -129,8 +129,9 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     setActivePassage("0");
     
     try {
+      const fastMode = difficulty !== "full-test";
       const { data, error } = await supabase.functions.invoke("reading-test", {
-        body: { action: "generate", difficulty }
+        body: { action: "generate", difficulty, fastMode }
       });
 
       if (error) throw error;
@@ -210,12 +211,12 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     }
   };
 
-  const passageSections = test?.passage
+  const passageSections = useMemo(() => test?.passage
     .split(/(?=PASSAGE\s+\d\b)/i)
     .map((section) => section.trim())
-    .filter(Boolean) || [];
+    .filter(Boolean) || [], [test?.passage]);
 
-  const visiblePassages = passageSections.length ? passageSections : test ? [test.passage] : [];
+  const visiblePassages = useMemo(() => passageSections.length ? passageSections : test ? [test.passage] : [], [passageSections, test]);
 
   const getQuestionsForPassage = (passageIndex: number) => {
     if (!test) return [];
@@ -236,6 +237,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     .replace(/^(PASSAGE\s+\d.*)$/gim, "\n$1")
     .replace(/^([A-H])\.\s+/gm, "\n$1. ")
     .trim();
+
+  const formattedPassages = useMemo(() => visiblePassages.map(formatPassageText), [visiblePassages]);
 
   const answeredCount = Object.keys(answers).length;
   const progress = test ? (answeredCount / test.questions.length) * 100 : 0;
@@ -342,7 +345,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                   <CardContent>
                     <ScrollArea className="h-[500px] pr-4">
                       <div className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4 text-sm leading-relaxed text-foreground/90">
-                        {formatPassageText(sectionText)}
+                        {formattedPassages[passageIndex] || sectionText}
                       </div>
                     </ScrollArea>
                   </CardContent>
