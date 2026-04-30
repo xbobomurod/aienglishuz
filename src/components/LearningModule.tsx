@@ -42,6 +42,7 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
   const histories = useEvaluationHistory();
   const coach = useLearningCoach(histories);
   const [highlightText, setHighlightText] = useState("");
+  const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
 
   const progress = Math.min(100, Math.round((coach.averageBand / coach.targetBand) * 100));
   const completedTaskCount = coach.dailyPlan?.completed_tasks.length ?? 0;
@@ -49,6 +50,8 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
   const nextTask = coach.dailyPlan?.tasks.find((task) => !coach.dailyPlan?.completed_tasks.includes(task.id));
   const weakSkillTask = coach.dailyPlan?.tasks.find((task) => task.skill === coach.weakSkill);
   const reminderCount = coach.nextReviewCount + coach.dueVocabulary.length;
+  const savedHighlights = coach.mistakes.filter((item) => item.source_type === "manual_highlight");
+  const activeHighlight = savedHighlights.find((item) => item.id === activeHighlightId) ?? savedHighlights[0];
   const calendarDays = useMemo(() => {
     const activityMap = new Map(coach.activity.map((item) => [item.activity_date, item]));
     return Array.from({ length: 14 }, (_, index) => {
@@ -78,6 +81,8 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
     setHighlightText("");
     window.getSelection()?.removeAllRanges();
   };
+
+  const formatReviewDate = (value: string) => new Date(value).toLocaleDateString("en", { month: "short", day: "numeric" });
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -221,6 +226,26 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                 <Sparkles className="h-4 w-4" /> Save highlight
               </Button>
             </div>
+            {savedHighlights.length > 0 && activeHighlight && (
+              <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-soft">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-primary">Highlight review session</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">{activeHighlight.prompt}</p>
+                  </div>
+                  <Badge variant={activeHighlight.status === "mastered" ? "secondary" : "default"}>{activeHighlight.status}</Badge>
+                </div>
+                <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                  <div className="rounded-lg bg-card p-2">Due: <span className="font-semibold text-foreground">{formatReviewDate(activeHighlight.next_review_at)}</span></div>
+                  <div className="rounded-lg bg-card p-2">Skill: <span className="font-semibold text-foreground">{activeHighlight.skill}</span></div>
+                  <div className="rounded-lg bg-card p-2">Reviews: <span className="font-semibold text-foreground">{activeHighlight.review_count}</span></div>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">Session: read it aloud, explain the meaning, then make one IELTS sentence with it.</p>
+                <Button className="mt-3 w-full" onClick={() => coach.reviewMistake(activeHighlight)}>
+                  <Repeat2 className="h-4 w-4" /> Review again session
+                </Button>
+              </div>
+            )}
             <div className="space-y-3">
               {histories.isLoading || coach.isCoachLoading ? (
                 <p className="text-sm text-muted-foreground">Loading your saved review list...</p>
@@ -233,14 +258,19 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                       <Badge variant="outline">{item.skill}</Badge>
                       <Badge variant={item.status === "mastered" ? "secondary" : "default"}>{item.status}</Badge>
                       {due && <Badge variant="destructive">Due now</Badge>}
+                      {item.source_type === "manual_highlight" && <Badge variant="secondary">Highlight</Badge>}
                       <span className="text-xs text-muted-foreground">Reviewed {item.review_count}x</span>
                     </div>
                     <p className="text-sm font-semibold text-foreground">{item.prompt}</p>
+                    <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                      <div className="rounded-lg bg-secondary/70 p-2">Due date: <span className="font-semibold text-foreground">{formatReviewDate(item.next_review_at)}</span></div>
+                      <div className="rounded-lg bg-secondary/70 p-2">Status: <span className="font-semibold text-foreground">{item.status}</span></div>
+                    </div>
                     <p className="mt-1 text-xs text-muted-foreground">Your answer: {item.user_answer || "—"}</p>
                     <p className="text-xs text-muted-foreground">Correct: {item.correct_answer || "—"}</p>
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.explanation}</p>
-                    <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => coach.reviewMistake(item)}>
-                      <Repeat2 className="h-4 w-4" /> Review again
+                    <Button variant={item.source_type === "manual_highlight" ? "default" : "outline"} size="sm" className="mt-3 w-full" onClick={() => item.source_type === "manual_highlight" ? setActiveHighlightId(item.id) : coach.reviewMistake(item)}>
+                      <Repeat2 className="h-4 w-4" /> {item.source_type === "manual_highlight" ? "Open review session" : "Review again"}
                     </Button>
                   </div>
                   );
