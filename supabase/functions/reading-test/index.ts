@@ -255,34 +255,11 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
       else if (percentage >= 30) bandScore = 4.0;
       else bandScore = 3.5;
 
-      // Generate feedback
-      const feedbackPrompt = `Based on an IELTS Reading test result:
-- Score: ${correctCount}/${totalQuestions} (${percentage.toFixed(0)}%)
-- Band Score: ${bandScore}
-
-Provide 2-3 sentences of constructive feedback for improvement. Be encouraging but specific.`;
-
-      const feedbackResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: "You are an IELTS examiner providing brief, helpful feedback." },
-            { role: "user", content: feedbackPrompt }
-          ],
-          temperature: 0.7,
-        }),
-      });
-
-      let feedback = "Focus on understanding the main ideas and supporting details in the passage.";
-      if (feedbackResponse.ok) {
-        const feedbackData = await feedbackResponse.json();
-        feedback = feedbackData.choices?.[0]?.message?.content || feedback;
-      }
+      const feedback = percentage >= 80
+        ? "Strong reading accuracy. Keep improving speed by scanning for evidence quotes before choosing the final answer."
+        : percentage >= 60
+          ? "Good progress. Review every wrong answer against the evidence quote and practice paraphrase matching."
+          : "Focus on question keywords, paragraph scanning, and exact evidence. Start with single passages before full tests.";
 
       return new Response(
         JSON.stringify({
