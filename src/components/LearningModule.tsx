@@ -293,16 +293,36 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
               <Target className="h-5 w-5 text-primary" />
               <h2 className="font-display text-xl font-bold">Band roadmap</h2>
             </div>
+            <div className="mb-4 grid gap-3 md:grid-cols-[0.85fr_1.15fr]">
+              <div className="rounded-xl border border-border bg-secondary/50 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarDays className="h-4 w-4 text-primary" /> Progress calendar</p>
+                <div className="mt-3 grid grid-cols-7 gap-2">
+                  {calendarDays.map((day) => (
+                    <div key={day.key} className="text-center">
+                      <div className={`mx-auto h-8 w-8 rounded-full border text-xs font-bold leading-8 ${day.active ? "border-success bg-success text-success-foreground" : "border-border bg-card text-muted-foreground"}`}>{day.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
+                <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><SearchCheck className="h-4 w-4 text-accent" /> Automatic weak-skill drill</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{coach.weakSkill}: {weakSkillTask?.title ?? "Start focused practice"}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{weakSkillTask?.detail ?? "Complete one task so your coach can update the next drill."}</p>
+                <Button size="sm" className="mt-3" onClick={() => weakSkillTask ? startTask(weakSkillTask) : onSelectModule(coach.weakSkill.toLowerCase() as "writing" | "speaking" | "reading" | "listening")}>
+                  Start drill <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {coach.skillScores.map((skill) => {
                 const score = Number(skill.score ?? 0);
                 const gap = Math.max(0, coach.targetBand - score);
                 const Icon = moduleIcons[skill.name];
                 return (
-                  <button key={skill.name} onClick={() => onSelectModule(skill.name.toLowerCase() as "writing" | "speaking" | "reading" | "listening")} className="rounded-xl border border-border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/60">
+                  <button key={skill.name} onClick={() => onSelectModule(skill.name.toLowerCase() as "writing" | "speaking" | "reading" | "listening")} className={`rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-secondary/60 ${skill.name === coach.weakSkill ? "border-accent/40 bg-accent/10 shadow-soft" : "border-border"}`}>
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 font-semibold text-foreground"><Icon className="h-4 w-4 text-primary" /> {skill.name}</div>
-                      <Badge variant="outline">{score ? `Gap ${gap.toFixed(1)}` : "Start"}</Badge>
+                      <Badge variant={skill.name === coach.weakSkill ? "default" : "outline"}>{score ? `Gap ${gap.toFixed(1)}` : "Start"}</Badge>
                     </div>
                     <Progress value={score ? Math.min(100, (score / coach.targetBand) * 100) : 6} className="h-2" />
                     <p className="mt-3 text-xs leading-5 text-muted-foreground">
