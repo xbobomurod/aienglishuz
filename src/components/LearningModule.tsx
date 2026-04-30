@@ -42,6 +42,7 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
   const histories = useEvaluationHistory();
   const coach = useLearningCoach(histories);
   const [highlightText, setHighlightText] = useState("");
+  const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
 
   const progress = Math.min(100, Math.round((coach.averageBand / coach.targetBand) * 100));
   const completedTaskCount = coach.dailyPlan?.completed_tasks.length ?? 0;
@@ -49,6 +50,8 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
   const nextTask = coach.dailyPlan?.tasks.find((task) => !coach.dailyPlan?.completed_tasks.includes(task.id));
   const weakSkillTask = coach.dailyPlan?.tasks.find((task) => task.skill === coach.weakSkill);
   const reminderCount = coach.nextReviewCount + coach.dueVocabulary.length;
+  const savedHighlights = coach.mistakes.filter((item) => item.source_type === "manual_highlight");
+  const activeHighlight = savedHighlights.find((item) => item.id === activeHighlightId) ?? savedHighlights[0];
   const calendarDays = useMemo(() => {
     const activityMap = new Map(coach.activity.map((item) => [item.activity_date, item]));
     return Array.from({ length: 14 }, (_, index) => {
@@ -78,6 +81,8 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
     setHighlightText("");
     window.getSelection()?.removeAllRanges();
   };
+
+  const formatReviewDate = (value: string) => new Date(value).toLocaleDateString("en", { month: "short", day: "numeric" });
 
   return (
     <div className="animate-fade-in space-y-5">
