@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -90,6 +91,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [result, setResult] = useState<TestResult | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [fastPractice, setFastPractice] = useState(true);
   
   // Audio simulation state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -166,9 +168,8 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setActiveSection("0");
     
     try {
-      const fastMode = section !== "full-test";
       const { data, error } = await supabase.functions.invoke("listening-test", {
-        body: { action: "generate", section, fastMode }
+        body: { action: "generate", section, fastMode: fastPractice }
       });
 
       if (error) throw error;
@@ -333,7 +334,8 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
           action: "score",
           userAnswers,
           correctAnswers,
-          totalQuestions: test.questions.length
+          totalQuestions: test.questions.length,
+          fastMode: fastPractice
         }
       });
 
@@ -451,10 +453,26 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/30 p-4">
+              <div className="space-y-1">
+                <Label htmlFor="listening-fast-practice" className="text-sm font-medium">Fast Practice</Label>
+                <p className="text-xs text-muted-foreground">
+                  Short transcript, 6 questions, and instant static feedback without external AI scoring.
+                </p>
+              </div>
+              <Switch
+                id="listening-fast-practice"
+                checked={fastPractice}
+                onCheckedChange={setFastPractice}
+                aria-label="Toggle fast listening practice"
+              />
+            </div>
             
             <div className="p-4 rounded-lg bg-accent/10 text-sm text-muted-foreground">
               <p className="font-medium text-foreground mb-2">What to expect:</p>
               <ul className="list-disc list-inside space-y-1">
+                {fastPractice && <li>Fast Practice forces a shorter script with 6 questions</li>}
                 <li>Full Listening option: 4 sections, 40 questions, official sequence</li>
                 <li>Question types include completion, matching, short answer and multiple choice</li>
                 <li>Practice mode allows replay before scoring</li>
