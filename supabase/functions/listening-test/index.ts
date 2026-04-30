@@ -70,8 +70,8 @@ serve(async (req) => {
       console.log("Generating listening test for section:", section);
 
       const sectionType = section || "full-test";
-      const isFullTest = sectionType === "full-test";
-      const isFastPractice = Boolean(fastMode) && !isFullTest;
+      const isFastPractice = Boolean(fastMode);
+      const isFullTest = sectionType === "full-test" && !isFastPractice;
       let scenarioDescription = "";
       let questionCount = isFullTest ? 40 : isFastPractice ? 6 : 10;
 
