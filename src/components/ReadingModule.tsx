@@ -88,6 +88,17 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [fastWordCount, setFastWordCount] = useState(480); // target words
   const [fastQuestionCount, setFastQuestionCount] = useState(8);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [generationMs, setGenerationMs] = useState<number | null>(null);
+  const [scoringMs, setScoringMs] = useState<number | null>(null);
+
+  // Rough estimate: base latency + per-word generation cost (Fast Practice path)
+  const estimatedGenMs = fastPractice
+    ? Math.round(1500 + fastWordCount * 6 + fastQuestionCount * 120)
+    : difficulty === "full-test"
+      ? 28000
+      : 12000;
+  const estimatedScoreMs = fastPractice ? 250 : 600;
+  const formatMs = (ms: number) => ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
 
   // Timer effect
   useEffect(() => {
@@ -135,6 +146,9 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     setResult(null);
     setAnswers({});
     setActivePassage("0");
+    setGenerationMs(null);
+    setScoringMs(null);
+    const t0 = performance.now();
     
     try {
       const { data, error } = await supabase.functions.invoke("reading-test", {
@@ -150,6 +164,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      const elapsed = Math.round(performance.now() - t0);
+      setGenerationMs(elapsed);
       setTest(data);
       if (user) {
         const session = await saveSession({
@@ -164,7 +180,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
       }
       setStartTime(Date.now());
       setElapsedTime(0);
-      toast.success("Reading test generated and saved with an ID!");
+      toast.success(`Reading test ready in ${formatMs(elapsed)}`);
     } catch (err) {
       console.error("Error generating test:", err);
       toast.error("Failed to generate test. Please try again.");
@@ -178,6 +194,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
     setIsSubmitting(true);
     const timeTaken = Math.floor((Date.now() - (startTime || Date.now())) / 1000);
+    const t0 = performance.now();
 
     try {
       const userAnswers = test.questions.map(q => answers[q.id] || "");
@@ -196,6 +213,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      const elapsed = Math.round(performance.now() - t0);
+      setScoringMs(elapsed);
       setResult(data);
 
       // Save to database
@@ -216,7 +235,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
         await supabase.from("reading_evaluations").insert(insertData as any);
       }
 
-      toast.success(`Test completed! Band Score: ${data.bandScore}`);
+      toast.success(`Scored in ${formatMs(elapsed)} — Band ${data.bandScore}`);
     } catch (err) {
       console.error("Error submitting test:", err);
       toast.error("Failed to submit test. Please try again.");
@@ -381,6 +400,11 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               <BookOpen className="w-4 h-4" />
               Generate Reading Test
             </Button>
+
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>Estimated generation: ~{formatMs(estimatedGenMs)} • Scoring: ~{formatMs(estimatedScoreMs)}</span>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -521,6 +545,33 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                   <p className="text-sm text-muted-foreground">Time Taken</p>
                 </div>
               </div>
+
+              {(generationMs !== null || scoringMs !== null) && (
+                <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                  {generationMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Generation</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(generationMs)}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          (est. {formatMs(estimatedGenMs)})
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  {scoringMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Scoring</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(scoringMs)}{" "}
+                        <span className="text-xs font-normal text-success">
+                          {scoringMs < 1000 ? "✓ instant" : ""}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <div className="flex items-start gap-2">

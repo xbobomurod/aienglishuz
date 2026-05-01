@@ -98,6 +98,16 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [fastWordCount, setFastWordCount] = useState(190);
   const [fastQuestionCount, setFastQuestionCount] = useState(6);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [generationMs, setGenerationMs] = useState<number | null>(null);
+  const [scoringMs, setScoringMs] = useState<number | null>(null);
+
+  const estimatedGenMs = fastPractice
+    ? Math.round(1500 + fastWordCount * 8 + fastQuestionCount * 150)
+    : section === "full-test"
+      ? 32000
+      : 11000;
+  const estimatedScoreMs = fastPractice ? 250 : 600;
+  const formatMs = (ms: number) => ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
   
   // Audio simulation state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -172,6 +182,9 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setShowTranscript(false);
     setPlaybackProgress(0);
     setActiveSection("0");
+    setGenerationMs(null);
+    setScoringMs(null);
+    const t0 = performance.now();
     
     try {
       const { data, error } = await supabase.functions.invoke("listening-test", {
@@ -187,6 +200,8 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      const elapsed = Math.round(performance.now() - t0);
+      setGenerationMs(elapsed);
       setTest(data);
       if (user) {
         const session = await saveSession({
@@ -201,7 +216,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       }
       setStartTime(Date.now());
       setElapsedTime(0);
-      toast.success("Listening test generated and saved with an ID!");
+      toast.success(`Listening test ready in ${formatMs(elapsed)}`);
     } catch (err) {
       console.error("Error generating test:", err);
       toast.error("Failed to generate test. Please try again.");
@@ -336,6 +351,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setIsSubmitting(true);
     stopAudio();
     const timeTaken = Math.floor((Date.now() - (startTime || Date.now())) / 1000);
+    const t0 = performance.now();
 
     try {
       const userAnswers = test.questions.map(q => answers[q.id] || "");
@@ -354,6 +370,8 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      const elapsed = Math.round(performance.now() - t0);
+      setScoringMs(elapsed);
       setResult(data);
       setShowTranscript(true);
 
@@ -375,7 +393,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
         await supabase.from("listening_evaluations").insert(insertData as any);
       }
 
-      toast.success(`Test completed! Band Score: ${data.bandScore}`);
+      toast.success(`Scored in ${formatMs(elapsed)} — Band ${data.bandScore}`);
     } catch (err) {
       console.error("Error submitting test:", err);
       toast.error("Failed to submit test. Please try again.");
@@ -540,6 +558,11 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               <Headphones className="w-4 h-4" />
               Generate Listening Test
             </Button>
+
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>Estimated generation: ~{formatMs(estimatedGenMs)} • Scoring: ~{formatMs(estimatedScoreMs)}</span>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -743,6 +766,33 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                   <p className="text-sm text-muted-foreground">Time Taken</p>
                 </div>
               </div>
+
+              {(generationMs !== null || scoringMs !== null) && (
+                <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                  {generationMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Generation</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(generationMs)}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          (est. {formatMs(estimatedGenMs)})
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  {scoringMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Scoring</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(scoringMs)}{" "}
+                        <span className="text-xs font-normal text-success">
+                          {scoringMs < 1000 ? "✓ instant" : ""}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
                 <div className="flex items-start gap-2">
