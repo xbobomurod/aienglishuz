@@ -546,6 +546,33 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                 </div>
               </div>
 
+              {(generationMs !== null || scoringMs !== null) && (
+                <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                  {generationMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Generation</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(generationMs)}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          (est. {formatMs(estimatedGenMs)})
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  {scoringMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Scoring</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(scoringMs)}{" "}
+                        <span className="text-xs font-normal text-success">
+                          {scoringMs < 1000 ? "✓ instant" : ""}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <div className="flex items-start gap-2">
                   <Lightbulb className="w-5 h-5 text-primary mt-0.5" />
