@@ -351,6 +351,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setIsSubmitting(true);
     stopAudio();
     const timeTaken = Math.floor((Date.now() - (startTime || Date.now())) / 1000);
+    const t0 = performance.now();
 
     try {
       const userAnswers = test.questions.map(q => answers[q.id] || "");
@@ -369,6 +370,8 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      const elapsed = Math.round(performance.now() - t0);
+      setScoringMs(elapsed);
       setResult(data);
       setShowTranscript(true);
 
@@ -390,7 +393,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
         await supabase.from("listening_evaluations").insert(insertData as any);
       }
 
-      toast.success(`Test completed! Band Score: ${data.bandScore}`);
+      toast.success(`Scored in ${formatMs(elapsed)} — Band ${data.bandScore}`);
     } catch (err) {
       console.error("Error submitting test:", err);
       toast.error("Failed to submit test. Please try again.");
