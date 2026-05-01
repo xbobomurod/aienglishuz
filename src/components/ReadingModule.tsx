@@ -400,6 +400,11 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               <BookOpen className="w-4 h-4" />
               Generate Reading Test
             </Button>
+
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>Estimated generation: ~{formatMs(estimatedGenMs)} • Scoring: ~{formatMs(estimatedScoreMs)}</span>
+            </div>
           </CardContent>
         </Card>
       )}
