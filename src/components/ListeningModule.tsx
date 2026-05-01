@@ -13,7 +13,9 @@ import {
   Pause,
   Volume2,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronDown,
+  Settings2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -92,6 +95,9 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [fastPractice, setFastPractice] = useState(true);
+  const [fastWordCount, setFastWordCount] = useState(190);
+  const [fastQuestionCount, setFastQuestionCount] = useState(6);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   
   // Audio simulation state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -169,7 +175,13 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     
     try {
       const { data, error } = await supabase.functions.invoke("listening-test", {
-        body: { action: "generate", section, fastMode: fastPractice }
+        body: {
+          action: "generate",
+          section,
+          fastMode: fastPractice,
+          fastWordCount: fastPractice ? fastWordCount : undefined,
+          fastQuestionCount: fastPractice ? fastQuestionCount : undefined,
+        }
       });
 
       if (error) throw error;
@@ -468,11 +480,55 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                 aria-label="Toggle fast listening practice"
               />
             </div>
+
+            {fastPractice && (
+              <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <Settings2 className="w-4 h-4" />
+                      Advanced Fast Practice settings
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-4 rounded-lg border border-border bg-secondary/20 p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Transcript length</Label>
+                      <span className="text-xs text-muted-foreground">{fastWordCount} words</span>
+                    </div>
+                    <Slider
+                      value={[fastWordCount]}
+                      onValueChange={(v) => setFastWordCount(v[0])}
+                      min={120}
+                      max={400}
+                      step={20}
+                    />
+                    <p className="text-xs text-muted-foreground">Shorter = faster generation. Default 190.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Number of questions</Label>
+                      <span className="text-xs text-muted-foreground">{fastQuestionCount} questions</span>
+                    </div>
+                    <Slider
+                      value={[fastQuestionCount]}
+                      onValueChange={(v) => setFastQuestionCount(v[0])}
+                      min={3}
+                      max={10}
+                      step={1}
+                    />
+                    <p className="text-xs text-muted-foreground">Scoring stays instant — no external AI feedback call.</p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
             
             <div className="p-4 rounded-lg bg-accent/10 text-sm text-muted-foreground">
               <p className="font-medium text-foreground mb-2">What to expect:</p>
               <ul className="list-disc list-inside space-y-1">
-                {fastPractice && <li>Fast Practice forces a shorter script with 6 questions</li>}
+                {fastPractice && <li>Fast Practice: ~{fastWordCount}-word script with {fastQuestionCount} questions</li>}
                 <li>Full Listening option: 4 sections, 40 questions, official sequence</li>
                 <li>Question types include completion, matching, short answer and multiple choice</li>
                 <li>Practice mode allows replay before scoring</li>

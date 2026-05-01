@@ -61,7 +61,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, userAnswers, correctAnswers, totalQuestions, difficulty, fastMode } = await req.json();
+    const { action, userAnswers, correctAnswers, totalQuestions, difficulty, fastMode, fastWordCount, fastQuestionCount } = await req.json();
 
     // Generate a new reading test
     if (action === "generate") {
@@ -80,12 +80,15 @@ serve(async (req) => {
       const difficultyLevel = difficulty || "full-test";
       const isFastPractice = Boolean(fastMode);
       const isFullTest = difficultyLevel === "full-test" && !isFastPractice;
-      const wordCount = isFullTest ? "1600-1900 total across three passages" : isFastPractice ? "420-520" : difficultyLevel === "passage-1" ? "650-750" : difficultyLevel === "passage-3" ? "800-900" : "700-800";
+      const customWordTarget = isFastPractice && Number.isFinite(fastWordCount) ? Math.max(250, Math.min(900, Number(fastWordCount))) : null;
+      const customQuestionTarget = isFastPractice && Number.isFinite(fastQuestionCount) ? Math.max(3, Math.min(13, Math.round(Number(fastQuestionCount)))) : null;
+      const fastWordRange = customWordTarget ? `${Math.max(150, customWordTarget - 60)}-${customWordTarget + 60}` : "420-520";
+      const wordCount = isFullTest ? "1600-1900 total across three passages" : isFastPractice ? fastWordRange : difficultyLevel === "passage-1" ? "650-750" : difficultyLevel === "passage-3" ? "800-900" : "700-800";
       const passageLabel = isFastPractice ? "Fast IELTS Reading Practice" : isFullTest ? "Full IELTS Academic Reading Test" : difficultyLevel === "passage-1" ? "IELTS Passage 1" : difficultyLevel === "passage-3" ? "IELTS Passage 3" : "IELTS Passage 2";
 
       const systemPrompt = `You are an IELTS Reading test generator. Create authentic IELTS-style reading passages with questions.
 
-Generate ${isFullTest ? "three academic reading passages and 40 questions total" : isFastPractice ? "one focused academic reading passage and 8 questions" : "one academic reading passage and 13 questions"}. The passage content should be ${wordCount}, academic in tone, and cover topics like science, history, social issues, or technology.
+Generate ${isFullTest ? "three academic reading passages and 40 questions total" : isFastPractice ? `one focused academic reading passage and ${customQuestionTarget ?? 8} questions` : "one academic reading passage and 13 questions"}. The passage content should be ${wordCount}, academic in tone, and cover topics like science, history, social issues, or technology.
 
 Critical quality requirement: write the passage first, then write questions ONLY from facts, claims, names, dates, numbers, causes, contrasts, or paragraph ideas that are explicitly present in that passage. Do not invent any answer, heading, option, or statement that cannot be proven by the passage text.
 
@@ -154,7 +157,7 @@ Question quality rules:
 - Fill-blank answers must be short exact words/phrases copied from the passage.
 Make questions progressively harder. Ensure all answers are clearly derivable from the passage.`;
 
-      const expectedQuestionCount = isFullTest ? 40 : isFastPractice ? 8 : 13;
+      const expectedQuestionCount = isFullTest ? 40 : isFastPractice ? (customQuestionTarget ?? 8) : 13;
       let lastParseError = "";
 
       for (let attempt = 1; attempt <= (isFastPractice ? 1 : 2); attempt++) {

@@ -53,7 +53,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, userAnswers, correctAnswers, totalQuestions, section, fastMode } = await req.json();
+    const { action, userAnswers, correctAnswers, totalQuestions, section, fastMode, fastWordCount, fastQuestionCount } = await req.json();
 
     // Generate a new listening test
     if (action === "generate") {
@@ -73,8 +73,11 @@ serve(async (req) => {
       const isFastPractice = Boolean(fastMode);
       const isFullTest = sectionType === "full-test" && !isFastPractice;
       const promptSectionType = isFastPractice && sectionType === "full-test" ? "1" : sectionType;
+      const customWordTarget = isFastPractice && Number.isFinite(fastWordCount) ? Math.max(120, Math.min(400, Number(fastWordCount))) : null;
+      const customQuestionTarget = isFastPractice && Number.isFinite(fastQuestionCount) ? Math.max(3, Math.min(10, Math.round(Number(fastQuestionCount)))) : null;
       let scenarioDescription = "";
-      let questionCount = isFullTest ? 40 : isFastPractice ? 6 : 10;
+      let questionCount = isFullTest ? 40 : isFastPractice ? (customQuestionTarget ?? 6) : 10;
+      const fastWordRange = customWordTarget ? `${Math.max(80, customWordTarget - 40)}-${customWordTarget + 40}` : "160-220";
 
       switch (promptSectionType) {
         case "full-test":
@@ -100,7 +103,7 @@ serve(async (req) => {
 
 ${isFullTest ? "Full IELTS Listening test" : `Section ${promptSectionType}`} scenario: ${scenarioDescription}
 
-Generate ${isFullTest ? "four labelled transcripts (SECTION 1-4) with realistic speaker labels and" : isFastPractice ? "a short realistic dialogue/monologue transcript (160-220 words) and" : "a realistic dialogue/monologue transcript (250-350 words) and"} ${questionCount} questions.
+Generate ${isFullTest ? "four labelled transcripts (SECTION 1-4) with realistic speaker labels and" : isFastPractice ? `a short realistic dialogue/monologue transcript (${fastWordRange} words) and` : "a realistic dialogue/monologue transcript (250-350 words) and"} ${questionCount} questions.
 
 You MUST respond with ONLY valid JSON in this exact format:
 {

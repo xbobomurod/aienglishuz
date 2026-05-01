@@ -19,6 +19,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, Settings2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -82,6 +85,9 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [activePassage, setActivePassage] = useState("0");
   const [fastPractice, setFastPractice] = useState(true);
+  const [fastWordCount, setFastWordCount] = useState(480); // target words
+  const [fastQuestionCount, setFastQuestionCount] = useState(8);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Timer effect
   useEffect(() => {
@@ -132,7 +138,13 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
     
     try {
       const { data, error } = await supabase.functions.invoke("reading-test", {
-        body: { action: "generate", difficulty, fastMode: fastPractice }
+        body: {
+          action: "generate",
+          difficulty,
+          fastMode: fastPractice,
+          fastWordCount: fastPractice ? fastWordCount : undefined,
+          fastQuestionCount: fastPractice ? fastQuestionCount : undefined,
+        }
       });
 
       if (error) throw error;
@@ -309,11 +321,55 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                 aria-label="Toggle fast reading practice"
               />
             </div>
+
+            {fastPractice && (
+              <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <Settings2 className="w-4 h-4" />
+                      Advanced Fast Practice settings
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-4 rounded-lg border border-border bg-secondary/20 p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Passage length</Label>
+                      <span className="text-xs text-muted-foreground">{fastWordCount} words</span>
+                    </div>
+                    <Slider
+                      value={[fastWordCount]}
+                      onValueChange={(v) => setFastWordCount(v[0])}
+                      min={250}
+                      max={900}
+                      step={50}
+                    />
+                    <p className="text-xs text-muted-foreground">Shorter = faster generation. Default 480.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Number of questions</Label>
+                      <span className="text-xs text-muted-foreground">{fastQuestionCount} questions</span>
+                    </div>
+                    <Slider
+                      value={[fastQuestionCount]}
+                      onValueChange={(v) => setFastQuestionCount(v[0])}
+                      min={3}
+                      max={13}
+                      step={1}
+                    />
+                    <p className="text-xs text-muted-foreground">Scoring stays instant — no external AI feedback call.</p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
             
             <div className="p-4 rounded-lg bg-primary/10 text-sm text-muted-foreground">
               <p className="font-medium text-foreground mb-2">What to expect:</p>
               <ul className="list-disc list-inside space-y-1">
-                {fastPractice && <li>Fast Practice forces a shorter passage with 8 questions</li>}
+                {fastPractice && <li>Fast Practice: ~{fastWordCount}-word passage with {fastQuestionCount} questions</li>}
                 <li>Full Academic option: 3 passages, 40 questions, 60-minute standard</li>
                 <li>Single-passage practice: Passage 1, 2, or 3 focus</li>
                 <li>Multiple choice, matching, True/False/Not Given, and completion tasks</li>
