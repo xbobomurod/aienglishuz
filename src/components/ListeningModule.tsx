@@ -98,6 +98,16 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [fastWordCount, setFastWordCount] = useState(190);
   const [fastQuestionCount, setFastQuestionCount] = useState(6);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [generationMs, setGenerationMs] = useState<number | null>(null);
+  const [scoringMs, setScoringMs] = useState<number | null>(null);
+
+  const estimatedGenMs = fastPractice
+    ? Math.round(1500 + fastWordCount * 8 + fastQuestionCount * 150)
+    : section === "full-test"
+      ? 32000
+      : 11000;
+  const estimatedScoreMs = fastPractice ? 250 : 600;
+  const formatMs = (ms: number) => ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
   
   // Audio simulation state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -172,6 +182,9 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
     setShowTranscript(false);
     setPlaybackProgress(0);
     setActiveSection("0");
+    setGenerationMs(null);
+    setScoringMs(null);
+    const t0 = performance.now();
     
     try {
       const { data, error } = await supabase.functions.invoke("listening-test", {
@@ -187,6 +200,8 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      const elapsed = Math.round(performance.now() - t0);
+      setGenerationMs(elapsed);
       setTest(data);
       if (user) {
         const session = await saveSession({
@@ -201,7 +216,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       }
       setStartTime(Date.now());
       setElapsedTime(0);
-      toast.success("Listening test generated and saved with an ID!");
+      toast.success(`Listening test ready in ${formatMs(elapsed)}`);
     } catch (err) {
       console.error("Error generating test:", err);
       toast.error("Failed to generate test. Please try again.");
