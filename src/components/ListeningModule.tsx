@@ -558,6 +558,11 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               <Headphones className="w-4 h-4" />
               Generate Listening Test
             </Button>
+
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>Estimated generation: ~{formatMs(estimatedGenMs)} • Scoring: ~{formatMs(estimatedScoreMs)}</span>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -761,6 +766,33 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                   <p className="text-sm text-muted-foreground">Time Taken</p>
                 </div>
               </div>
+
+              {(generationMs !== null || scoringMs !== null) && (
+                <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                  {generationMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Generation</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(generationMs)}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          (est. {formatMs(estimatedGenMs)})
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  {scoringMs !== null && (
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Scoring</p>
+                      <p className="font-semibold text-foreground">
+                        {formatMs(scoringMs)}{" "}
+                        <span className="text-xs font-normal text-success">
+                          {scoringMs < 1000 ? "✓ instant" : ""}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
                 <div className="flex items-start gap-2">
