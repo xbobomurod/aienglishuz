@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLatencyEstimator } from "@/hooks/useLatencyEstimator";
 import {
   Select,
   SelectContent,
@@ -101,12 +102,20 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [generationMs, setGenerationMs] = useState<number | null>(null);
   const [scoringMs, setScoringMs] = useState<number | null>(null);
 
-  const estimatedGenMs = fastPractice
+  const { record: recordLatency, estimate: estimateLatency, formatRange } = useLatencyEstimator("listening");
+
+  const baselineGenMs = fastPractice
     ? Math.round(1500 + fastWordCount * 8 + fastQuestionCount * 150)
     : section === "full-test"
       ? 32000
       : 11000;
-  const estimatedScoreMs = fastPractice ? 250 : 600;
+  const baselineScoreMs = fastPractice ? 250 : 600;
+  const genKey = fastPractice
+    ? `gen:fast:${Math.round(fastWordCount / 50)}:${fastQuestionCount}`
+    : `gen:${section}`;
+  const scoreKey = fastPractice ? "score:fast" : `score:${section}`;
+  const genEstimate = estimateLatency(genKey, baselineGenMs);
+  const scoreEstimate = estimateLatency(scoreKey, baselineScoreMs);
   const formatMs = (ms: number) => ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
   
   // Audio simulation state
@@ -202,6 +211,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
       const elapsed = Math.round(performance.now() - t0);
       setGenerationMs(elapsed);
+      recordLatency(genKey, elapsed);
       setTest(data);
       if (user) {
         const session = await saveSession({
@@ -372,6 +382,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
       const elapsed = Math.round(performance.now() - t0);
       setScoringMs(elapsed);
+      recordLatency(scoreKey, elapsed);
       setResult(data);
       setShowTranscript(true);
 
@@ -561,7 +572,12 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
-              <span>Estimated generation: ~{formatMs(estimatedGenMs)} • Scoring: ~{formatMs(estimatedScoreMs)}</span>
+              <span>
+                Estimated generation: {formatRange(genEstimate)} • Scoring: {formatRange(scoreEstimate)}
+                {genEstimate.samples > 0 && (
+                  <span className="ml-1 opacity-70">(learned from last {genEstimate.samples} run{genEstimate.samples === 1 ? "" : "s"})</span>
+                )}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -775,7 +791,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                       <p className="font-semibold text-foreground">
                         {formatMs(generationMs)}{" "}
                         <span className="text-xs font-normal text-muted-foreground">
-                          (est. {formatMs(estimatedGenMs)})
+                          (est. {formatRange(genEstimate)})
                         </span>
                       </p>
                     </div>
