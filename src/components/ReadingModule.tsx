@@ -24,6 +24,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Settings2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLatencyEstimator } from "@/hooks/useLatencyEstimator";
 import {
   Select,
   SelectContent,
@@ -91,13 +92,21 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [generationMs, setGenerationMs] = useState<number | null>(null);
   const [scoringMs, setScoringMs] = useState<number | null>(null);
 
-  // Rough estimate: base latency + per-word generation cost (Fast Practice path)
-  const estimatedGenMs = fastPractice
+  const { record: recordLatency, estimate: estimateLatency, formatRange } = useLatencyEstimator("reading");
+
+  // Baseline guess: base latency + per-word generation cost (Fast Practice path)
+  const baselineGenMs = fastPractice
     ? Math.round(1500 + fastWordCount * 6 + fastQuestionCount * 120)
     : difficulty === "full-test"
       ? 28000
       : 12000;
-  const estimatedScoreMs = fastPractice ? 250 : 600;
+  const baselineScoreMs = fastPractice ? 250 : 600;
+  const genKey = fastPractice
+    ? `gen:fast:${Math.round(fastWordCount / 100)}:${fastQuestionCount}`
+    : `gen:${difficulty}`;
+  const scoreKey = fastPractice ? "score:fast" : `score:${difficulty}`;
+  const genEstimate = estimateLatency(genKey, baselineGenMs);
+  const scoreEstimate = estimateLatency(scoreKey, baselineScoreMs);
   const formatMs = (ms: number) => ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(2)} s`;
 
   // Timer effect
@@ -166,6 +175,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
       const elapsed = Math.round(performance.now() - t0);
       setGenerationMs(elapsed);
+      recordLatency(genKey, elapsed);
       setTest(data);
       if (user) {
         const session = await saveSession({
@@ -215,6 +225,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
       const elapsed = Math.round(performance.now() - t0);
       setScoringMs(elapsed);
+      recordLatency(scoreKey, elapsed);
       setResult(data);
 
       // Save to database
@@ -403,7 +414,12 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
-              <span>Estimated generation: ~{formatMs(estimatedGenMs)} • Scoring: ~{formatMs(estimatedScoreMs)}</span>
+              <span>
+                Estimated generation: {formatRange(genEstimate)} • Scoring: {formatRange(scoreEstimate)}
+                {genEstimate.samples > 0 && (
+                  <span className="ml-1 opacity-70">(learned from last {genEstimate.samples} run{genEstimate.samples === 1 ? "" : "s"})</span>
+                )}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -554,7 +570,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                       <p className="font-semibold text-foreground">
                         {formatMs(generationMs)}{" "}
                         <span className="text-xs font-normal text-muted-foreground">
-                          (est. {formatMs(estimatedGenMs)})
+                          (est. {formatRange(genEstimate)})
                         </span>
                       </p>
                     </div>
