@@ -414,7 +414,12 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
-              <span>Estimated generation: ~{formatMs(estimatedGenMs)} • Scoring: ~{formatMs(estimatedScoreMs)}</span>
+              <span>
+                Estimated generation: {formatRange(genEstimate)} • Scoring: {formatRange(scoreEstimate)}
+                {genEstimate.samples > 0 && (
+                  <span className="ml-1 opacity-70">(learned from last {genEstimate.samples} run{genEstimate.samples === 1 ? "" : "s"})</span>
+                )}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -565,7 +570,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                       <p className="font-semibold text-foreground">
                         {formatMs(generationMs)}{" "}
                         <span className="text-xs font-normal text-muted-foreground">
-                          (est. {formatMs(estimatedGenMs)})
+                          (est. {formatRange(genEstimate)})
                         </span>
                       </p>
                     </div>
