@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
+import { FocusModeFab } from "@/components/FocusModeFab";
 
 type Module = "home" | "learning" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
 
@@ -259,6 +260,10 @@ const Index = () => {
         {activeModule === "listening" && <ListeningModule onBack={handleBack} />}
         {activeModule === "mocktest" && <MockTestModule onBack={handleBack} />}
       </main>
+
+      {["reading", "listening", "writing", "speaking", "mocktest"].includes(activeModule) && (
+        <FocusModeFab scope={activeModule} />
+      )}
 
       {/* Footer */}
       <footer className="border-t border-border/60 bg-card/60 py-4 sm:py-6 mt-auto">
