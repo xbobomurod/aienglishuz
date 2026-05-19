@@ -180,3 +180,13 @@
     }
   }
 }
+
+/* Focus mode (fullscreen test) — hide app chrome */
+body.focus-mode header,
+body.focus-mode footer {
+  display: none !important;
+}
+body.focus-mode main {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
