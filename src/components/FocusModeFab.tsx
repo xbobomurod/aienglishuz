@@ -1,23 +1,40 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Maximize2, Minimize2, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const FocusScopeContext = createContext<string | null>(null);
+// Module-level pub/sub so any descendant can override the active focus sub-scope
+// even though FocusModeFab lives at the page root.
+let _subScope: string | null = null;
+const _listeners = new Set<(s: string | null) => void>();
 
-export function FocusScope({ scope, children }: { scope: string; children: ReactNode }) {
-  return <FocusScopeContext.Provider value={scope}>{children}</FocusScopeContext.Provider>;
+export function setFocusSubScope(scope: string | null) {
+  _subScope = scope;
+  _listeners.forEach((l) => l(scope));
+}
+
+function useFocusSubScope(): string | null {
+  const [scope, setScope] = useState<string | null>(_subScope);
+  useEffect(() => {
+    const l = (s: string | null) => setScope(s);
+    _listeners.add(l);
+    setScope(_subScope);
+    return () => {
+      _listeners.delete(l);
+    };
+  }, []);
+  return scope;
 }
 
 interface FocusModeFabProps {
-  /** Default storage scope for notes — overridden by nearest <FocusScope>. */
+  /** Base storage scope for notes; combined with any active sub-scope. */
   scope: string;
 }
 
 export function FocusModeFab({ scope }: FocusModeFabProps) {
-  const sectionScope = useContext(FocusScopeContext);
+  const sectionScope = useFocusSubScope();
   const effectiveScope = sectionScope ? `${scope}:${sectionScope}` : scope;
   const storageKey = useMemo(() => `focus-notes:${effectiveScope}`, [effectiveScope]);
   const [isFullscreen, setIsFullscreen] = useState(false);
