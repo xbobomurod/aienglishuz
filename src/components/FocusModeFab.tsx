@@ -1,22 +1,30 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Maximize2, Minimize2, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+const FocusScopeContext = createContext<string | null>(null);
+
+export function FocusScope({ scope, children }: { scope: string; children: ReactNode }) {
+  return <FocusScopeContext.Provider value={scope}>{children}</FocusScopeContext.Provider>;
+}
+
 interface FocusModeFabProps {
-  /** Storage scope for notes, e.g. "reading", "mocktest" */
+  /** Default storage scope for notes — overridden by nearest <FocusScope>. */
   scope: string;
 }
 
 export function FocusModeFab({ scope }: FocusModeFabProps) {
-  const storageKey = `focus-notes:${scope}`;
+  const sectionScope = useContext(FocusScopeContext);
+  const effectiveScope = sectionScope ? `${scope}:${sectionScope}` : scope;
+  const storageKey = useMemo(() => `focus-notes:${effectiveScope}`, [effectiveScope]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notes, setNotes] = useState("");
 
-  // Load notes once
+  // Load notes whenever the scope changes
   useEffect(() => {
     try {
       setNotes(localStorage.getItem(storageKey) || "");
@@ -58,7 +66,11 @@ export function FocusModeFab({ scope }: FocusModeFabProps) {
 
   return (
     <>
-      <div className="fixed right-3 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2">
+      <div
+        className="fixed right-3 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2"
+        style={{ display: isFullscreen ? "none" : undefined }}
+        aria-hidden={isFullscreen}
+      >
         <Button
           size="icon"
           variant="secondary"
