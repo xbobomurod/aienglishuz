@@ -26,6 +26,7 @@ import { MockReadingSection } from "./mock-test/MockReadingSection";
 import { MockListeningSection } from "./mock-test/MockListeningSection";
 import { MockWritingSection } from "./mock-test/MockWritingSection";
 import { MockSpeakingSection } from "./mock-test/MockSpeakingSection";
+import { setFocusSubScope } from "./FocusModeFab";
 
 interface MockTestModuleProps {
   onBack: () => void;
