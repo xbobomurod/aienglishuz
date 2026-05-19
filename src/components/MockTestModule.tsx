@@ -118,6 +118,21 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
   const [sectionStartTime, setSectionStartTime] = useState<number | null>(null);
   const [totalElapsed, setTotalElapsed] = useState(0);
 
+  // Sync per-section note scope so FocusModeFab stores notes separately
+  // for listening/reading/writing/speaking inside the mock test.
+  useEffect(() => {
+    const subScopes: Record<TestSection, string | null> = {
+      intro: null,
+      results: null,
+      listening: "listening",
+      reading: "reading",
+      writing: "writing",
+      speaking: "speaking",
+    };
+    setFocusSubScope(subScopes[currentSection]);
+    return () => setFocusSubScope(null);
+  }, [currentSection]);
+
   // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
