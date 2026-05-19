@@ -1,22 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Maximize2, Minimize2, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+// Module-level pub/sub so any descendant can override the active focus sub-scope
+// even though FocusModeFab lives at the page root.
+let _subScope: string | null = null;
+const _listeners = new Set<(s: string | null) => void>();
+
+export function setFocusSubScope(scope: string | null) {
+  _subScope = scope;
+  _listeners.forEach((l) => l(scope));
+}
+
+function useFocusSubScope(): string | null {
+  const [scope, setScope] = useState<string | null>(_subScope);
+  useEffect(() => {
+    const l = (s: string | null) => setScope(s);
+    _listeners.add(l);
+    setScope(_subScope);
+    return () => {
+      _listeners.delete(l);
+    };
+  }, []);
+  return scope;
+}
+
 interface FocusModeFabProps {
-  /** Storage scope for notes, e.g. "reading", "mocktest" */
+  /** Base storage scope for notes; combined with any active sub-scope. */
   scope: string;
 }
 
 export function FocusModeFab({ scope }: FocusModeFabProps) {
-  const storageKey = `focus-notes:${scope}`;
+  const sectionScope = useFocusSubScope();
+  const effectiveScope = sectionScope ? `${scope}:${sectionScope}` : scope;
+  const storageKey = useMemo(() => `focus-notes:${effectiveScope}`, [effectiveScope]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notes, setNotes] = useState("");
 
-  // Load notes once
+  // Load notes whenever the scope changes
   useEffect(() => {
     try {
       setNotes(localStorage.getItem(storageKey) || "");
@@ -58,7 +83,11 @@ export function FocusModeFab({ scope }: FocusModeFabProps) {
 
   return (
     <>
-      <div className="fixed right-3 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2">
+      <div
+        className="fixed right-3 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2"
+        style={{ display: isFullscreen ? "none" : undefined }}
+        aria-hidden={isFullscreen}
+      >
         <Button
           size="icon"
           variant="secondary"

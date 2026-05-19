@@ -26,6 +26,7 @@ import { MockReadingSection } from "./mock-test/MockReadingSection";
 import { MockListeningSection } from "./mock-test/MockListeningSection";
 import { MockWritingSection } from "./mock-test/MockWritingSection";
 import { MockSpeakingSection } from "./mock-test/MockSpeakingSection";
+import { setFocusSubScope } from "./FocusModeFab";
 
 interface MockTestModuleProps {
   onBack: () => void;
@@ -116,6 +117,21 @@ export function MockTestModule({ onBack }: MockTestModuleProps) {
   const [results, setResults] = useState<SectionResult[]>([]);
   const [sectionStartTime, setSectionStartTime] = useState<number | null>(null);
   const [totalElapsed, setTotalElapsed] = useState(0);
+
+  // Sync per-section note scope so FocusModeFab stores notes separately
+  // for listening/reading/writing/speaking inside the mock test.
+  useEffect(() => {
+    const subScopes: Record<TestSection, string | null> = {
+      intro: null,
+      results: null,
+      listening: "listening",
+      reading: "reading",
+      writing: "writing",
+      speaking: "speaking",
+    };
+    setFocusSubScope(subScopes[currentSection]);
+    return () => setFocusSubScope(null);
+  }, [currentSection]);
 
   // Timer effect
   useEffect(() => {
