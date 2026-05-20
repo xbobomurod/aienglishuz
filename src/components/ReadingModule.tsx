@@ -503,11 +503,32 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-6">
                 <Card className="lg:row-span-2">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">{test.topic}</CardTitle>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <CardTitle className="text-lg">{test.topic}</CardTitle>
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 mr-1 rounded-md border border-border bg-secondary/40 p-0.5">
+                          <Button type="button" variant={fontScale === "sm" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("sm")} title="Small">A-</Button>
+                          <Button type="button" variant={fontScale === "base" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("base")} title="Medium">A</Button>
+                          <Button type="button" variant={fontScale === "lg" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("lg")} title="Large">A+</Button>
+                          <Button type="button" variant={fontScale === "xl" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("xl")} title="Extra large">A++</Button>
+                        </div>
+                        <Button type="button" variant={highlightMode ? "default" : "outline"} size="sm" className="h-7 gap-1" onClick={() => setHighlightMode((v) => !v)} title="Toggle highlight mode">
+                          <Highlighter className="w-3.5 h-3.5" />
+                          {highlightMode ? "On" : "Highlight"}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => clearHighlights(passageIndex)} title="Clear highlights">
+                          <Eraser className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[500px] pr-4">
-                      <div className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4 text-sm leading-relaxed text-foreground/90">
+                      <div
+                        ref={(el) => { passageRefs.current[passageIndex] = el; }}
+                        onMouseUp={handlePassageMouseUp}
+                        className={`whitespace-pre-wrap rounded-lg border border-border bg-background p-5 font-serif text-foreground/90 ${fontClass}`}
+                      >
                         {formattedPassages[passageIndex] || sectionText}
                       </div>
                     </ScrollArea>
@@ -539,7 +560,10 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                         >
                           {q.options?.map((option, i) => (
                             <div key={i} className="flex items-center space-x-2">
-                              <RadioGroupItem value={option.charAt(0)} id={`q${q.id}-${i}`} />
+                              <RadioGroupItem
+                                value={q.type === "true-false-not-given" ? option : option.charAt(0)}
+                                id={`q${q.id}-${i}`}
+                              />
                               <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
                                 {option}
                               </Label>
