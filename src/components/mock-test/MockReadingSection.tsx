@@ -190,7 +190,10 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
                     >
                       {q.options?.map((option, i) => (
                         <div key={i} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.charAt(0)} id={`q${q.id}-${i}`} />
+                          <RadioGroupItem
+                            value={q.type === "true-false-not-given" ? option : option.charAt(0)}
+                            id={`q${q.id}-${i}`}
+                          />
                           <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
                             {option}
                           </Label>
