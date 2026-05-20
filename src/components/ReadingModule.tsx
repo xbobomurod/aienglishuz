@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -8,7 +8,9 @@ import {
   RefreshCw,
   Clock,
   Trophy,
-  Lightbulb
+  Lightbulb,
+  Highlighter,
+  Eraser
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,6 +93,53 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [generationMs, setGenerationMs] = useState<number | null>(null);
   const [scoringMs, setScoringMs] = useState<number | null>(null);
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [fontScale, setFontScale] = useState<"sm" | "base" | "lg" | "xl">("lg");
+  const passageRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  const fontClass = {
+    sm: "text-sm leading-relaxed",
+    base: "text-base leading-relaxed",
+    lg: "text-lg leading-8",
+    xl: "text-xl leading-9",
+  }[fontScale];
+
+  const handlePassageMouseUp = () => {
+    if (!highlightMode) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!range.toString().trim()) return;
+    try {
+      const mark = document.createElement("mark");
+      mark.className = "bg-yellow-300/70 text-foreground rounded px-0.5";
+      range.surroundContents(mark);
+      sel.removeAllRanges();
+    } catch {
+      try {
+        const frag = range.extractContents();
+        const mark = document.createElement("mark");
+        mark.className = "bg-yellow-300/70 text-foreground rounded px-0.5";
+        mark.appendChild(frag);
+        range.insertNode(mark);
+        sel.removeAllRanges();
+      } catch {
+        /* noop */
+      }
+    }
+  };
+
+  const clearHighlights = (passageIndex: number) => {
+    const el = passageRefs.current[passageIndex];
+    if (!el) return;
+    el.querySelectorAll("mark").forEach((m) => {
+      const parent = m.parentNode;
+      if (!parent) return;
+      while (m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize?.();
+    });
+  };
 
   const { record: recordLatency, estimate: estimateLatency, formatRange } = useLatencyEstimator("reading");
 
