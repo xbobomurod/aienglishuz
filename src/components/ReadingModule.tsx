@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -8,7 +8,9 @@ import {
   RefreshCw,
   Clock,
   Trophy,
-  Lightbulb
+  Lightbulb,
+  Highlighter,
+  Eraser
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,6 +93,53 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [generationMs, setGenerationMs] = useState<number | null>(null);
   const [scoringMs, setScoringMs] = useState<number | null>(null);
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [fontScale, setFontScale] = useState<"sm" | "base" | "lg" | "xl">("lg");
+  const passageRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  const fontClass = {
+    sm: "text-sm leading-relaxed",
+    base: "text-base leading-relaxed",
+    lg: "text-lg leading-8",
+    xl: "text-xl leading-9",
+  }[fontScale];
+
+  const handlePassageMouseUp = () => {
+    if (!highlightMode) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!range.toString().trim()) return;
+    try {
+      const mark = document.createElement("mark");
+      mark.className = "bg-yellow-300/70 text-foreground rounded px-0.5";
+      range.surroundContents(mark);
+      sel.removeAllRanges();
+    } catch {
+      try {
+        const frag = range.extractContents();
+        const mark = document.createElement("mark");
+        mark.className = "bg-yellow-300/70 text-foreground rounded px-0.5";
+        mark.appendChild(frag);
+        range.insertNode(mark);
+        sel.removeAllRanges();
+      } catch {
+        /* noop */
+      }
+    }
+  };
+
+  const clearHighlights = (passageIndex: number) => {
+    const el = passageRefs.current[passageIndex];
+    if (!el) return;
+    el.querySelectorAll("mark").forEach((m) => {
+      const parent = m.parentNode;
+      if (!parent) return;
+      while (m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize?.();
+    });
+  };
 
   const { record: recordLatency, estimate: estimateLatency, formatRange } = useLatencyEstimator("reading");
 
@@ -454,11 +503,32 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-6">
                 <Card className="lg:row-span-2">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">{test.topic}</CardTitle>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <CardTitle className="text-lg">{test.topic}</CardTitle>
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 mr-1 rounded-md border border-border bg-secondary/40 p-0.5">
+                          <Button type="button" variant={fontScale === "sm" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("sm")} title="Small">A-</Button>
+                          <Button type="button" variant={fontScale === "base" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("base")} title="Medium">A</Button>
+                          <Button type="button" variant={fontScale === "lg" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("lg")} title="Large">A+</Button>
+                          <Button type="button" variant={fontScale === "xl" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("xl")} title="Extra large">A++</Button>
+                        </div>
+                        <Button type="button" variant={highlightMode ? "default" : "outline"} size="sm" className="h-7 gap-1" onClick={() => setHighlightMode((v) => !v)} title="Toggle highlight mode">
+                          <Highlighter className="w-3.5 h-3.5" />
+                          {highlightMode ? "On" : "Highlight"}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => clearHighlights(passageIndex)} title="Clear highlights">
+                          <Eraser className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[500px] pr-4">
-                      <div className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4 text-sm leading-relaxed text-foreground/90">
+                      <div
+                        ref={(el) => { passageRefs.current[passageIndex] = el; }}
+                        onMouseUp={handlePassageMouseUp}
+                        className={`whitespace-pre-wrap rounded-lg border border-border bg-background p-5 font-serif text-foreground/90 ${fontClass}`}
+                      >
                         {formattedPassages[passageIndex] || sectionText}
                       </div>
                     </ScrollArea>
@@ -490,7 +560,10 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                         >
                           {q.options?.map((option, i) => (
                             <div key={i} className="flex items-center space-x-2">
-                              <RadioGroupItem value={option.charAt(0)} id={`q${q.id}-${i}`} />
+                              <RadioGroupItem
+                                value={q.type === "true-false-not-given" ? option : option.charAt(0)}
+                                id={`q${q.id}-${i}`}
+                              />
                               <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
                                 {option}
                               </Label>
