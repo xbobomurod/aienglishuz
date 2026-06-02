@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { ExaminerVoice } from "./ExaminerVoice";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
@@ -83,6 +84,8 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const [feedback, setFeedback] = useState<SpeakingFeedback | null>(null);
   const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
   const [timedMode, setTimedMode] = useState(false);
+  const [cueNotes, setCueNotes] = useState("");
+  const [hideTopicWhileSpeaking, setHideTopicWhileSpeaking] = useState(false);
 
   const {
     saveSpeakingEvaluation, 
@@ -295,26 +298,66 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
               <label className="block text-sm font-medium text-foreground">
                 {taskType === "talk" ? "Cue Card" : "Question/Topic"}
               </label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGeneratePrompt}
-                disabled={isGeneratingPrompt}
-              >
-                {isGeneratingPrompt ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 mr-1" />
-                )}
-                Generate
-              </Button>
+              <div className="flex items-center gap-2">
+                <ExaminerVoice
+                  text={topic}
+                  label="Examiner"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGeneratePrompt}
+                  disabled={isGeneratingPrompt}
+                >
+                  {isGeneratingPrompt ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-1" />
+                  )}
+                  Generate
+                </Button>
+              </div>
             </div>
-            <Textarea
-              placeholder="Click 'Generate' for a question, or enter your own..."
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className={`bg-card resize-none ${taskType === "talk" ? "min-h-[120px]" : "min-h-[60px]"}`}
-            />
+            {taskType === "talk" && topic ? (
+              <div className="rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 p-4 font-serif whitespace-pre-wrap text-sm leading-relaxed">
+                {hideTopicWhileSpeaking ? (
+                  <span className="italic text-muted-foreground">Cue card hidden — rely on your notes, just like the real exam.</span>
+                ) : (
+                  topic
+                )}
+              </div>
+            ) : (
+              <Textarea
+                placeholder="Click 'Generate' for a question, or enter your own..."
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className={`bg-card resize-none ${taskType === "talk" ? "min-h-[120px]" : "min-h-[60px]"}`}
+              />
+            )}
+            {taskType === "talk" && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    📝 Prep Notes (1 min)
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hideTopicWhileSpeaking}
+                      onChange={(e) => setHideTopicWhileSpeaking(e.target.checked)}
+                      className="accent-primary"
+                    />
+                    Hide cue card while speaking
+                  </label>
+                </div>
+                <Textarea
+                  placeholder="Jot down quick bullet points: where • when • who • why..."
+                  value={cueNotes}
+                  onChange={(e) => setCueNotes(e.target.value)}
+                  className="min-h-[80px] bg-secondary/20 resize-none font-mono text-xs"
+                />
+              </div>
+            )}
           </div>
           
           {/* Voice Recorder */}
