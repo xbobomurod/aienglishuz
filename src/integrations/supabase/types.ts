@@ -251,6 +251,39 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_words: {
+        Row: {
+          context: string | null
+          created_at: string
+          definition: string | null
+          id: string
+          source: string | null
+          translation: string | null
+          user_id: string
+          word: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          definition?: string | null
+          id?: string
+          source?: string | null
+          translation?: string | null
+          user_id: string
+          word: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          definition?: string | null
+          id?: string
+          source?: string | null
+          translation?: string | null
+          user_id?: string
+          word?: string
+        }
+        Relationships: []
+      }
       speaking_evaluations: {
         Row: {
           band_score: number
