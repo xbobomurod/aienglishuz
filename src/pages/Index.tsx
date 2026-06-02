@@ -19,6 +19,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { FocusModeFab } from "@/components/FocusModeFab";
+import { SavedWordsFab } from "@/components/SavedWordsFab";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 
 type Module = "home" | "learning" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
 
@@ -264,6 +266,9 @@ const Index = () => {
       {["reading", "listening", "writing", "speaking", "mocktest"].includes(activeModule) && (
         <FocusModeFab scope={activeModule} />
       )}
+
+      <SavedWordsFab source={activeModule} />
+      <KeyboardShortcuts />
 
       {/* Footer */}
       <footer className="border-t border-border/60 bg-card/60 py-4 sm:py-6 mt-auto">
