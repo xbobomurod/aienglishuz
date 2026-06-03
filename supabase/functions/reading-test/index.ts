@@ -86,11 +86,52 @@ serve(async (req) => {
       const wordCount = isFullTest ? "1600-1900 total across three passages" : isFastPractice ? fastWordRange : difficultyLevel === "passage-1" ? "650-750" : difficultyLevel === "passage-3" ? "800-900" : "700-800";
       const passageLabel = isFastPractice ? "Fast IELTS Reading Practice" : isFullTest ? "Full IELTS Academic Reading Test" : difficultyLevel === "passage-1" ? "IELTS Passage 1" : difficultyLevel === "passage-3" ? "IELTS Passage 3" : "IELTS Passage 2";
 
-      const systemPrompt = `You are an IELTS Reading test generator. Create authentic IELTS-style reading passages with questions.
+      const systemPrompt = `You are a senior Cambridge IELTS Academic Reading test writer. You have internalised every passage and question pattern from Cambridge IELTS books 10 through 18 and the official IELTS examiner band descriptors. Mimic that exact style, register, and difficulty curve.
 
-Generate ${isFullTest ? "three academic reading passages and 40 questions total" : isFastPractice ? `one focused academic reading passage and ${customQuestionTarget ?? 8} questions` : "one academic reading passage and 13 questions"}. The passage content should be ${wordCount}, academic in tone, and cover topics like science, history, social issues, or technology.
+TASK: Generate ${isFullTest ? "three academic reading passages and 40 questions total" : isFastPractice ? `one focused academic reading passage and ${customQuestionTarget ?? 8} questions` : "one academic reading passage and 13 questions"}.
 
-Critical quality requirement: write the passage first, then write questions ONLY from facts, claims, names, dates, numbers, causes, contrasts, or paragraph ideas that are explicitly present in that passage. Do not invent any answer, heading, option, or statement that cannot be proven by the passage text.
+SOURCE STYLE — match these REAL Cambridge sources only:
+- New Scientist / Scientific American style feature article (science, biology, climate, archaeology, psychology)
+- Encyclopedia Britannica style entry (history, geography, social science)
+- Quality broadsheet long-read (The Economist, The Guardian Long Read) — but never opinion pieces
+- University extension reader chapter (education, economics, anthropology)
+Do NOT write textbook summaries, blog posts, listicles, or AI-generated-feeling text.
+
+PASSAGE QUALITY (non-negotiable):
+- Length: ${wordCount}. Academic, objective register. Third person. No "we", no "I", no rhetorical questions.
+- Include named researchers, real-looking institutions, specific years, percentages, country names, two contrasting viewpoints, and at least one cause/effect chain.
+- Paragraphs labelled A, B, C, D, ... (single passage: 6–9 paragraphs; full test: 7–9 paragraphs per passage).
+- For a full test, use the headings: PASSAGE 1 / PASSAGE 2 / PASSAGE 3 — Passage 1 easier, Passage 2 medium, Passage 3 hardest with abstract argument.
+- Use natural cohesion: "Despite this", "By contrast", "What is more striking", "A subsequent study found...".
+- Do NOT make answers depend on outside knowledge or common sense.
+
+QUESTION DISTRIBUTION — follow real Cambridge mixes. For a SINGLE passage (13 questions) choose ONE of these mixes:
+ • Mix A: 4 matching headings + 5 true/false/not given + 4 sentence completion
+ • Mix B: 4 multiple choice + 5 true/false/not given + 4 summary/sentence completion
+ • Mix C: 5 matching (paragraph contains information) + 4 yes/no/not given + 4 short answer / completion
+For a FULL TEST (40 questions): Passage 1 = 13, Passage 2 = 13, Passage 3 = 14, with the hardest matching/MCQs concentrated in Passage 3.
+
+TRUE/FALSE/NOT GIVEN — strict examiner rules:
+- TRUE = statement agrees with information in the passage.
+- FALSE = statement contradicts information in the passage.
+- NOT GIVEN = there is no information about this in the passage. Reader cannot prove or disprove.
+- correctAnswer MUST be exactly one of: "True", "False", "Not Given" (capitalised, full words, no abbreviations).
+- options array MUST be exactly ["True", "False", "Not Given"].
+
+MULTIPLE CHOICE:
+- 4 options labelled "A) ...", "B) ...", "C) ...", "D) ..." each plausible but only one supported by the passage.
+- Distractors should be: (a) true in real life but not stated in passage, (b) partially true, (c) the opposite of what passage says.
+- correctAnswer MUST be a single letter: "A" | "B" | "C" | "D".
+
+MATCHING HEADINGS:
+- 6–8 headings provided, more than paragraphs (Roman numerals i, ii, iii would be ideal but use letters A–H).
+- Each question = one paragraph letter. correctAnswer = letter of the matching heading.
+
+SENTENCE/SUMMARY COMPLETION & SHORT ANSWER:
+- Answers must be 1–3 words copied EXACTLY from the passage. State "NO MORE THAN THREE WORDS" hint inside the question.
+- correctAnswer must be the exact word/phrase as it appears in the passage.
+
+EVIDENCE RULE (mandatory): every question MUST include evidenceQuote: an 8–25 word exact substring copied character-for-character from the passage that proves the correct answer. If you cannot produce one, rewrite the question.
 
 You MUST respond with ONLY valid JSON in this exact format:
 {
@@ -108,7 +149,7 @@ You MUST respond with ONLY valid JSON in this exact format:
     {
       "id": 2,
       "type": "true-false-not-given",
-      "question": "Statement to evaluate",
+      "question": "Statement to evaluate (TRUE / FALSE / NOT GIVEN)",
       "options": ["True", "False", "Not Given"],
       "correctAnswer": "True",
       "evidenceQuote": "Exact short quote copied from the passage proving True/False, or exact area showing Not Given context"
@@ -116,7 +157,7 @@ You MUST respond with ONLY valid JSON in this exact format:
     {
       "id": 3,
       "type": "fill-blank",
-      "question": "Complete the sentence: The main cause was _____.",
+      "question": "Complete the sentence using NO MORE THAN THREE WORDS from the passage: The main cause was _____.",
       "correctAnswer": "specific word or phrase",
       "evidenceQuote": "Exact sentence fragment copied from the passage containing the answer"
     },
@@ -131,31 +172,8 @@ You MUST respond with ONLY valid JSON in this exact format:
   ]
 }
 
-Include authentic IELTS question types:
-- Multiple choice
-- True/False/Not Given
-- Matching headings or information
-- Sentence completion / fill-in-the-blank
-- Summary completion
-
-For a full test, create exactly 40 questions spread across the three passages: 13 for Passage 1, 13 for Passage 2, and 14 for Passage 3.
-
-Difficulty level: ${passageLabel}
-Passage quality rules:
-- Use clear IELTS formatting: PASSAGE 1 / PASSAGE 2 / PASSAGE 3, then a title, then paragraphs labelled A, B, C, D, etc.
-- For a single passage, still label paragraphs A-G or A-H.
-- Avoid generic textbook summaries; include specific dates, named studies, places, figures, and contrasting viewpoints.
-- Do not make answers depend on outside knowledge.
-Question quality rules:
-- Group questions by passage for a full test and write question text with the target passage/paragraph when useful.
-- Every question MUST include evidenceQuote: an exact 8-25 word quote copied character-for-character from the passage.
-- The correct answer must be directly supported by evidenceQuote. If no exact quote exists, rewrite the question.
-- Distractor options must be plausible but contradicted by, narrower than, broader than, or absent from the passage.
-- Do not ask about ideas, people, dates, definitions, or examples that are not in the passage.
-- Use matching questions with options and correctAnswer as a letter only.
-- Multiple-choice correctAnswer must be A, B, C, or D. True/False/Not Given must use the full words.
-- Fill-blank answers must be short exact words/phrases copied from the passage.
-Make questions progressively harder. Ensure all answers are clearly derivable from the passage.`;
+Difficulty level: ${passageLabel}.
+Progressive difficulty within each passage: first questions easier (scanning), last questions harder (paraphrase, inference, opinion-vs-fact).`;
 
       const expectedQuestionCount = isFullTest ? 40 : isFastPractice ? (customQuestionTarget ?? 8) : 13;
       let lastParseError = "";
@@ -227,8 +245,19 @@ Make questions progressively harder. Ensure all answers are clearly derivable fr
       const results: { questionId: number; correct: boolean; userAnswer: string; correctAnswer: string }[] = [];
 
       for (let i = 0; i < totalQuestions; i++) {
-        const userAns = (userAnswers[i] || "").toString().toLowerCase().trim();
-        const correctAns = (correctAnswers[i] || "").toString().toLowerCase().trim();
+        const normalize = (v: unknown) =>
+          (v || "")
+            .toString()
+            .toLowerCase()
+            .trim()
+            // collapse T/F shortcuts and NG variations to the canonical full form
+            .replace(/^t$/, "true")
+            .replace(/^f$/, "false")
+            .replace(/^ng$/, "not given")
+            .replace(/^n\/g$/, "not given")
+            .replace(/\s+/g, " ");
+        const userAns = normalize(userAnswers[i]);
+        const correctAns = normalize(correctAnswers[i]);
         const isCorrect = userAns === correctAns;
         
         if (isCorrect) correctCount++;

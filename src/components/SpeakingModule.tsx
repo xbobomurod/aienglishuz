@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { ExaminerVoice } from "./ExaminerVoice";
+import examinerImg from "@/assets/examiner.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
@@ -318,6 +319,26 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                 </Button>
               </div>
             </div>
+            {/* Examiner avatar — gives a Zoom-call exam feel */}
+            {topic && (
+              <div className="flex items-center gap-3 mb-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10">
+                <div className="relative">
+                  <img
+                    src={examinerImg}
+                    alt="Your IELTS examiner"
+                    width={56}
+                    height={56}
+                    loading="lazy"
+                    className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/30"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-success border-2 border-background" aria-hidden />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight">Examiner Hannah</p>
+                  <p className="text-xs text-muted-foreground truncate">Cambridge-trained • British English • {getTaskLabel()}</p>
+                </div>
+              </div>
+            )}
             {taskType === "talk" && topic ? (
               <div className="rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 p-4 font-serif whitespace-pre-wrap text-sm leading-relaxed">
                 {hideTopicWhileSpeaking ? (

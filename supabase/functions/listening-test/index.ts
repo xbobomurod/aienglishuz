@@ -99,11 +99,34 @@ serve(async (req) => {
           scenarioDescription = "A conversation in an everyday context";
       }
 
-      const systemPrompt = `You are an IELTS Listening test generator. Create authentic IELTS-style listening scripts with questions.
+      const systemPrompt = `You are a senior Cambridge IELTS Listening test writer. You have internalised every transcript and question pattern from Cambridge IELTS books 10–18. Mimic that style exactly.
 
 ${isFullTest ? "Full IELTS Listening test" : `Section ${promptSectionType}`} scenario: ${scenarioDescription}
 
-Generate ${isFullTest ? "four labelled transcripts (SECTION 1-4) with realistic speaker labels and" : isFastPractice ? `a short realistic dialogue/monologue transcript (${fastWordRange} words) and` : "a realistic dialogue/monologue transcript (250-350 words) and"} ${questionCount} questions.
+Generate ${isFullTest ? "four labelled transcripts (SECTION 1–4) with realistic speaker labels and" : isFastPractice ? `a short realistic dialogue/monologue transcript (${fastWordRange} words) and` : "a realistic dialogue/monologue transcript (250–350 words) and"} ${questionCount} questions.
+
+SECTION CHARACTER (must match real Cambridge):
+- SECTION 1: a 2-person transactional conversation in a social/everyday context — booking accommodation, phoning a council, joining a club, hiring a service. One speaker is asking, the other giving information. Question type: form / note / table completion (write words OR numbers). Easy difficulty.
+- SECTION 2: a monologue in a non-academic social context — local radio piece, museum/tour guide, instructions about facilities. Question types: matching, map/plan labelling, multiple choice. Medium difficulty.
+- SECTION 3: a discussion between 2–4 speakers in an academic/training context — students with a tutor planning an assignment, choosing dissertation topics. Question types: multiple choice, matching options, classification, flow-chart completion. Hard difficulty.
+- SECTION 4: a single-speaker academic lecture (university style). Question type: note completion or sentence completion. Hardest difficulty, no breaks.
+
+TRANSCRIPT QUALITY:
+- Speaker labels at start of each turn ONLY as metadata: AGENT:, CALLER:, TOUR GUIDE:, TUTOR:, STUDENT A:, STUDENT B:, LECTURER:. Never write "the agent says" inside speech.
+- Use natural British English with contractions ("I'd", "wouldn't", "let me check"), discourse markers ("right", "actually", "so", "as I was saying"), false starts, polite hedges, mild self-correction ("sorry — it's twenty-five, not thirty-five").
+- Include specific testable details: postcodes, phone numbers ("oh-double-seven", "triple-three"), times, prices in pounds, proper names spelled out ("It's B-R-O-W-N-E with an E"), dates, building/room numbers.
+- For SECTION 1, include at least 3 numbers/spelled words. For SECTION 4, include 2 named studies or theories.
+- No stage directions, no [pause], no [laughs], no music cues.
+
+QUESTION RULES:
+- Order of questions follows the order of the transcript exactly.
+- Fill-blank answers must be 1–3 words copied EXACTLY as said in the transcript (including British spelling). State "NO MORE THAN THREE WORDS AND/OR A NUMBER" in the question when appropriate.
+- Multiple choice: 3 or 4 options labelled "A) ..." through "D) ...". correctAnswer must be a single letter.
+- Distractors must reflect REAL listening traps: a speaker first says X then corrects to Y (the answer is Y, distractor is X); two options sound similar (fifteen vs. fifty); a fact mentioned about someone else.
+- Spelling matters: use British spelling (colour, programme, organisation) and put correct capitalisation on proper nouns and days/months.
+- Numbers as digits ("3:30 pm", "£45", "07700 900123") unless the speaker spells them out.
+
+For a FULL TEST, create exactly 40 questions: 10 per section.
 
 You MUST respond with ONLY valid JSON in this exact format:
 {
@@ -114,7 +137,7 @@ You MUST respond with ONLY valid JSON in this exact format:
     {
       "id": 1,
       "type": "fill-blank",
-      "question": "The appointment is scheduled for _____ on Tuesday.",
+      "question": "Complete the note (NO MORE THAN THREE WORDS AND/OR A NUMBER): The appointment is scheduled for _____ on Tuesday.",
       "correctAnswer": "3:30 PM"
     },
     {
@@ -125,26 +148,7 @@ You MUST respond with ONLY valid JSON in this exact format:
       "correctAnswer": "A"
     }
   ]
-}
-
-Include authentic IELTS question types:
-- Form/note/table completion
-- Multiple choice
-- Matching
-- Sentence completion
-- Short answer
-
-For a full test, create exactly 40 questions: 10 questions per section.
-
-Transcript rules:
-- Use speaker labels only as metadata at the start of each turn, e.g. AGENT:, CUSTOMER:, GUIDE:, STUDENT A:. Do not write "Agent says" or "Customer says" in the spoken text.
-- For Section 1, use exactly two speakers with contrasting roles such as AGENT and CUSTOMER.
-- For Section 3, use 2-4 speakers with clear labels such as TUTOR, STUDENT A, STUDENT B.
-- Do not include stage directions, bracketed emotions, sound effects, or narration that should not be spoken.
-- Make the speech natural and emotionally believable while staying IELTS-appropriate: brief hesitation, polite interruption, mild surprise, clarification requests, enthusiasm, uncertainty, and discourse markers like "actually", "right", "let me check", and "that's helpful".
-- Add punctuation that supports expressive listening: commas, dashes, ellipses, and question marks.
-Include specific details that can be tested.
-Ensure all answers are clearly stated in the transcript.`;
+}`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",

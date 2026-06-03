@@ -2,6 +2,19 @@ import { useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+// Production domain — every signup/reset email link redirects users here
+// after Supabase verifies the token, regardless of which preview they signed up from.
+const PROD_URL = "https://aienglishuz.vercel.app";
+
+export const getAuthRedirectBase = (): string => {
+  if (typeof window === "undefined") return PROD_URL;
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return window.location.origin;
+  }
+  return PROD_URL;
+};
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -28,7 +41,7 @@ export function useAuth() {
   }, []);
 
   const signUp = async (email: string, password: string, displayName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${getAuthRedirectBase()}/`;
     
     const { error } = await supabase.auth.signUp({
       email,
