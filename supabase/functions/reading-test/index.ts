@@ -245,8 +245,19 @@ Progressive difficulty within each passage: first questions easier (scanning), l
       const results: { questionId: number; correct: boolean; userAnswer: string; correctAnswer: string }[] = [];
 
       for (let i = 0; i < totalQuestions; i++) {
-        const userAns = (userAnswers[i] || "").toString().toLowerCase().trim();
-        const correctAns = (correctAnswers[i] || "").toString().toLowerCase().trim();
+        const normalize = (v: unknown) =>
+          (v || "")
+            .toString()
+            .toLowerCase()
+            .trim()
+            // collapse T/F shortcuts and NG variations to the canonical full form
+            .replace(/^t$/, "true")
+            .replace(/^f$/, "false")
+            .replace(/^ng$/, "not given")
+            .replace(/^n\/g$/, "not given")
+            .replace(/\s+/g, " ");
+        const userAns = normalize(userAnswers[i]);
+        const correctAns = normalize(correctAnswers[i]);
         const isCorrect = userAns === correctAns;
         
         if (isCorrect) correctCount++;
