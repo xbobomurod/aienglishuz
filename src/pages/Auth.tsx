@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, getAuthRedirectBase } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,7 +112,7 @@ export default function Auth() {
   };
 
   const getRedirectUrl = () => {
-    return "https://aienglishcoach.vercel.app/auth/reset-password";
+    return `${getAuthRedirectBase()}/reset-password`;
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
