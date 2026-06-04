@@ -17,6 +17,8 @@ import {
   Trophy,
   Volume2,
   WalletCards,
+  Quote,
+  Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -83,6 +85,36 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
   };
 
   const formatReviewDate = (value: string) => new Date(value).toLocaleDateString("en", { month: "short", day: "numeric" });
+
+  // Daily English booster — rotates by day of year, no extra data needed
+  const DAILY_IDIOMS: { phrase: string; meaning: string; example: string }[] = [
+    { phrase: "Hit the books", meaning: "to study very hard", example: "I need to hit the books — my IELTS test is next week." },
+    { phrase: "A blessing in disguise", meaning: "something that seems bad but is actually good", example: "Failing my first mock was a blessing in disguise — it showed me my weak areas." },
+    { phrase: "Once in a blue moon", meaning: "very rarely", example: "I only watch TV once in a blue moon these days." },
+    { phrase: "Cut corners", meaning: "to do something in the easiest, cheapest way", example: "Don't cut corners on your Task 2 essay — examiners notice." },
+    { phrase: "Get the hang of it", meaning: "to learn how to do something", example: "It took a month, but I finally got the hang of cue-card timing." },
+    { phrase: "On the same page", meaning: "to be in agreement", example: "Make sure you and the examiner are on the same page about the topic." },
+    { phrase: "Off the top of my head", meaning: "without thinking carefully", example: "Off the top of my head, I'd say tourism is the biggest issue." },
+    { phrase: "A piece of cake", meaning: "very easy", example: "Section 1 of Listening is usually a piece of cake." },
+    { phrase: "Beat around the bush", meaning: "to avoid saying something directly", example: "In Part 3, don't beat around the bush — state your opinion clearly." },
+    { phrase: "Burn the midnight oil", meaning: "to study or work late at night", example: "She burned the midnight oil preparing for her writing test." },
+    { phrase: "Spill the beans", meaning: "to reveal a secret", example: "Don't spill the beans about the topics before the exam." },
+    { phrase: "Bite the bullet", meaning: "to accept something difficult", example: "I bit the bullet and rewrote my whole Task 2 essay." },
+  ];
+  const TONGUE_TWISTERS = [
+    "She sells seashells by the seashore.",
+    "Peter Piper picked a peck of pickled peppers.",
+    "How can a clam cram in a clean cream can?",
+    "Red lorry, yellow lorry, red lorry, yellow lorry.",
+    "The sixth sick sheikh's sixth sheep's sick.",
+    "Truly rural, truly rural, truly rural.",
+    "Unique New York, unique New York.",
+  ];
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
+  );
+  const idiomOfDay = DAILY_IDIOMS[dayOfYear % DAILY_IDIOMS.length];
+  const tongueTwisterOfDay = TONGUE_TWISTERS[dayOfYear % TONGUE_TWISTERS.length];
 
   return (
     <div className="animate-fade-in space-y-5">
