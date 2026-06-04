@@ -397,6 +397,71 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
           </CardContent>
         </Card>
       </section>
+
+      {/* Daily English booster — idiom + pronunciation drill */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+          <CardContent className="p-5 md:p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Quote className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-lg font-bold md:text-xl">Idiom of the day</h2>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">Band 7+ vocab</Badge>
+            </div>
+            <p className="font-display text-xl font-bold leading-tight text-foreground md:text-2xl">
+              “{idiomOfDay.phrase}”
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">{idiomOfDay.meaning}</p>
+            <div className="mt-3 rounded-lg border border-border bg-card p-3 text-sm italic text-foreground">
+              {idiomOfDay.example}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => speakWord(idiomOfDay.phrase)} className="gap-2">
+                <Volume2 className="h-4 w-4" /> Listen
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => coach.saveHighlight(`${idiomOfDay.phrase} — ${idiomOfDay.meaning}`, "Speaking")}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" /> Save to notebook
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-accent/30 bg-gradient-to-br from-accent/5 to-primary/5">
+          <CardContent className="p-5 md:p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-accent" />
+                <h2 className="font-display text-lg font-bold md:text-xl">Pronunciation drill</h2>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">60-sec warm-up</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Say this tongue twister three times — slowly first, then full speed. Great Speaking warm-up.
+            </p>
+            <p className="mt-3 rounded-lg border border-accent/30 bg-card p-4 font-display text-lg font-semibold leading-relaxed text-foreground md:text-xl">
+              {tongueTwisterOfDay}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => speakWord(tongueTwisterOfDay)} className="gap-2">
+                <Volume2 className="h-4 w-4" /> Listen
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onSelectModule("speaking")}
+                className="gap-2"
+              >
+                <Mic className="h-4 w-4" /> Practice in Speaking
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
