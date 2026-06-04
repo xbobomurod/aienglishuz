@@ -1,9 +1,36 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MAX_TRANSCRIPT_CHARS = 6000; // ~1100 words, well above IELTS Speaking max
+const MAX_TOPIC_CHARS = 2000;
+
+async function requireAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const token = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims?.sub) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  return { userId: data.claims.sub as string };
+}
 
 const getSystemPrompt = (taskType: string, hasImage: boolean = false) => {
   const basePrompt = `You are a senior, certified IELTS Speaking Examiner who has assessed thousands of live face-to-face IELTS Speaking tests in British Council and IDP centres. You apply the official IELTS Speaking Band Descriptors verbatim (0–9 in 0.5 steps). Do NOT use CEFR, TOEFL, or any other scale.
@@ -145,6 +172,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (auth instanceof Response) return auth;
+
     const { transcript, topic, taskType = "interview", generatePrompt = false } = await req.json();
     
     // If user wants a new prompt
@@ -160,6 +190,19 @@ serve(async (req) => {
     if (!transcript || transcript.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: "Transcript content is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (typeof transcript !== "string" || transcript.length > MAX_TRANSCRIPT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Transcript too long (max ${MAX_TRANSCRIPT_CHARS} characters).` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (topic && (typeof topic !== "string" || topic.length > MAX_TOPIC_CHARS)) {
+      return new Response(
+        JSON.stringify({ error: "Topic too long." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

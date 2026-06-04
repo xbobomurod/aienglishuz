@@ -1,9 +1,36 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MAX_ANSWERS = 50;
+const MAX_ANSWER_CHARS = 500;
+
+async function requireAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const token = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims?.sub) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  return { userId: data.claims.sub as string };
+}
 
 interface Question {
   id: number;
@@ -53,7 +80,25 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (auth instanceof Response) return auth;
+
     const { action, userAnswers, correctAnswers, totalQuestions, section, fastMode, fastWordCount, fastQuestionCount } = await req.json();
+
+    if (action === "score") {
+      if (!Array.isArray(userAnswers) || !Array.isArray(correctAnswers) ||
+          userAnswers.length > MAX_ANSWERS || correctAnswers.length > MAX_ANSWERS ||
+          typeof totalQuestions !== "number" || totalQuestions > MAX_ANSWERS) {
+        return new Response(JSON.stringify({ error: "Invalid answers payload" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      for (const a of [...userAnswers, ...correctAnswers]) {
+        if (a != null && typeof a === "string" && a.length > MAX_ANSWER_CHARS) {
+          return new Response(JSON.stringify({ error: "Answer too long" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
+    }
 
     // Generate a new listening test
     if (action === "generate") {

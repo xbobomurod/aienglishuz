@@ -1,9 +1,36 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MAX_ESSAY_CHARS = 8000; // ~1500 words, safely above IELTS Task 2 max
+const MAX_TOPIC_CHARS = 2000;
+
+async function requireAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+  );
+  const token = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims?.sub) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  return { userId: data.claims.sub as string };
+}
 
 const getSystemPrompt = (taskType: string) => {
   const basePrompt = `You are a senior, certified IELTS Writing examiner who has marked tens of thousands of Academic Task 1 and Task 2 scripts. You apply the official public IELTS Writing Band Descriptors verbatim — 0 to 9 in .5 increments — and you mark strictly. Do NOT use CEFR, TOEFL, or invented scales.
@@ -162,6 +189,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (auth instanceof Response) return auth;
+
     const { essay, topic, taskType = "task2", generatePrompt = false } = await req.json();
 
     // If user wants a new prompt
@@ -177,6 +207,19 @@ serve(async (req) => {
     if (!essay || essay.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: "Essay content is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (typeof essay !== "string" || essay.length > MAX_ESSAY_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `Essay too long (max ${MAX_ESSAY_CHARS} characters).` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (topic && (typeof topic !== "string" || topic.length > MAX_TOPIC_CHARS)) {
+      return new Response(
+        JSON.stringify({ error: "Topic too long." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

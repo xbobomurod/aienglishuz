@@ -489,11 +489,16 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                   <CardTitle className="text-lg">📝 Transcript Review</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <blockquote className="border-l-4 border-primary pl-4 text-muted-foreground text-sm leading-relaxed"
-                    dangerouslySetInnerHTML={{ 
-                      __html: feedback.transcriptWithHighlights.replace(/\*\*(.*?)\*\*/g, '<strong class="text-destructive">$1</strong>') 
-                    }} 
-                  />
+                  <blockquote className="border-l-4 border-primary pl-4 text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
+                    {feedback.transcriptWithHighlights.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
+                      const m = part.match(/^\*\*([^*]+)\*\*$/);
+                      return m ? (
+                        <strong key={i} className="text-destructive">{m[1]}</strong>
+                      ) : (
+                        <span key={i}>{part}</span>
+                      );
+                    })}
+                  </blockquote>
                 </CardContent>
               </Card>
 

@@ -17,6 +17,8 @@ import {
   Trophy,
   Volume2,
   WalletCards,
+  Quote,
+  Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -83,6 +85,36 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
   };
 
   const formatReviewDate = (value: string) => new Date(value).toLocaleDateString("en", { month: "short", day: "numeric" });
+
+  // Daily English booster — rotates by day of year, no extra data needed
+  const DAILY_IDIOMS: { phrase: string; meaning: string; example: string }[] = [
+    { phrase: "Hit the books", meaning: "to study very hard", example: "I need to hit the books — my IELTS test is next week." },
+    { phrase: "A blessing in disguise", meaning: "something that seems bad but is actually good", example: "Failing my first mock was a blessing in disguise — it showed me my weak areas." },
+    { phrase: "Once in a blue moon", meaning: "very rarely", example: "I only watch TV once in a blue moon these days." },
+    { phrase: "Cut corners", meaning: "to do something in the easiest, cheapest way", example: "Don't cut corners on your Task 2 essay — examiners notice." },
+    { phrase: "Get the hang of it", meaning: "to learn how to do something", example: "It took a month, but I finally got the hang of cue-card timing." },
+    { phrase: "On the same page", meaning: "to be in agreement", example: "Make sure you and the examiner are on the same page about the topic." },
+    { phrase: "Off the top of my head", meaning: "without thinking carefully", example: "Off the top of my head, I'd say tourism is the biggest issue." },
+    { phrase: "A piece of cake", meaning: "very easy", example: "Section 1 of Listening is usually a piece of cake." },
+    { phrase: "Beat around the bush", meaning: "to avoid saying something directly", example: "In Part 3, don't beat around the bush — state your opinion clearly." },
+    { phrase: "Burn the midnight oil", meaning: "to study or work late at night", example: "She burned the midnight oil preparing for her writing test." },
+    { phrase: "Spill the beans", meaning: "to reveal a secret", example: "Don't spill the beans about the topics before the exam." },
+    { phrase: "Bite the bullet", meaning: "to accept something difficult", example: "I bit the bullet and rewrote my whole Task 2 essay." },
+  ];
+  const TONGUE_TWISTERS = [
+    "She sells seashells by the seashore.",
+    "Peter Piper picked a peck of pickled peppers.",
+    "How can a clam cram in a clean cream can?",
+    "Red lorry, yellow lorry, red lorry, yellow lorry.",
+    "The sixth sick sheikh's sixth sheep's sick.",
+    "Truly rural, truly rural, truly rural.",
+    "Unique New York, unique New York.",
+  ];
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
+  );
+  const idiomOfDay = DAILY_IDIOMS[dayOfYear % DAILY_IDIOMS.length];
+  const tongueTwisterOfDay = TONGUE_TWISTERS[dayOfYear % TONGUE_TWISTERS.length];
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -361,6 +393,71 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
                   </button>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Daily English booster — idiom + pronunciation drill */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+          <CardContent className="p-5 md:p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Quote className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-lg font-bold md:text-xl">Idiom of the day</h2>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">Band 7+ vocab</Badge>
+            </div>
+            <p className="font-display text-xl font-bold leading-tight text-foreground md:text-2xl">
+              “{idiomOfDay.phrase}”
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">{idiomOfDay.meaning}</p>
+            <div className="mt-3 rounded-lg border border-border bg-card p-3 text-sm italic text-foreground">
+              {idiomOfDay.example}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => speakWord(idiomOfDay.phrase)} className="gap-2">
+                <Volume2 className="h-4 w-4" /> Listen
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => coach.saveHighlight(`${idiomOfDay.phrase} — ${idiomOfDay.meaning}`, "Speaking")}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" /> Save to notebook
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-accent/30 bg-gradient-to-br from-accent/5 to-primary/5">
+          <CardContent className="p-5 md:p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-accent" />
+                <h2 className="font-display text-lg font-bold md:text-xl">Pronunciation drill</h2>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">60-sec warm-up</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Say this tongue twister three times — slowly first, then full speed. Great Speaking warm-up.
+            </p>
+            <p className="mt-3 rounded-lg border border-accent/30 bg-card p-4 font-display text-lg font-semibold leading-relaxed text-foreground md:text-xl">
+              {tongueTwisterOfDay}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => speakWord(tongueTwisterOfDay)} className="gap-2">
+                <Volume2 className="h-4 w-4" /> Listen
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onSelectModule("speaking")}
+                className="gap-2"
+              >
+                <Mic className="h-4 w-4" /> Practice in Speaking
+              </Button>
             </div>
           </CardContent>
         </Card>
