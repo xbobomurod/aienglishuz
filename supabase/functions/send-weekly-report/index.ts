@@ -216,6 +216,25 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require either the scheduler secret OR a service-role bearer token.
+  // This prevents anonymous callers from spamming emails.
+  const schedulerSecret = Deno.env.get("SCHEDULER_SECRET");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const providedToken = req.headers.get("x-scheduler-token");
+  const authHeader = req.headers.get("Authorization");
+  const providedBearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  const tokenMatches = !!schedulerSecret && providedToken === schedulerSecret;
+  const serviceRoleMatches = !!serviceRoleKey && providedBearer === serviceRoleKey;
+
+  if (!tokenMatches && !serviceRoleMatches) {
+    console.warn("Unauthorized weekly-report call");
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -374,11 +393,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     const successCount = results.filter(r => r.success).length;
     console.log(`Weekly reports complete: ${successCount}/${results.length} sent successfully`);
+    // Log details server-side only; do not leak per-user emails in the HTTP response.
+    console.log("Per-recipient results:", JSON.stringify(results));
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: `Sent ${successCount} weekly reports`,
-        results 
+        sent: successCount,
+        failed: results.length - successCount,
       }),
       {
         status: 200,
