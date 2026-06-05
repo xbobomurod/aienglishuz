@@ -40,18 +40,26 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) setTtsSupported(false);
+    if (autoSpeakTopic) {
+      // The parent triggered this from a user click, so we can request media immediately.
+      startCamera();
+    }
     return () => {
       try { window.speechSynthesis?.cancel(); } catch {}
       stopStream();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-greet when entering
+  // Auto-greet when entering the room
+  const greetedRef = useRef(false);
   useEffect(() => {
-    if (autoSpeakTopic && topic && camOn) {
-      const t = setTimeout(() => speak(`Hello, I'm your examiner. ${topic}`), 800);
-      return () => clearTimeout(t);
-    }
+    if (!autoSpeakTopic || !camOn || greetedRef.current) return;
+    greetedRef.current = true;
+    const greeting = "Good morning! My name is Hannah, and I'll be your IELTS examiner today. Could you tell me your full name, please?";
+    const question = topic ? ` Thank you. Now, let's begin. ${topic}` : "";
+    const t = setTimeout(() => speak(greeting + question), 900);
+    return () => clearTimeout(t);
   }, [autoSpeakTopic, topic, camOn]);
 
   const stopStream = () => {
