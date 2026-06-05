@@ -252,19 +252,41 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
 
       <TestSessionControls testId={testSessionId} title={topic} onLoad={loadTestById} />
 
-      {/* Zoom Exam Room Toggle */}
-      <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-        <CardContent className="p-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🎥</span>
-            <div>
-              <Label htmlFor="zoom-mode" className="font-medium">Zoom Exam Room</Label>
-              <p className="text-xs text-muted-foreground">Real face-to-face IELTS speaking simulation with examiner</p>
+      {/* Zoom Exam Room — Start button */}
+      {!zoomMode ? (
+        <Card className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-primary/30">
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🎥</span>
+              <div>
+                <p className="font-semibold text-foreground">Live IELTS Speaking Exam</p>
+                <p className="text-xs text-muted-foreground">Examiner Hannah will greet you and start the interview right away</p>
+              </div>
             </div>
-          </div>
-          <Switch id="zoom-mode" checked={zoomMode} onCheckedChange={setZoomMode} />
-        </CardContent>
-      </Card>
+            <Button
+              size="lg"
+              onClick={async () => {
+                if (!topic.trim()) await handleGeneratePrompt();
+                setZoomMode(true);
+              }}
+              disabled={isGeneratingPrompt}
+              className="gradient-accent text-accent-foreground hover:opacity-90 w-full sm:w-auto"
+            >
+              {isGeneratingPrompt ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Preparing…</>
+              ) : (
+                <>▶ Start Exam</>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setZoomMode(false)}>
+            End exam room
+          </Button>
+        </div>
+      )}
 
       {zoomMode && (
         <ZoomExamRoom
