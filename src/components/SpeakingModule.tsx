@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { ExaminerVoice } from "./ExaminerVoice";
+import { ZoomExamRoom } from "./ZoomExamRoom";
 import examinerImg from "@/assets/examiner.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
@@ -87,6 +88,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const [timedMode, setTimedMode] = useState(false);
   const [cueNotes, setCueNotes] = useState("");
   const [hideTopicWhileSpeaking, setHideTopicWhileSpeaking] = useState(false);
+  const [zoomMode, setZoomMode] = useState(false);
 
   const {
     saveSpeakingEvaluation, 
@@ -249,6 +251,28 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
       </div>
 
       <TestSessionControls testId={testSessionId} title={topic} onLoad={loadTestById} />
+
+      {/* Zoom Exam Room Toggle */}
+      <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+        <CardContent className="p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🎥</span>
+            <div>
+              <Label htmlFor="zoom-mode" className="font-medium">Zoom Exam Room</Label>
+              <p className="text-xs text-muted-foreground">Real face-to-face IELTS speaking simulation with examiner</p>
+            </div>
+          </div>
+          <Switch id="zoom-mode" checked={zoomMode} onCheckedChange={setZoomMode} />
+        </CardContent>
+      </Card>
+
+      {zoomMode && (
+        <ZoomExamRoom
+          topic={topic}
+          taskLabel={getTaskLabel()}
+          autoSpeakTopic
+        />
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Input Section */}
