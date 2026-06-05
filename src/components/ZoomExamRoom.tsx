@@ -4,13 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import examinerImg from "@/assets/examiner.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ZoomExamRoomProps {
   topic: string;
   taskLabel: string;
   examinerName?: string;
   autoSpeakTopic?: boolean;
+  taskType?: "interview" | "talk" | "discussion";
 }
+
+type ChatMsg = { role: "user" | "assistant"; content: string };
 
 /**
  * Zoom-style IELTS Speaking exam room.
@@ -18,7 +22,7 @@ interface ZoomExamRoomProps {
  * - Examiner tile (avatar) with TTS speaking indicator
  * - Browser-native mic/camera controls, no recording uploads.
  */
-export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah", autoSpeakTopic }: ZoomExamRoomProps) {
+export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah", autoSpeakTopic, taskType = "interview" }: ZoomExamRoomProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [camOn, setCamOn] = useState(false);
@@ -30,6 +34,19 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   const [fullscreen, setFullscreen] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Conversation state
+  const [history, setHistory] = useState<ChatMsg[]>([]);
+  const historyRef = useRef<ChatMsg[]>([]);
+  historyRef.current = history;
+  const [interim, setInterim] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalBufRef = useRef("");
+  const sttSupported = typeof window !== "undefined" &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   // Timer
   useEffect(() => {
@@ -47,18 +64,20 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     return () => {
       try { window.speechSynthesis?.cancel(); } catch {}
       stopStream();
+      stopRecognition();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-greet when entering the room
+  // Auto-greet when entering the room — ask AI for the first turn so it's natural
   const greetedRef = useRef(false);
   useEffect(() => {
     if (!autoSpeakTopic || !camOn || greetedRef.current) return;
     greetedRef.current = true;
-    const greeting = "Good morning! My name is Hannah, and I'll be your IELTS examiner today. Could you tell me your full name, please?";
-    const question = topic ? ` Thank you. Now, let's begin. ${topic}` : "";
-    const t = setTimeout(() => speak(greeting + question), 900);
+    const t = setTimeout(() => {
+      // Seed with a synthetic user "start" so AI produces the opener naturally
+      askExaminer([{ role: "user", content: "[Candidate has just joined the video call. Greet them warmly and begin the exam.]" }], true);
+    }, 700);
     return () => clearTimeout(t);
   }, [autoSpeakTopic, topic, camOn]);
 
@@ -92,10 +111,13 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
 
   const endCall = () => {
     stopStream();
+    stopRecognition();
     setCamOn(false);
     setElapsed(0);
     try { window.speechSynthesis?.cancel(); } catch {}
     setSpeaking(false);
+    setHistory([]);
+    greetedRef.current = false;
   };
 
   const toggleCam = () => {
@@ -126,20 +148,101 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   const speak = (text: string) => {
     if (!ttsSupported || !text.trim()) return;
     try { window.speechSynthesis.cancel(); } catch {}
+    // Don't listen to ourselves
+    stopRecognition();
     const u = new SpeechSynthesisUtterance(text);
     const v = pickVoice();
     if (v) u.voice = v;
     u.lang = v?.lang || "en-GB";
     u.rate = 0.95;
     u.onstart = () => setSpeaking(true);
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
+    u.onend = () => { setSpeaking(false); startRecognition(); };
+    u.onerror = () => { setSpeaking(false); startRecognition(); };
     window.speechSynthesis.speak(u);
   };
 
   const stopSpeaking = () => {
     try { window.speechSynthesis.cancel(); } catch {}
     setSpeaking(false);
+  };
+
+  // ---- Speech recognition (STT) ----
+  const startRecognition = () => {
+    if (!sttSupported || !camOn) return;
+    if (recognitionRef.current) {
+      try { recognitionRef.current.start(); setListening(true); } catch {}
+      return;
+    }
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    rec.onresult = (ev: any) => {
+      let interimStr = "";
+      let finalStr = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const r = ev.results[i];
+        if (r.isFinal) finalStr += r[0].transcript + " ";
+        else interimStr += r[0].transcript;
+      }
+      if (finalStr) {
+        finalBufRef.current += finalStr;
+        setInterim("");
+      } else {
+        setInterim(interimStr);
+      }
+      // Restart silence timer
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(() => {
+        const text = (finalBufRef.current + interimStr).trim();
+        if (text.length > 1) {
+          finalBufRef.current = "";
+          setInterim("");
+          handleUserTurn(text);
+        }
+      }, 1800);
+    };
+    recognitionRef.current = rec;
+    try { rec.start(); } catch {}
+  };
+
+  const stopRecognition = () => {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    try { recognitionRef.current?.stop?.(); } catch {}
+    setListening(false);
+  };
+
+  const handleUserTurn = async (text: string) => {
+    stopRecognition();
+    const next = [...historyRef.current, { role: "user" as const, content: text }];
+    setHistory(next);
+    await askExaminer(next, false);
+  };
+
+  const askExaminer = async (msgs: ChatMsg[], isOpener: boolean) => {
+    setThinking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("examiner-chat", {
+        body: { messages: msgs, taskType, topic },
+      });
+      if (error) throw error;
+      const reply: string = (data?.reply || "").trim();
+      if (!reply) throw new Error("No examiner reply");
+      setHistory((h) => {
+        // Replace synthetic opener seed with clean history that only has the assistant turn
+        if (isOpener) return [{ role: "assistant", content: reply }];
+        return [...h, { role: "assistant", content: reply }];
+      });
+      speak(reply);
+    } catch (e: any) {
+      setErr(e?.message || "Examiner could not respond");
+    } finally {
+      setThinking(false);
+    }
   };
 
   const toggleFullscreen = async () => {
@@ -163,6 +266,8 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
           <span className="text-xs font-medium">IELTS Speaking Room</span>
           <Badge variant="secondary" className="text-[10px] bg-white/10 text-white border-white/10">{taskLabel}</Badge>
+          {thinking && <span className="text-[10px] text-white/60 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Examiner thinking…</span>}
+          {listening && !thinking && !speaking && <span className="text-[10px] text-green-400 flex items-center gap-1"><MicIcon className="w-3 h-3" /> Listening…</span>}
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-white/70">{mmss(elapsed)}</span>
@@ -236,15 +341,28 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
         </div>
       </div>
 
-      {/* Question banner */}
-      {topic && (
-        <div className="px-4 py-3 bg-black/40 border-t border-white/5">
-          <div className="flex items-start gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-white/50 mt-1">Examiner says</span>
-            <p className="text-sm text-white/90 flex-1 leading-relaxed whitespace-pre-wrap">{topic}</p>
+      {/* Live transcript log */}
+      <div className="px-4 py-3 bg-black/40 border-t border-white/5 max-h-44 overflow-y-auto space-y-2 text-sm">
+        {history.length === 0 && !interim && (
+          <p className="text-xs text-white/40 italic">The examiner will greet you when you join with camera. Just speak naturally — she will listen and respond.</p>
+        )}
+        {history.map((m, i) => (
+          <div key={i} className={cn("flex gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
+            <div className={cn(
+              "rounded-lg px-3 py-1.5 max-w-[80%] leading-snug",
+              m.role === "user" ? "bg-blue-500/20 text-blue-100" : "bg-white/10 text-white/90"
+            )}>
+              <span className="text-[10px] uppercase tracking-wider opacity-60 block">{m.role === "user" ? "You" : examinerName}</span>
+              {m.content}
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+        {interim && (
+          <div className="flex justify-end">
+            <div className="rounded-lg px-3 py-1.5 max-w-[80%] bg-blue-500/10 text-blue-200/80 italic">{interim}…</div>
+          </div>
+        )}
+      </div>
 
       {/* Controls */}
       <div className="flex items-center justify-center gap-2 sm:gap-3 px-3 py-3 bg-[#1a1a1a] border-t border-white/10">
@@ -270,13 +388,17 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
         </Button>
         <Button
           size="sm"
-          onClick={() => (speaking ? stopSpeaking() : speak(topic || "Could you please introduce yourself?"))}
-          disabled={!ttsSupported || !topic}
+          onClick={() => {
+            if (speaking) { stopSpeaking(); return; }
+            const lastAssistant = [...history].reverse().find((m) => m.role === "assistant");
+            speak(lastAssistant?.content || topic || "Could you please introduce yourself?");
+          }}
+          disabled={!ttsSupported}
           className={cn("rounded-full h-11 px-4 gap-2", speaking ? "bg-red-500 hover:bg-red-600" : "bg-white/10 hover:bg-white/20")}
-          title="Replay examiner question"
+          title="Replay last examiner turn"
         >
           {speaking ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
-          <span className="text-xs">{speaking ? "Stop" : "Examiner"}</span>
+          <span className="text-xs">{speaking ? "Stop" : "Replay"}</span>
         </Button>
         {camOn && (
           <Button
@@ -293,6 +415,11 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       {err && (
         <div className="px-4 py-2 bg-red-500/20 text-red-200 text-xs border-t border-red-500/30">
           {err}. Allow camera & microphone permissions to start the exam room.
+        </div>
+      )}
+      {!sttSupported && camOn && (
+        <div className="px-4 py-2 bg-yellow-500/20 text-yellow-100 text-xs border-t border-yellow-500/30">
+          Your browser does not support live speech recognition. Use Chrome or Edge for the full conversational examiner.
         </div>
       )}
     </div>
