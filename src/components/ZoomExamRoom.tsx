@@ -40,10 +40,15 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) setTtsSupported(false);
+    if (autoSpeakTopic) {
+      // The parent triggered this from a user click, so we can request media immediately.
+      startCamera();
+    }
     return () => {
       try { window.speechSynthesis?.cancel(); } catch {}
       stopStream();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-greet when entering the room
