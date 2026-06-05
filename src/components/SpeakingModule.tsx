@@ -292,6 +292,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
         <ZoomExamRoom
           topic={topic}
           taskLabel={getTaskLabel()}
+          taskType={taskType}
           autoSpeakTopic
         />
       )}
