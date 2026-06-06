@@ -15,6 +15,30 @@ interface ZoomExamRoomProps {
 }
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
+type SpeechRecognitionResultLike = { isFinal: boolean; 0: { transcript: string } };
+type SpeechRecognitionEventLike = { resultIndex: number; results: { length: number; [index: number]: SpeechRecognitionResultLike } };
+type SpeechRecognitionErrorLike = { error?: string };
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorLike) => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionWindow = Window & typeof globalThis & {
+  SpeechRecognition?: new () => BrowserSpeechRecognition;
+  webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback;
+
+const getErrorName = (error: unknown) =>
+  error instanceof Error ? error.name : "";
 
 /**
  * Zoom-style IELTS Speaking exam room.
@@ -42,10 +66,17 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   const [thinking, setThinking] = useState(false);
   const thinkingRef = useRef(false);
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const listeningRef = useRef(false);
+  const [needsTapToContinue, setNeedsTapToContinue] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalBufRef = useRef("");
   const speakingRef = useRef(false);
+  const micOnRef = useRef(true);
+  const shouldListenRef = useRef(false);
+  const recognitionStartingRef = useRef(false);
   const sttSupported = typeof window !== "undefined" &&
     ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
@@ -53,6 +84,8 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   useEffect(() => { historyRef.current = history; }, [history]);
   useEffect(() => { thinkingRef.current = thinking; }, [thinking]);
   useEffect(() => { speakingRef.current = speaking; }, [speaking]);
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
+  useEffect(() => { micOnRef.current = micOn; }, [micOn]);
 
   // Timer
   useEffect(() => {
@@ -66,7 +99,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       startCamera();
     }
     return () => {
-      try { audioRef.current?.pause(); } catch {}
+      try { audioRef.current?.pause(); } catch { /* ignore audio cleanup errors */ }
       stopStream();
       stopRecognition();
     };
@@ -102,24 +135,29 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+        await videoRef.current.play().catch(() => undefined);
       }
       setCamOn(true);
       setMicOn(true);
-    } catch (e: any) {
-      setErr(e?.message || "Could not access camera/microphone");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Could not access camera/microphone"));
     } finally {
       setStarting(false);
     }
   };
 
   const endCall = () => {
+    shouldListenRef.current = false;
     stopStream();
     stopRecognition();
     setCamOn(false);
     setElapsed(0);
-    try { audioRef.current?.pause(); audioRef.current = null; } catch {}
+    try { audioRef.current?.pause(); audioRef.current = null; } catch { /* ignore audio cleanup errors */ }
     setSpeaking(false);
+    setListening(false);
+    setInterim("");
+    setMicError(null);
+    setNeedsTapToContinue(false);
     setHistory([]);
     historyRef.current = [];
     greetedRef.current = false;
@@ -138,53 +176,89 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     if (track) {
       track.enabled = !track.enabled;
       setMicOn(track.enabled);
+      micOnRef.current = track.enabled;
+      if (track.enabled) {
+        setMicError(null);
+        setNeedsTapToContinue(false);
+        startRecognition();
+      } else {
+        shouldListenRef.current = false;
+        stopRecognition();
+      }
     }
   };
 
   const speak = async (text: string) => {
     if (!text.trim()) return;
     // Don't listen to ourselves
-    stopRecognition();
-    try { audioRef.current?.pause(); } catch {}
     setSpeaking(true);
+    speakingRef.current = true;
+    stopRecognition();
+    try { audioRef.current?.pause(); } catch { /* ignore audio cleanup errors */ }
     try {
       const { data, error } = await supabase.functions.invoke("examiner-tts", { body: { text } });
       if (error || !data?.audioContent) throw error || new Error("No audio");
       const audio = new Audio(`data:audio/mpeg;base64,${data.audioContent}`);
       audioRef.current = audio;
-      audio.onended = () => { setSpeaking(false); startRecognition(); };
-      audio.onerror = () => { setSpeaking(false); startRecognition(); };
+      audio.onended = () => { speakingRef.current = false; setSpeaking(false); startRecognition(); };
+      audio.onerror = () => { speakingRef.current = false; setSpeaking(false); startRecognition(); };
       await audio.play();
     } catch (e) {
       console.error("TTS failed", e);
+      speakingRef.current = false;
       setSpeaking(false);
       startRecognition();
     }
   };
 
   const stopSpeaking = () => {
-    try { audioRef.current?.pause(); } catch {}
+    try { audioRef.current?.pause(); } catch { /* ignore audio cleanup errors */ }
+    speakingRef.current = false;
     setSpeaking(false);
+    startRecognition();
   };
 
   // ---- Speech recognition (STT) ----
   const startRecognition = () => {
-    if (!sttSupported || !camOn) return;
-    // Never listen while examiner is speaking or thinking
+    if (!sttSupported || !streamRef.current || !micOnRef.current) return;
+    shouldListenRef.current = true;
+    if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+    // Never listen while examiner is speaking or thinking; resume automatically after that phase.
     if (speakingRef.current || thinkingRef.current) return;
-    if (recognitionRef.current) {
-      try { recognitionRef.current.start(); setListening(true); } catch {}
-      return;
-    }
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const rec = new SR();
+    if (listeningRef.current || recognitionStartingRef.current) return;
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec: BrowserSpeechRecognition = recognitionRef.current || new (SR as new () => BrowserSpeechRecognition)();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
-    rec.onstart = () => setListening(true);
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    rec.onresult = (ev: any) => {
+    rec.onstart = () => {
+      recognitionStartingRef.current = false;
+      setNeedsTapToContinue(false);
+      setMicError(null);
+      setListening(true);
+    };
+    rec.onend = () => {
+      recognitionStartingRef.current = false;
+      setListening(false);
+      if (shouldListenRef.current && micOnRef.current && streamRef.current && !speakingRef.current && !thinkingRef.current) {
+        restartTimerRef.current = setTimeout(() => startRecognition(), 350);
+      }
+    };
+    rec.onerror = (event: SpeechRecognitionErrorLike) => {
+      recognitionStartingRef.current = false;
+      setListening(false);
+      const errorName = event?.error || "speech-recognition";
+      if (errorName === "not-allowed" || errorName === "service-not-allowed") {
+        shouldListenRef.current = false;
+        setNeedsTapToContinue(true);
+        setMicError("Microphone permission blocked. Tap Continue and allow microphone access.");
+      } else if (errorName !== "no-speech" && errorName !== "aborted") {
+        setMicError("I could not hear you clearly. Please speak again.");
+      }
+    };
+    rec.onresult = (ev: SpeechRecognitionEventLike) => {
       // Ignore any stray results while examiner is speaking/thinking
       if (speakingRef.current || thinkingRef.current) return;
       let interimStr = "";
@@ -212,16 +286,36 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       }, 2800);
     };
     recognitionRef.current = rec;
-    try { rec.start(); } catch {}
+    try {
+      recognitionStartingRef.current = true;
+      rec.start();
+      setTimeout(() => {
+        if (recognitionStartingRef.current && shouldListenRef.current && !speakingRef.current && !thinkingRef.current) {
+          recognitionStartingRef.current = false;
+          setNeedsTapToContinue(true);
+          setMicError("Tap Continue to activate live listening in this browser.");
+        }
+      }, 1200);
+    } catch (e: unknown) {
+      recognitionStartingRef.current = false;
+      if (getErrorName(e) === "NotAllowedError") {
+        shouldListenRef.current = false;
+        setNeedsTapToContinue(true);
+        setMicError("Tap Continue so the browser can restart microphone listening.");
+      }
+    }
   };
 
   const stopRecognition = () => {
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
-    try { recognitionRef.current?.stop?.(); } catch {}
+    if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+    recognitionStartingRef.current = false;
+    try { recognitionRef.current?.stop?.(); } catch { /* ignore recognition stop errors */ }
     setListening(false);
   };
 
   const handleUserTurn = async (text: string) => {
+    if (thinkingRef.current || speakingRef.current) return;
     stopRecognition();
     const next = [...historyRef.current, { role: "user" as const, content: text }];
     setHistory(next);
@@ -248,10 +342,30 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       thinkingRef.current = false;
       await speak(reply);
       return;
-    } catch (e: any) {
-      setErr(e?.message || "Examiner could not respond");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Examiner could not respond"));
       setThinking(false);
       thinkingRef.current = false;
+      startRecognition();
+    }
+  };
+
+  const continueListening = async () => {
+    setMicError(null);
+    setNeedsTapToContinue(false);
+    try {
+      if (!streamRef.current) {
+        await startCamera();
+      } else if (!micOnRef.current) {
+        const track = streamRef.current.getAudioTracks()[0];
+        if (track) track.enabled = true;
+        micOnRef.current = true;
+        setMicOn(true);
+      }
+      startRecognition();
+    } catch (e: unknown) {
+      setMicError(getErrorMessage(e, "Could not restart microphone listening."));
+      setNeedsTapToContinue(true);
     }
   };
 
@@ -356,6 +470,14 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
         {history.length === 0 && !interim && (
           <p className="text-xs text-white/40 italic">The examiner will greet you when you join with camera. Just speak naturally — she will listen and respond.</p>
         )}
+        {needsTapToContinue && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-100">
+            <span>{micError || "Listening paused by the browser."}</span>
+            <Button size="sm" onClick={continueListening} className="h-8 bg-yellow-400 text-black hover:bg-yellow-300">
+              Continue
+            </Button>
+          </div>
+        )}
         {history.map((m, i) => (
           <div key={i} className={cn("flex gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
             <div className={cn(
@@ -424,6 +546,11 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       {err && (
         <div className="px-4 py-2 bg-red-500/20 text-red-200 text-xs border-t border-red-500/30">
           {err}. Allow camera & microphone permissions to start the exam room.
+        </div>
+      )}
+      {micError && !needsTapToContinue && camOn && (
+        <div className="px-4 py-2 bg-yellow-500/20 text-yellow-100 text-xs border-t border-yellow-500/30">
+          {micError}
         </div>
       )}
       {!sttSupported && camOn && (
