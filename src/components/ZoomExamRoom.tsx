@@ -265,6 +265,13 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     try {
       recognitionStartingRef.current = true;
       rec.start();
+      setTimeout(() => {
+        if (recognitionStartingRef.current && shouldListenRef.current && !speakingRef.current && !thinkingRef.current) {
+          recognitionStartingRef.current = false;
+          setNeedsTapToContinue(true);
+          setMicError("Tap Continue to activate live listening in this browser.");
+        }
+      }, 1200);
     } catch (e: any) {
       recognitionStartingRef.current = false;
       if (e?.name === "NotAllowedError") {
