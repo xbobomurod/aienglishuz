@@ -446,6 +446,14 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
         {history.length === 0 && !interim && (
           <p className="text-xs text-white/40 italic">The examiner will greet you when you join with camera. Just speak naturally — she will listen and respond.</p>
         )}
+        {needsTapToContinue && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-100">
+            <span>{micError || "Listening paused by the browser."}</span>
+            <Button size="sm" onClick={continueListening} className="h-8 bg-yellow-400 text-black hover:bg-yellow-300">
+              Continue
+            </Button>
+          </div>
+        )}
         {history.map((m, i) => (
           <div key={i} className={cn("flex gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
             <div className={cn(
@@ -514,6 +522,11 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       {err && (
         <div className="px-4 py-2 bg-red-500/20 text-red-200 text-xs border-t border-red-500/30">
           {err}. Allow camera & microphone permissions to start the exam room.
+        </div>
+      )}
+      {micError && !needsTapToContinue && camOn && (
+        <div className="px-4 py-2 bg-yellow-500/20 text-yellow-100 text-xs border-t border-yellow-500/30">
+          {micError}
         </div>
       )}
       {!sttSupported && camOn && (
