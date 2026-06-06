@@ -284,6 +284,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   };
 
   const handleUserTurn = async (text: string) => {
+    if (thinkingRef.current || speakingRef.current) return;
     stopRecognition();
     const next = [...historyRef.current, { role: "user" as const, content: text }];
     setHistory(next);
@@ -314,6 +315,26 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       setErr(e?.message || "Examiner could not respond");
       setThinking(false);
       thinkingRef.current = false;
+      startRecognition();
+    }
+  };
+
+  const continueListening = async () => {
+    setMicError(null);
+    setNeedsTapToContinue(false);
+    try {
+      if (!streamRef.current) {
+        await startCamera();
+      } else if (!micOnRef.current) {
+        const track = streamRef.current.getAudioTracks()[0];
+        if (track) track.enabled = true;
+        micOnRef.current = true;
+        setMicOn(true);
+      }
+      startRecognition();
+    } catch (e: any) {
+      setMicError(e?.message || "Could not restart microphone listening.");
+      setNeedsTapToContinue(true);
     }
   };
 
