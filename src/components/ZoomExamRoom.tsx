@@ -15,6 +15,30 @@ interface ZoomExamRoomProps {
 }
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
+type SpeechRecognitionResultLike = { isFinal: boolean; 0: { transcript: string } };
+type SpeechRecognitionEventLike = { resultIndex: number; results: { length: number; [index: number]: SpeechRecognitionResultLike } };
+type SpeechRecognitionErrorLike = { error?: string };
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorLike) => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionWindow = Window & typeof globalThis & {
+  SpeechRecognition?: new () => BrowserSpeechRecognition;
+  webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback;
+
+const getErrorName = (error: unknown) =>
+  error instanceof Error ? error.name : "";
 
 /**
  * Zoom-style IELTS Speaking exam room.
@@ -45,13 +69,12 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   const listeningRef = useRef(false);
   const [needsTapToContinue, setNeedsTapToContinue] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalBufRef = useRef("");
   const speakingRef = useRef(false);
   const micOnRef = useRef(true);
-  const camOnRef = useRef(false);
   const shouldListenRef = useRef(false);
   const recognitionStartingRef = useRef(false);
   const sttSupported = typeof window !== "undefined" &&
@@ -63,7 +86,6 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   useEffect(() => { speakingRef.current = speaking; }, [speaking]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { micOnRef.current = micOn; }, [micOn]);
-  useEffect(() => { camOnRef.current = camOn; }, [camOn]);
 
   // Timer
   useEffect(() => {
