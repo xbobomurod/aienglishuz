@@ -194,21 +194,42 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
 
   // ---- Speech recognition (STT) ----
   const startRecognition = () => {
-    if (!sttSupported || !camOn) return;
-    // Never listen while examiner is speaking or thinking
+    if (!sttSupported || !streamRef.current || !micOnRef.current) return;
+    shouldListenRef.current = true;
+    if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+    // Never listen while examiner is speaking or thinking; resume automatically after that phase.
     if (speakingRef.current || thinkingRef.current) return;
-    if (recognitionRef.current) {
-      try { recognitionRef.current.start(); setListening(true); } catch {}
-      return;
-    }
+    if (listeningRef.current || recognitionStartingRef.current) return;
     const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const rec = new SR();
+    const rec = recognitionRef.current || new SR();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
-    rec.onstart = () => setListening(true);
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
+    rec.onstart = () => {
+      recognitionStartingRef.current = false;
+      setNeedsTapToContinue(false);
+      setMicError(null);
+      setListening(true);
+    };
+    rec.onend = () => {
+      recognitionStartingRef.current = false;
+      setListening(false);
+      if (shouldListenRef.current && micOnRef.current && streamRef.current && !speakingRef.current && !thinkingRef.current) {
+        restartTimerRef.current = setTimeout(() => startRecognition(), 350);
+      }
+    };
+    rec.onerror = (event: any) => {
+      recognitionStartingRef.current = false;
+      setListening(false);
+      const errorName = event?.error || "speech-recognition";
+      if (errorName === "not-allowed" || errorName === "service-not-allowed") {
+        shouldListenRef.current = false;
+        setNeedsTapToContinue(true);
+        setMicError("Microphone permission blocked. Tap Continue and allow microphone access.");
+      } else if (errorName !== "no-speech" && errorName !== "aborted") {
+        setMicError("I could not hear you clearly. Please speak again.");
+      }
+    };
     rec.onresult = (ev: any) => {
       // Ignore any stray results while examiner is speaking/thinking
       if (speakingRef.current || thinkingRef.current) return;
@@ -237,11 +258,23 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       }, 2800);
     };
     recognitionRef.current = rec;
-    try { rec.start(); } catch {}
+    try {
+      recognitionStartingRef.current = true;
+      rec.start();
+    } catch (e: any) {
+      recognitionStartingRef.current = false;
+      if (e?.name === "NotAllowedError") {
+        shouldListenRef.current = false;
+        setNeedsTapToContinue(true);
+        setMicError("Tap Continue so the browser can restart microphone listening.");
+      }
+    }
   };
 
   const stopRecognition = () => {
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+    recognitionStartingRef.current = false;
     try { recognitionRef.current?.stop?.(); } catch {}
     setListening(false);
   };
