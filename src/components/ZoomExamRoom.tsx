@@ -125,12 +125,17 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   };
 
   const endCall = () => {
+    shouldListenRef.current = false;
     stopStream();
     stopRecognition();
     setCamOn(false);
     setElapsed(0);
     try { audioRef.current?.pause(); audioRef.current = null; } catch {}
     setSpeaking(false);
+    setListening(false);
+    setInterim("");
+    setMicError(null);
+    setNeedsTapToContinue(false);
     setHistory([]);
     historyRef.current = [];
     greetedRef.current = false;
@@ -149,6 +154,15 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     if (track) {
       track.enabled = !track.enabled;
       setMicOn(track.enabled);
+      micOnRef.current = track.enabled;
+      if (track.enabled) {
+        setMicError(null);
+        setNeedsTapToContinue(false);
+        startRecognition();
+      } else {
+        shouldListenRef.current = false;
+        stopRecognition();
+      }
     }
   };
 
