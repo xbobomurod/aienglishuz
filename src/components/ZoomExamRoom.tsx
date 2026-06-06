@@ -229,7 +229,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     const speechWindow = window as SpeechRecognitionWindow;
     const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SR) return;
-    const rec = recognitionRef.current || new SR();
+    const rec: BrowserSpeechRecognition = recognitionRef.current || new (SR as new () => BrowserSpeechRecognition)();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
@@ -342,8 +342,8 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       thinkingRef.current = false;
       await speak(reply);
       return;
-    } catch (e: any) {
-      setErr(e?.message || "Examiner could not respond");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Examiner could not respond"));
       setThinking(false);
       thinkingRef.current = false;
       startRecognition();
@@ -363,8 +363,8 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
         setMicOn(true);
       }
       startRecognition();
-    } catch (e: any) {
-      setMicError(e?.message || "Could not restart microphone listening.");
+    } catch (e: unknown) {
+      setMicError(getErrorMessage(e, "Could not restart microphone listening."));
       setNeedsTapToContinue(true);
     }
   };
