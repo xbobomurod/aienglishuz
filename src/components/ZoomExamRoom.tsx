@@ -42,10 +42,18 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   const [thinking, setThinking] = useState(false);
   const thinkingRef = useRef(false);
   const [listening, setListening] = useState(false);
+  const listeningRef = useRef(false);
+  const [needsTapToContinue, setNeedsTapToContinue] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalBufRef = useRef("");
   const speakingRef = useRef(false);
+  const micOnRef = useRef(true);
+  const camOnRef = useRef(false);
+  const shouldListenRef = useRef(false);
+  const recognitionStartingRef = useRef(false);
   const sttSupported = typeof window !== "undefined" &&
     ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
@@ -53,6 +61,9 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   useEffect(() => { historyRef.current = history; }, [history]);
   useEffect(() => { thinkingRef.current = thinking; }, [thinking]);
   useEffect(() => { speakingRef.current = speaking; }, [speaking]);
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
+  useEffect(() => { micOnRef.current = micOn; }, [micOn]);
+  useEffect(() => { camOnRef.current = camOn; }, [camOn]);
 
   // Timer
   useEffect(() => {
