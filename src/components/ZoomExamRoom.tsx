@@ -30,23 +30,29 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   const [starting, setStarting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
-  const [ttsSupported, setTtsSupported] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Conversation state
   const [history, setHistory] = useState<ChatMsg[]>([]);
   const historyRef = useRef<ChatMsg[]>([]);
-  historyRef.current = history;
   const [interim, setInterim] = useState("");
   const [thinking, setThinking] = useState(false);
+  const thinkingRef = useRef(false);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalBufRef = useRef("");
+  const speakingRef = useRef(false);
   const sttSupported = typeof window !== "undefined" &&
     ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+  // Keep refs in sync with state so async callbacks read fresh values
+  useEffect(() => { historyRef.current = history; }, [history]);
+  useEffect(() => { thinkingRef.current = thinking; }, [thinking]);
+  useEffect(() => { speakingRef.current = speaking; }, [speaking]);
 
   // Timer
   useEffect(() => {
@@ -56,13 +62,11 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   }, [camOn]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) setTtsSupported(false);
     if (autoSpeakTopic) {
-      // The parent triggered this from a user click, so we can request media immediately.
       startCamera();
     }
     return () => {
-      try { window.speechSynthesis?.cancel(); } catch {}
+      try { audioRef.current?.pause(); } catch {}
       stopStream();
       stopRecognition();
     };
@@ -114,9 +118,10 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     stopRecognition();
     setCamOn(false);
     setElapsed(0);
-    try { window.speechSynthesis?.cancel(); } catch {}
+    try { audioRef.current?.pause(); audioRef.current = null; } catch {}
     setSpeaking(false);
     setHistory([]);
+    historyRef.current = [];
     greetedRef.current = false;
   };
 
@@ -136,39 +141,37 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     }
   };
 
-  const pickVoice = (): SpeechSynthesisVoice | undefined => {
-    const voices = window.speechSynthesis.getVoices();
-    return (
-      voices.find((v) => /en[-_]GB/i.test(v.lang) && /female|samantha|kate|serena|martha|amelia|hazel/i.test(v.name)) ||
-      voices.find((v) => /en[-_]GB/i.test(v.lang)) ||
-      voices.find((v) => /en/i.test(v.lang))
-    );
-  };
-
-  const speak = (text: string) => {
-    if (!ttsSupported || !text.trim()) return;
-    try { window.speechSynthesis.cancel(); } catch {}
+  const speak = async (text: string) => {
+    if (!text.trim()) return;
     // Don't listen to ourselves
     stopRecognition();
-    const u = new SpeechSynthesisUtterance(text);
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.lang = v?.lang || "en-GB";
-    u.rate = 0.95;
-    u.onstart = () => setSpeaking(true);
-    u.onend = () => { setSpeaking(false); startRecognition(); };
-    u.onerror = () => { setSpeaking(false); startRecognition(); };
-    window.speechSynthesis.speak(u);
+    try { audioRef.current?.pause(); } catch {}
+    setSpeaking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("examiner-tts", { body: { text } });
+      if (error || !data?.audioContent) throw error || new Error("No audio");
+      const audio = new Audio(`data:audio/mpeg;base64,${data.audioContent}`);
+      audioRef.current = audio;
+      audio.onended = () => { setSpeaking(false); startRecognition(); };
+      audio.onerror = () => { setSpeaking(false); startRecognition(); };
+      await audio.play();
+    } catch (e) {
+      console.error("TTS failed", e);
+      setSpeaking(false);
+      startRecognition();
+    }
   };
 
   const stopSpeaking = () => {
-    try { window.speechSynthesis.cancel(); } catch {}
+    try { audioRef.current?.pause(); } catch {}
     setSpeaking(false);
   };
 
   // ---- Speech recognition (STT) ----
   const startRecognition = () => {
     if (!sttSupported || !camOn) return;
+    // Never listen while examiner is speaking or thinking
+    if (speakingRef.current || thinkingRef.current) return;
     if (recognitionRef.current) {
       try { recognitionRef.current.start(); setListening(true); } catch {}
       return;
@@ -182,6 +185,8 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     rec.onend = () => setListening(false);
     rec.onerror = () => setListening(false);
     rec.onresult = (ev: any) => {
+      // Ignore any stray results while examiner is speaking/thinking
+      if (speakingRef.current || thinkingRef.current) return;
       let interimStr = "";
       let finalStr = "";
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
@@ -199,12 +204,12 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = setTimeout(() => {
         const text = (finalBufRef.current + interimStr).trim();
-        if (text.length > 1) {
+        if (text.length > 1 && !speakingRef.current && !thinkingRef.current) {
           finalBufRef.current = "";
           setInterim("");
           handleUserTurn(text);
         }
-      }, 1800);
+      }, 2800);
     };
     recognitionRef.current = rec;
     try { rec.start(); } catch {}
@@ -225,6 +230,8 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
 
   const askExaminer = async (msgs: ChatMsg[], isOpener: boolean) => {
     setThinking(true);
+    thinkingRef.current = true;
+    stopRecognition();
     try {
       const { data, error } = await supabase.functions.invoke("examiner-chat", {
         body: { messages: msgs, taskType, topic },
@@ -232,16 +239,19 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       if (error) throw error;
       const reply: string = (data?.reply || "").trim();
       if (!reply) throw new Error("No examiner reply");
-      setHistory((h) => {
-        // Replace synthetic opener seed with clean history that only has the assistant turn
-        if (isOpener) return [{ role: "assistant", content: reply }];
-        return [...h, { role: "assistant", content: reply }];
-      });
-      speak(reply);
+      const nextHistory: ChatMsg[] = isOpener
+        ? [{ role: "assistant", content: reply }]
+        : [...msgs, { role: "assistant", content: reply }];
+      historyRef.current = nextHistory;
+      setHistory(nextHistory);
+      setThinking(false);
+      thinkingRef.current = false;
+      await speak(reply);
+      return;
     } catch (e: any) {
       setErr(e?.message || "Examiner could not respond");
-    } finally {
       setThinking(false);
+      thinkingRef.current = false;
     }
   };
 
@@ -393,7 +403,6 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
             const lastAssistant = [...history].reverse().find((m) => m.role === "assistant");
             speak(lastAssistant?.content || topic || "Could you please introduce yourself?");
           }}
-          disabled={!ttsSupported}
           className={cn("rounded-full h-11 px-4 gap-2", speaking ? "bg-red-500 hover:bg-red-600" : "bg-white/10 hover:bg-white/20")}
           title="Replay last examiner turn"
         >
