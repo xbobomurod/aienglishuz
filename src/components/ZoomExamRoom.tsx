@@ -99,7 +99,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       startCamera();
     }
     return () => {
-      try { audioRef.current?.pause(); } catch {}
+      try { audioRef.current?.pause(); } catch { /* ignore audio cleanup errors */ }
       stopStream();
       stopRecognition();
     };
@@ -135,12 +135,12 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+        await videoRef.current.play().catch(() => undefined);
       }
       setCamOn(true);
       setMicOn(true);
-    } catch (e: any) {
-      setErr(e?.message || "Could not access camera/microphone");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Could not access camera/microphone"));
     } finally {
       setStarting(false);
     }
@@ -152,7 +152,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     stopRecognition();
     setCamOn(false);
     setElapsed(0);
-    try { audioRef.current?.pause(); audioRef.current = null; } catch {}
+    try { audioRef.current?.pause(); audioRef.current = null; } catch { /* ignore audio cleanup errors */ }
     setSpeaking(false);
     setListening(false);
     setInterim("");
@@ -194,7 +194,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     setSpeaking(true);
     speakingRef.current = true;
     stopRecognition();
-    try { audioRef.current?.pause(); } catch {}
+    try { audioRef.current?.pause(); } catch { /* ignore audio cleanup errors */ }
     try {
       const { data, error } = await supabase.functions.invoke("examiner-tts", { body: { text } });
       if (error || !data?.audioContent) throw error || new Error("No audio");
@@ -212,7 +212,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   };
 
   const stopSpeaking = () => {
-    try { audioRef.current?.pause(); } catch {}
+    try { audioRef.current?.pause(); } catch { /* ignore audio cleanup errors */ }
     speakingRef.current = false;
     setSpeaking(false);
     startRecognition();
