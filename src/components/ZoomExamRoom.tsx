@@ -226,7 +226,9 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     // Never listen while examiner is speaking or thinking; resume automatically after that phase.
     if (speakingRef.current || thinkingRef.current) return;
     if (listeningRef.current || recognitionStartingRef.current) return;
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!SR) return;
     const rec = recognitionRef.current || new SR();
     rec.continuous = true;
     rec.interimResults = true;
@@ -244,7 +246,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
         restartTimerRef.current = setTimeout(() => startRecognition(), 350);
       }
     };
-    rec.onerror = (event: any) => {
+    rec.onerror = (event: SpeechRecognitionErrorLike) => {
       recognitionStartingRef.current = false;
       setListening(false);
       const errorName = event?.error || "speech-recognition";
@@ -256,7 +258,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
         setMicError("I could not hear you clearly. Please speak again.");
       }
     };
-    rec.onresult = (ev: any) => {
+    rec.onresult = (ev: SpeechRecognitionEventLike) => {
       // Ignore any stray results while examiner is speaking/thinking
       if (speakingRef.current || thinkingRef.current) return;
       let interimStr = "";
@@ -294,9 +296,9 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
           setMicError("Tap Continue to activate live listening in this browser.");
         }
       }, 1200);
-    } catch (e: any) {
+    } catch (e: unknown) {
       recognitionStartingRef.current = false;
-      if (e?.name === "NotAllowedError") {
+      if (getErrorName(e) === "NotAllowedError") {
         shouldListenRef.current = false;
         setNeedsTapToContinue(true);
         setMicError("Tap Continue so the browser can restart microphone listening.");
@@ -308,7 +310,7 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
     if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
     recognitionStartingRef.current = false;
-    try { recognitionRef.current?.stop?.(); } catch {}
+    try { recognitionRef.current?.stop?.(); } catch { /* ignore recognition stop errors */ }
     setListening(false);
   };
 
