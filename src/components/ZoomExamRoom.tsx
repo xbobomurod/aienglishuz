@@ -169,9 +169,10 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
   const speak = async (text: string) => {
     if (!text.trim()) return;
     // Don't listen to ourselves
+    setSpeaking(true);
+    speakingRef.current = true;
     stopRecognition();
     try { audioRef.current?.pause(); } catch {}
-    setSpeaking(true);
     try {
       const { data, error } = await supabase.functions.invoke("examiner-tts", { body: { text } });
       if (error || !data?.audioContent) throw error || new Error("No audio");
