@@ -178,11 +178,12 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
       if (error || !data?.audioContent) throw error || new Error("No audio");
       const audio = new Audio(`data:audio/mpeg;base64,${data.audioContent}`);
       audioRef.current = audio;
-      audio.onended = () => { setSpeaking(false); startRecognition(); };
-      audio.onerror = () => { setSpeaking(false); startRecognition(); };
+      audio.onended = () => { speakingRef.current = false; setSpeaking(false); startRecognition(); };
+      audio.onerror = () => { speakingRef.current = false; setSpeaking(false); startRecognition(); };
       await audio.play();
     } catch (e) {
       console.error("TTS failed", e);
+      speakingRef.current = false;
       setSpeaking(false);
       startRecognition();
     }
@@ -190,7 +191,9 @@ export function ZoomExamRoom({ topic, taskLabel, examinerName = "Examiner Hannah
 
   const stopSpeaking = () => {
     try { audioRef.current?.pause(); } catch {}
+    speakingRef.current = false;
     setSpeaking(false);
+    startRecognition();
   };
 
   // ---- Speech recognition (STT) ----
