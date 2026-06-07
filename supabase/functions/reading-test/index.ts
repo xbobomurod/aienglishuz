@@ -308,15 +308,10 @@ Progressive difficulty within each passage: first questions easier (scanning), l
       }
 
       const data = await response.json();
-      let content = data.choices?.[0]?.message?.content || "";
-      
-      // Clean up the response
-      content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) content = jsonMatch[0];
+      const content = data.choices?.[0]?.message?.content || "";
       
       try {
-        const test: ReadingTest = JSON.parse(content.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""));
+        const test = parseAiJson<ReadingTest>(content);
         test.passage = test.passage
           .replace(/\n{3,}/g, "\n\n")
           .replace(/(^|\n)(PASSAGE\s+\d)/gi, "$1$2")
