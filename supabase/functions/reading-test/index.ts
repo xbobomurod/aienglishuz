@@ -261,7 +261,7 @@ Progressive difficulty within each passage: first questions easier (scanning), l
       if (jsonMatch) content = jsonMatch[0];
       
       try {
-        const test: ReadingTest = JSON.parse(content);
+        const test: ReadingTest = JSON.parse(content.replace(/[ --]/g, ""));
         test.passage = test.passage
           .replace(/\n{3,}/g, "\n\n")
           .replace(/(^|\n)(PASSAGE\s+\d)/gi, "$1$2")

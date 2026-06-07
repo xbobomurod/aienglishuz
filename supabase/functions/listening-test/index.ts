@@ -232,7 +232,7 @@ You MUST respond with ONLY valid JSON in this exact format:
       if (jsonMatch) content = jsonMatch[0];
       
       try {
-        const test: ListeningTest = JSON.parse(content);
+        const test: ListeningTest = JSON.parse(content.replace(/[ --]/g, ""));
         if (isFastPractice) test.questions = test.questions.slice(0, questionCount);
         test.transcript = test.transcript
           .replace(/^\s*(AGENT|CUSTOMER|GUIDE|TUTOR|LECTURER|STUDENT\s*[A-D]?|SPEAKER\s*[A-D]?|MAN|WOMAN)\s+says[:,]?\s*/gim, "$1: ")
