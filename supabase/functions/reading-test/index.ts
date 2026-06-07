@@ -82,6 +82,61 @@ const validateReadingTest = (test: ReadingTest, expectedQuestions: number) => {
   });
 };
 
+const extractJsonObject = (rawContent: string) => {
+  let content = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  return jsonMatch ? jsonMatch[0] : content;
+};
+
+const escapeControlCharactersInsideStrings = (json: string) => {
+  let repaired = "";
+  let inString = false;
+  let escaped = false;
+
+  for (const char of json) {
+    if (escaped) {
+      repaired += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      repaired += char;
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      repaired += char;
+      inString = !inString;
+      continue;
+    }
+
+    const code = char.charCodeAt(0);
+    if (inString && (code <= 0x1f || code === 0x7f)) {
+      if (char === "\n") repaired += "\\n";
+      else if (char === "\r") repaired += "\\r";
+      else if (char === "\t") repaired += "\\t";
+      else if (char === "\b") repaired += "\\b";
+      else if (char === "\f") repaired += "\\f";
+      continue;
+    }
+
+    if (!inString && ((code <= 0x1f && ![0x09, 0x0a, 0x0d, 0x20].includes(code)) || code === 0x7f)) {
+      continue;
+    }
+
+    repaired += char;
+  }
+
+  return repaired;
+};
+
+const parseAiJson = <T>(rawContent: string): T => {
+  const content = extractJsonObject(rawContent);
+  return JSON.parse(escapeControlCharactersInsideStrings(content)) as T;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -253,15 +308,10 @@ Progressive difficulty within each passage: first questions easier (scanning), l
       }
 
       const data = await response.json();
-      let content = data.choices?.[0]?.message?.content || "";
-      
-      // Clean up the response
-      content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) content = jsonMatch[0];
+      const content = data.choices?.[0]?.message?.content || "";
       
       try {
-        const test: ReadingTest = JSON.parse(content.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""));
+        const test = parseAiJson<ReadingTest>(content);
         test.passage = test.passage
           .replace(/\n{3,}/g, "\n\n")
           .replace(/(^|\n)(PASSAGE\s+\d)/gi, "$1$2")
