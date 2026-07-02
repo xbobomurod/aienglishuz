@@ -246,6 +246,8 @@ You MUST respond with ONLY valid JSON in this exact format:
             { role: "user", content: `Generate a new IELTS Listening Section ${promptSectionType} test. Return only valid JSON.` }
           ],
           temperature: 0.85,
+          max_tokens: isFullTest ? 16000 : isFastPractice ? 3500 : 6000,
+          response_format: { type: "json_object" },
         }),
       });
 
