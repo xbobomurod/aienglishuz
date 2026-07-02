@@ -277,6 +277,7 @@ Progressive difficulty within each passage: first questions easier (scanning), l
 
       const expectedQuestionCount = isFullTest ? 40 : isFastPractice ? (customQuestionTarget ?? 8) : 13;
       let lastParseError = "";
+      const maxCompletionTokens = isFullTest ? 16000 : isFastPractice ? 4000 : 8000;
 
       for (let attempt = 1; attempt <= (isFastPractice ? 1 : 2); attempt++) {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -292,6 +293,8 @@ Progressive difficulty within each passage: first questions easier (scanning), l
             { role: "user", content: `Generate a new ${passageLabel} reading test. Return only valid JSON. Attempt ${attempt}: make sure every question has an exact evidenceQuote copied from the passage.` }
           ],
           temperature: 0.45,
+          max_tokens: maxCompletionTokens,
+          response_format: { type: "json_object" },
         }),
       });
 
