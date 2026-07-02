@@ -74,6 +74,44 @@ const isAnswerCorrect = (userAnswer: unknown, correctAnswer: unknown) => {
   return compactUser.length > 1 && compactUser === compactCorrect;
 };
 
+const escapeControlCharactersInsideStrings = (json: string) => {
+  let repaired = "";
+  let inString = false;
+  let escaped = false;
+
+  for (const char of json) {
+    if (escaped) {
+      repaired += char;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      repaired += char;
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      repaired += char;
+      inString = !inString;
+      continue;
+    }
+    const code = char.charCodeAt(0);
+    if (inString && (code <= 0x1f || code === 0x7f)) {
+      if (char === "\n") repaired += "\\n";
+      else if (char === "\r") repaired += "\\r";
+      else if (char === "\t") repaired += "\\t";
+      else if (char === "\b") repaired += "\\b";
+      else if (char === "\f") repaired += "\\f";
+      continue;
+    }
+    if (!inString && ((code <= 0x1f && ![0x09, 0x0a, 0x0d, 0x20].includes(code)) || code === 0x7f)) {
+      continue;
+    }
+    repaired += char;
+  }
+  return repaired;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -232,7 +270,7 @@ You MUST respond with ONLY valid JSON in this exact format:
       if (jsonMatch) content = jsonMatch[0];
       
       try {
-        const test: ListeningTest = JSON.parse(content.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""));
+        const test: ListeningTest = JSON.parse(escapeControlCharactersInsideStrings(content));
         if (isFastPractice) test.questions = test.questions.slice(0, questionCount);
         test.transcript = test.transcript
           .replace(/^\s*(AGENT|CUSTOMER|GUIDE|TUTOR|LECTURER|STUDENT\s*[A-D]?|SPEAKER\s*[A-D]?|MAN|WOMAN)\s+says[:,]?\s*/gim, "$1: ")
