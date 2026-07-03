@@ -140,10 +140,10 @@ serve(async (req) => {
 
     // Generate a new listening test
     if (action === "generate") {
-      const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-      if (!GROQ_API_KEY) {
-        console.error("GROQ_API_KEY not configured");
+      if (!LOVABLE_API_KEY) {
+        console.error("LOVABLE_API_KEY not configured");
         return new Response(
           JSON.stringify({ error: "API key not configured" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -233,14 +233,14 @@ You MUST respond with ONLY valid JSON in this exact format:
   ]
 }`;
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Lovable-API-Key": LOVABLE_API_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: `Generate a new IELTS Listening Section ${promptSectionType} test. Return only valid JSON.` }
