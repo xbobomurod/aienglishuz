@@ -235,6 +235,29 @@ serve(async (req) => {
       const difficultyLevel = difficulty || "full-test";
       const isFastPractice = Boolean(fastMode);
       const isFullTest = difficultyLevel === "full-test" && !isFastPractice;
+
+      // ---- Cache lookup (skip for fast/custom sizes) ----
+      const cacheKey = buildReadingCacheKey(difficultyLevel, isFastPractice);
+      let cacheSb: any = null;
+      let mustGenerate = true;
+      if (cacheKey) {
+        try {
+          const res = await fetchCachedReadingTest(auth.userId, cacheKey);
+          cacheSb = res.sb;
+          mustGenerate = res.mustGenerate;
+          if (!mustGenerate && res.pick) {
+            await markReadingTestViewed(cacheSb, auth.userId, res.pick.id);
+            console.log("Served reading test from cache", res.pick.id);
+            return new Response(
+              JSON.stringify(res.pick.payload),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (cacheErr) {
+          console.error("Cache lookup failed, falling back to generation:", cacheErr);
+        }
+      }
+
       const customWordTarget = isFastPractice && Number.isFinite(fastWordCount) ? Math.max(250, Math.min(900, Number(fastWordCount))) : null;
       const customQuestionTarget = isFastPractice && Number.isFinite(fastQuestionCount) ? Math.max(3, Math.min(13, Math.round(Number(fastQuestionCount)))) : null;
       const fastWordRange = customWordTarget ? `${Math.max(150, customWordTarget - 60)}-${customWordTarget + 60}` : "420-520";
