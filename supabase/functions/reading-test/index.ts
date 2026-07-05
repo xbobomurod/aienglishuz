@@ -399,6 +399,14 @@ Progressive difficulty within each passage: first questions easier (scanning), l
           .trim();
         validateReadingTest(test, expectedQuestionCount);
         console.log("Generated test with", test.questions?.length, "questions");
+        if (cacheKey) {
+          try {
+            const sb = cacheSb || getServiceClient();
+            await saveReadingTestToCache(sb, auth.userId, cacheKey, test);
+          } catch (saveErr) {
+            console.error("Failed to save to cache:", saveErr);
+          }
+        }
         return new Response(
           JSON.stringify(test),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
