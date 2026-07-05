@@ -74,6 +74,61 @@ const isAnswerCorrect = (userAnswer: unknown, correctAnswer: unknown) => {
   return compactUser.length > 1 && compactUser === compactCorrect;
 };
 
+// ---------- Caching helpers ----------
+const getServiceClient = () =>
+  createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+const buildListeningCacheKey = (section: string, fast: boolean): string | null => {
+  if (fast) return null;
+  const s = section || "full-test";
+  if (["full-test", "1", "2", "3", "4"].includes(s)) return `section-${s}`;
+  return null;
+};
+
+const CACHE_GROW_THRESHOLD = 12;
+const CACHE_GROW_CHANCE = 0.15;
+
+async function fetchCachedListeningTest(userId: string, key: string) {
+  const sb = getServiceClient();
+  const { data: viewed } = await sb
+    .from("user_test_views")
+    .select("cached_test_id")
+    .eq("user_id", userId);
+  const viewedIds = (viewed || []).map((v: any) => v.cached_test_id);
+
+  let query = sb.from("cached_tests")
+    .select("id, payload")
+    .eq("test_type", "listening")
+    .eq("difficulty_key", key);
+  if (viewedIds.length > 0) {
+    query = query.not("id", "in", `(${viewedIds.join(",")})`);
+  }
+  const { data: candidates } = await query;
+  const pool = candidates || [];
+
+  const shouldGrow = pool.length < 3 || (pool.length < CACHE_GROW_THRESHOLD && Math.random() < CACHE_GROW_CHANCE);
+  if (pool.length === 0 || shouldGrow) return { pool, mustGenerate: true, sb };
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return { pick, mustGenerate: false, sb };
+}
+
+async function saveListeningTestToCache(sb: any, userId: string, key: string, payload: unknown) {
+  const { data } = await sb.from("cached_tests")
+    .insert({ test_type: "listening", difficulty_key: key, payload })
+    .select("id")
+    .single();
+  if (data?.id) {
+    await sb.from("user_test_views").upsert({ user_id: userId, cached_test_id: data.id });
+  }
+}
+
+async function markListeningTestViewed(sb: any, userId: string, cachedId: string) {
+  await sb.from("user_test_views").upsert({ user_id: userId, cached_test_id: cachedId });
+}
+
 const escapeControlCharactersInsideStrings = (json: string) => {
   let repaired = "";
   let inString = false;
