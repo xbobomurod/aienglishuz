@@ -356,6 +356,14 @@ You MUST respond with ONLY valid JSON in this exact format:
           .replace(/\n{3,}/g, "\n\n")
           .trim();
         console.log("Generated listening test with", test.questions?.length, "questions");
+        if (cacheKey && !isFastPractice) {
+          try {
+            const sb = cacheSb || getServiceClient();
+            await saveListeningTestToCache(sb, auth.userId, cacheKey, test);
+          } catch (saveErr) {
+            console.error("Failed to save to cache:", saveErr);
+          }
+        }
         return new Response(
           JSON.stringify(test),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
