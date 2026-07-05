@@ -137,6 +137,61 @@ const parseAiJson = <T>(rawContent: string): T => {
   return JSON.parse(escapeControlCharactersInsideStrings(content)) as T;
 };
 
+// ---------- Caching helpers ----------
+const getServiceClient = () =>
+  createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+const buildReadingCacheKey = (difficulty: string, fast: boolean): string | null => {
+  if (fast) return null; // fast/custom mode has too many variants; skip cache
+  const d = difficulty || "full-test";
+  if (["full-test", "passage-1", "passage-2", "passage-3"].includes(d)) return d;
+  return null;
+};
+
+const CACHE_GROW_THRESHOLD = 12; // grow pool until we have at least this many
+const CACHE_GROW_CHANCE = 0.15;   // occasional fresh generation to keep variety
+
+async function fetchCachedReadingTest(userId: string, key: string) {
+  const sb = getServiceClient();
+  const { data: viewed } = await sb
+    .from("user_test_views")
+    .select("cached_test_id")
+    .eq("user_id", userId);
+  const viewedIds = (viewed || []).map((v: any) => v.cached_test_id);
+
+  let query = sb.from("cached_tests")
+    .select("id, payload")
+    .eq("test_type", "reading")
+    .eq("difficulty_key", key);
+  if (viewedIds.length > 0) {
+    query = query.not("id", "in", `(${viewedIds.join(",")})`);
+  }
+  const { data: candidates } = await query;
+  const pool = candidates || [];
+
+  const shouldGrow = pool.length < 3 || (pool.length < CACHE_GROW_THRESHOLD && Math.random() < CACHE_GROW_CHANCE);
+  if (pool.length === 0 || shouldGrow) return { pool, mustGenerate: true, sb };
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return { pick, mustGenerate: false, sb };
+}
+
+async function saveReadingTestToCache(sb: any, userId: string, key: string, payload: unknown) {
+  const { data } = await sb.from("cached_tests")
+    .insert({ test_type: "reading", difficulty_key: key, payload })
+    .select("id")
+    .single();
+  if (data?.id) {
+    await sb.from("user_test_views").upsert({ user_id: userId, cached_test_id: data.id });
+  }
+}
+
+async function markReadingTestViewed(sb: any, userId: string, cachedId: string) {
+  await sb.from("user_test_views").upsert({ user_id: userId, cached_test_id: cachedId });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
