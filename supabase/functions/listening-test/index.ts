@@ -210,6 +210,27 @@ serve(async (req) => {
       const sectionType = section || "full-test";
       const isFastPractice = Boolean(fastMode);
       const isFullTest = sectionType === "full-test" && !isFastPractice;
+
+      // ---- Cache lookup ----
+      const cacheKey = buildListeningCacheKey(sectionType, isFastPractice);
+      let cacheSb: any = null;
+      if (cacheKey) {
+        try {
+          const res = await fetchCachedListeningTest(auth.userId, cacheKey);
+          cacheSb = res.sb;
+          if (!res.mustGenerate && res.pick) {
+            await markListeningTestViewed(cacheSb, auth.userId, res.pick.id);
+            console.log("Served listening test from cache", res.pick.id);
+            return new Response(
+              JSON.stringify(res.pick.payload),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (cacheErr) {
+          console.error("Cache lookup failed, falling back to generation:", cacheErr);
+        }
+      }
+
       const promptSectionType = isFastPractice && sectionType === "full-test" ? "1" : sectionType;
       const customWordTarget = isFastPractice && Number.isFinite(fastWordCount) ? Math.max(120, Math.min(400, Number(fastWordCount))) : null;
       const customQuestionTarget = isFastPractice && Number.isFinite(fastQuestionCount) ? Math.max(3, Math.min(10, Math.round(Number(fastQuestionCount)))) : null;
