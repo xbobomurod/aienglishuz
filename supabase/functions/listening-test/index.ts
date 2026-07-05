@@ -74,6 +74,61 @@ const isAnswerCorrect = (userAnswer: unknown, correctAnswer: unknown) => {
   return compactUser.length > 1 && compactUser === compactCorrect;
 };
 
+// ---------- Caching helpers ----------
+const getServiceClient = () =>
+  createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+const buildListeningCacheKey = (section: string, fast: boolean): string | null => {
+  if (fast) return null;
+  const s = section || "full-test";
+  if (["full-test", "1", "2", "3", "4"].includes(s)) return `section-${s}`;
+  return null;
+};
+
+const CACHE_GROW_THRESHOLD = 12;
+const CACHE_GROW_CHANCE = 0.15;
+
+async function fetchCachedListeningTest(userId: string, key: string) {
+  const sb = getServiceClient();
+  const { data: viewed } = await sb
+    .from("user_test_views")
+    .select("cached_test_id")
+    .eq("user_id", userId);
+  const viewedIds = (viewed || []).map((v: any) => v.cached_test_id);
+
+  let query = sb.from("cached_tests")
+    .select("id, payload")
+    .eq("test_type", "listening")
+    .eq("difficulty_key", key);
+  if (viewedIds.length > 0) {
+    query = query.not("id", "in", `(${viewedIds.join(",")})`);
+  }
+  const { data: candidates } = await query;
+  const pool = candidates || [];
+
+  const shouldGrow = pool.length < 3 || (pool.length < CACHE_GROW_THRESHOLD && Math.random() < CACHE_GROW_CHANCE);
+  if (pool.length === 0 || shouldGrow) return { pool, mustGenerate: true, sb };
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return { pick, mustGenerate: false, sb };
+}
+
+async function saveListeningTestToCache(sb: any, userId: string, key: string, payload: unknown) {
+  const { data } = await sb.from("cached_tests")
+    .insert({ test_type: "listening", difficulty_key: key, payload })
+    .select("id")
+    .single();
+  if (data?.id) {
+    await sb.from("user_test_views").upsert({ user_id: userId, cached_test_id: data.id });
+  }
+}
+
+async function markListeningTestViewed(sb: any, userId: string, cachedId: string) {
+  await sb.from("user_test_views").upsert({ user_id: userId, cached_test_id: cachedId });
+}
+
 const escapeControlCharactersInsideStrings = (json: string) => {
   let repaired = "";
   let inString = false;
@@ -155,6 +210,27 @@ serve(async (req) => {
       const sectionType = section || "full-test";
       const isFastPractice = Boolean(fastMode);
       const isFullTest = sectionType === "full-test" && !isFastPractice;
+
+      // ---- Cache lookup ----
+      const cacheKey = buildListeningCacheKey(sectionType, isFastPractice);
+      let cacheSb: any = null;
+      if (cacheKey) {
+        try {
+          const res = await fetchCachedListeningTest(auth.userId, cacheKey);
+          cacheSb = res.sb;
+          if (!res.mustGenerate && res.pick) {
+            await markListeningTestViewed(cacheSb, auth.userId, res.pick.id);
+            console.log("Served listening test from cache", res.pick.id);
+            return new Response(
+              JSON.stringify(res.pick.payload),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (cacheErr) {
+          console.error("Cache lookup failed, falling back to generation:", cacheErr);
+        }
+      }
+
       const promptSectionType = isFastPractice && sectionType === "full-test" ? "1" : sectionType;
       const customWordTarget = isFastPractice && Number.isFinite(fastWordCount) ? Math.max(120, Math.min(400, Number(fastWordCount))) : null;
       const customQuestionTarget = isFastPractice && Number.isFinite(fastQuestionCount) ? Math.max(3, Math.min(10, Math.round(Number(fastQuestionCount)))) : null;
@@ -280,6 +356,14 @@ You MUST respond with ONLY valid JSON in this exact format:
           .replace(/\n{3,}/g, "\n\n")
           .trim();
         console.log("Generated listening test with", test.questions?.length, "questions");
+        if (cacheKey && !isFastPractice) {
+          try {
+            const sb = cacheSb || getServiceClient();
+            await saveListeningTestToCache(sb, auth.userId, cacheKey, test);
+          } catch (saveErr) {
+            console.error("Failed to save to cache:", saveErr);
+          }
+        }
         return new Response(
           JSON.stringify(test),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }

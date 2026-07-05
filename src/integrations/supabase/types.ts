@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      cached_tests: {
+        Row: {
+          created_at: string
+          difficulty_key: string
+          id: string
+          payload: Json
+          test_type: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty_key: string
+          id?: string
+          payload: Json
+          test_type: string
+        }
+        Update: {
+          created_at?: string
+          difficulty_key?: string
+          id?: string
+          payload?: Json
+          test_type?: string
+        }
+        Relationships: []
+      }
       daily_study_plans: {
         Row: {
           completed_tasks: Json
@@ -406,6 +430,32 @@ export type Database = {
           variant?: string | null
         }
         Relationships: []
+      }
+      user_test_views: {
+        Row: {
+          cached_test_id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          cached_test_id: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          cached_test_id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_test_views_cached_test_id_fkey"
+            columns: ["cached_test_id"]
+            isOneToOne: false
+            referencedRelation: "cached_tests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vocabulary_progress: {
         Row: {
