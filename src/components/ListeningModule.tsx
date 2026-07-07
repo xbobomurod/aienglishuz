@@ -15,7 +15,11 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
-  Settings2
+  Settings2,
+  SkipBack,
+  SkipForward,
+  RotateCcw,
+  StickyNote
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +31,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -123,13 +128,32 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [showTranscript, setShowTranscript] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [speechRate, setSpeechRate] = useState(1);
+  const [volume, setVolume] = useState(1);
   const [voiceStyle, setVoiceStyle] = useState<"exam" | "natural" | "expressive">("natural");
+  const [accent, setAccent] = useState<"en-GB" | "en-US" | "mixed">("mixed");
+  const [currentLineIdx, setCurrentLineIdx] = useState<number>(-1);
+  const [notes, setNotes] = useState("");
   const [activeSection, setActiveSection] = useState("0");
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechQueueRef = useRef<SpeechLine[]>([]);
   const speechIndexRef = useRef(0);
   const spokenCharsRef = useRef(0);
   const isStoppingRef = useRef(false);
+  const voiceMapRef = useRef<Map<string, SpeechSynthesisVoice>>(new Map());
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+
+  // Keep voice list fresh (Chrome loads them async)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const load = () => {
+      availableVoicesRef.current = window.speechSynthesis.getVoices();
+    };
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   // Timer effect
   useEffect(() => {
@@ -260,26 +284,57 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       });
   };
 
-  const selectEnglishVoice = (speaker?: string) => {
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoices = voices.filter(v => v.lang.startsWith("en-"));
-    const normalized = speaker?.toLowerCase() || "";
-    const preferFemale = /customer|woman|student|speaker\s*b|speaker\s*d/i.test(normalized);
-    const preferMale = /agent|man|tutor|guide|lecturer|speaker\s*a|speaker\s*c/i.test(normalized);
+  const FEMALE_RE = /Samantha|Karen|Moira|Jenny|Aria|Zira|Susan|Hazel|Catherine|Serena|Kate|Fiona|Tessa|Victoria|Ava|Allison|Amelia|Sonia|Libby|Female|UK English Female|US English Female/i;
+  const MALE_RE = /Daniel|George|Ryan|David|Mark|Alex|Fred|Oliver|Arthur|Aaron|Tom|Guy|Male|UK English Male|US English Male/i;
+  const QUALITY_RE = /Neural|Natural|Enhanced|Premium|Google|Microsoft|Online|\(Natural\)/i;
 
-    if (preferFemale) {
-      const femaleVoice = englishVoices.find(v => /Samantha|Karen|Moira|Jenny|Aria|Zira|Susan|Hazel|Catherine|Female|Google UK English Female/i.test(v.name));
-      return femaleVoice || englishVoices[1] || englishVoices[0];
+  const pickBestVoice = (opts: { female?: boolean; male?: boolean; prefLang?: string; exclude?: Set<string> }) => {
+    const all = availableVoicesRef.current.length ? availableVoicesRef.current : window.speechSynthesis.getVoices();
+    let pool = all.filter(v => v.lang.startsWith("en-"));
+    if (opts.prefLang) {
+      const langPool = pool.filter(v => v.lang.toLowerCase() === opts.prefLang!.toLowerCase());
+      if (langPool.length) pool = langPool;
     }
+    if (opts.exclude) pool = pool.filter(v => !opts.exclude!.has(v.name)) || pool;
+    const gendered = pool.filter(v => (opts.female && FEMALE_RE.test(v.name)) || (opts.male && MALE_RE.test(v.name)));
+    const genderedQuality = gendered.filter(v => QUALITY_RE.test(v.name));
+    return (
+      genderedQuality[0] ||
+      gendered[0] ||
+      pool.find(v => QUALITY_RE.test(v.name)) ||
+      pool[0]
+    );
+  };
 
-    if (preferMale) {
-      const maleVoice = englishVoices.find(v => /Daniel|George|Ryan|David|Mark|Male|Google UK English Male/i.test(v.name));
-      return maleVoice || englishVoices[0];
+  // Build a stable speaker -> voice map based on all unique speakers in the queue.
+  // Alternates female/male so multi-speaker sections sound like real dialogue.
+  const buildVoiceMap = (lines: SpeechLine[]) => {
+    voiceMapRef.current.clear();
+    const used = new Set<string>();
+    const speakers: string[] = [];
+    for (const l of lines) {
+      const key = (l.speaker || "narrator").toLowerCase();
+      if (!speakers.includes(key)) speakers.push(key);
     }
+    speakers.forEach((key, idx) => {
+      const explicitFemale = /woman|female|customer|student|guide.*(she|her)|ms\.|mrs\.|miss|speaker\s*b|speaker\s*d/i.test(key);
+      const explicitMale = /man|male|agent|tutor|lecturer|mr\.|sir|speaker\s*a|speaker\s*c/i.test(key);
+      const wantFemale = explicitFemale ? true : explicitMale ? false : idx % 2 === 0;
+      const langPref =
+        accent === "en-GB" ? "en-GB" :
+        accent === "en-US" ? "en-US" :
+        idx % 2 === 0 ? "en-GB" : "en-US";
+      const v = pickBestVoice({ female: wantFemale, male: !wantFemale, prefLang: langPref, exclude: used });
+      if (v) {
+        voiceMapRef.current.set(key, v);
+        used.add(v.name);
+      }
+    });
+  };
 
-    return englishVoices.find(v => /Samantha|Daniel|Karen|Moira|Google|Microsoft|Natural|Online/i.test(v.name)) ||
-      voices.find(v => v.lang.startsWith("en-GB")) ||
-      englishVoices[0];
+  const getVoiceForSpeaker = (speaker?: string) => {
+    const key = (speaker || "narrator").toLowerCase();
+    return voiceMapRef.current.get(key) || pickBestVoice({ female: true, prefLang: "en-GB" });
   };
 
   const speakQueuedLine = (index: number) => {
@@ -294,15 +349,19 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
     const settings = getVoiceSettings();
     const utterance = new SpeechSynthesisUtterance(line.text);
-    const speakerTone = /customer|woman|student|speaker\s*b|speaker\s*d/i.test(line.speaker || "") ? 0.08 : -0.03;
-    utterance.rate = settings.rate * (/customer/i.test(line.speaker || "") ? 1.02 : 0.98);
-    utterance.pitch = voiceStyle !== "exam" ? settings.pitch + speakerTone + (/\?/.test(line.text) ? 0.04 : 0) : settings.pitch;
-    utterance.volume = settings.volume;
+    const isFemaleSpeaker = /woman|female|customer|student|ms\.|mrs\.|miss|speaker\s*b|speaker\s*d/i.test(line.speaker || "");
+    const speakerTone = isFemaleSpeaker ? 0.1 : -0.05;
+    utterance.rate = settings.rate * (isFemaleSpeaker ? 1.02 : 0.97);
+    utterance.pitch = voiceStyle !== "exam" ? settings.pitch + speakerTone + (/\?/.test(line.text) ? 0.05 : 0) : settings.pitch;
+    utterance.volume = settings.volume * volume;
 
-    const englishVoice = selectEnglishVoice(line.speaker);
+    const englishVoice = getVoiceForSpeaker(line.speaker);
     if (englishVoice) utterance.voice = englishVoice;
 
-    utterance.onstart = () => setIsPlaying(true);
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      setCurrentLineIdx(index);
+    };
     utterance.onboundary = (e) => {
       const totalChars = test.transcript.length || 1;
       const progress = ((spokenCharsRef.current + e.charIndex) / totalChars) * 100;
@@ -340,10 +399,33 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
     isStoppingRef.current = false;
     window.speechSynthesis.cancel();
-    speechQueueRef.current = prepareSpeechLines(test.transcript);
+    const lines = prepareSpeechLines(test.transcript);
+    speechQueueRef.current = lines;
+    buildVoiceMap(lines);
     speechIndexRef.current = 0;
     spokenCharsRef.current = 0;
+    setCurrentLineIdx(-1);
     speakQueuedLine(0);
+  };
+
+  const jumpToLine = (idx: number) => {
+    if (!test || typeof window === "undefined" || !window.speechSynthesis) return;
+    if (!speechQueueRef.current.length) {
+      speechQueueRef.current = prepareSpeechLines(test.transcript);
+      buildVoiceMap(speechQueueRef.current);
+    }
+    const clamped = Math.max(0, Math.min(idx, speechQueueRef.current.length - 1));
+    isStoppingRef.current = true;
+    window.speechSynthesis.cancel();
+    // Recompute spokenChars offset up to this line for progress accuracy
+    spokenCharsRef.current = speechQueueRef.current
+      .slice(0, clamped)
+      .reduce((sum, l) => sum + l.text.length + 1, 0);
+    setTimeout(() => {
+      isStoppingRef.current = false;
+      speechIndexRef.current = clamped;
+      speakQueuedLine(clamped);
+    }, 60);
   };
 
   const stopAudio = () => {
@@ -622,11 +704,35 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               {/* Playback controls */}
               <div className="flex items-center gap-4">
                 <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => jumpToLine(speechIndexRef.current - 1)}
+                  title="Previous line"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </Button>
+                <Button
                   variant={isPlaying ? "secondary" : "default"}
                   size="icon"
                   onClick={playAudio}
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => jumpToLine(speechIndexRef.current)}
+                  title="Replay current line"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => jumpToLine(speechIndexRef.current + 1)}
+                  title="Next line"
+                >
+                  <SkipForward className="w-4 h-4" />
                 </Button>
                 <div className="flex-1">
                   <Progress value={playbackProgress} className="h-2" />
@@ -643,7 +749,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               </div>
 
               {/* Voice controls */}
-              <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground">Voice style</Label>
                   <Select value={voiceStyle} onValueChange={(v) => setVoiceStyle(v as typeof voiceStyle)}>
@@ -654,6 +760,19 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                       <SelectItem value="exam">Exam calm</SelectItem>
                       <SelectItem value="natural">Natural conversation</SelectItem>
                       <SelectItem value="expressive">Expressive practice</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Accent</Label>
+                  <Select value={accent} onValueChange={(v) => setAccent(v as typeof accent)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mixed">Mixed (GB + US)</SelectItem>
+                      <SelectItem value="en-GB">British only</SelectItem>
+                      <SelectItem value="en-US">American only</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -670,16 +789,69 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                     step={0.1}
                   />
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm text-muted-foreground">Volume</Label>
+                    <span className="text-sm font-mono">{Math.round(volume * 100)}%</span>
+                  </div>
+                  <Slider
+                    value={[volume]}
+                    onValueChange={([v]) => setVolume(v)}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                  />
+                </div>
               </div>
 
               {/* Transcript (hidden by default) */}
               {showTranscript && (
                 <ScrollArea className="h-[200px] p-4 rounded-lg bg-secondary/50">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {visibleSections[Number(activeSection)] || test.transcript}
-                  </p>
+                  <div className="space-y-1 text-sm leading-relaxed">
+                    {speechQueueRef.current.length > 0 ? (
+                      speechQueueRef.current.map((line, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => jumpToLine(idx)}
+                          className={`cursor-pointer rounded px-2 py-1 transition-colors ${
+                            idx === currentLineIdx
+                              ? "bg-accent/30 text-foreground font-medium"
+                              : "hover:bg-accent/10 text-muted-foreground"
+                          }`}
+                          title="Click to jump here"
+                        >
+                          {line.speaker && (
+                            <span className="mr-2 font-semibold text-accent">{line.speaker}:</span>
+                          )}
+                          <span>{line.text}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="whitespace-pre-wrap">
+                        {visibleSections[Number(activeSection)] || test.transcript}
+                      </p>
+                    )}
+                  </div>
                 </ScrollArea>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Notes pad */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-accent" />
+                Quick notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Jot down key words while listening (names, numbers, dates)…"
+                className="min-h-[90px] text-sm"
+              />
             </CardContent>
           </Card>
 
