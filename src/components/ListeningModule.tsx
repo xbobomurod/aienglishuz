@@ -349,15 +349,19 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
     const settings = getVoiceSettings();
     const utterance = new SpeechSynthesisUtterance(line.text);
-    const speakerTone = /customer|woman|student|speaker\s*b|speaker\s*d/i.test(line.speaker || "") ? 0.08 : -0.03;
-    utterance.rate = settings.rate * (/customer/i.test(line.speaker || "") ? 1.02 : 0.98);
-    utterance.pitch = voiceStyle !== "exam" ? settings.pitch + speakerTone + (/\?/.test(line.text) ? 0.04 : 0) : settings.pitch;
-    utterance.volume = settings.volume;
+    const isFemaleSpeaker = /woman|female|customer|student|ms\.|mrs\.|miss|speaker\s*b|speaker\s*d/i.test(line.speaker || "");
+    const speakerTone = isFemaleSpeaker ? 0.1 : -0.05;
+    utterance.rate = settings.rate * (isFemaleSpeaker ? 1.02 : 0.97);
+    utterance.pitch = voiceStyle !== "exam" ? settings.pitch + speakerTone + (/\?/.test(line.text) ? 0.05 : 0) : settings.pitch;
+    utterance.volume = settings.volume * volume;
 
-    const englishVoice = selectEnglishVoice(line.speaker);
+    const englishVoice = getVoiceForSpeaker(line.speaker);
     if (englishVoice) utterance.voice = englishVoice;
 
-    utterance.onstart = () => setIsPlaying(true);
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      setCurrentLineIdx(index);
+    };
     utterance.onboundary = (e) => {
       const totalChars = test.transcript.length || 1;
       const progress = ((spokenCharsRef.current + e.charIndex) / totalChars) * 100;
@@ -395,10 +399,33 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
     isStoppingRef.current = false;
     window.speechSynthesis.cancel();
-    speechQueueRef.current = prepareSpeechLines(test.transcript);
+    const lines = prepareSpeechLines(test.transcript);
+    speechQueueRef.current = lines;
+    buildVoiceMap(lines);
     speechIndexRef.current = 0;
     spokenCharsRef.current = 0;
+    setCurrentLineIdx(-1);
     speakQueuedLine(0);
+  };
+
+  const jumpToLine = (idx: number) => {
+    if (!test || typeof window === "undefined" || !window.speechSynthesis) return;
+    if (!speechQueueRef.current.length) {
+      speechQueueRef.current = prepareSpeechLines(test.transcript);
+      buildVoiceMap(speechQueueRef.current);
+    }
+    const clamped = Math.max(0, Math.min(idx, speechQueueRef.current.length - 1));
+    isStoppingRef.current = true;
+    window.speechSynthesis.cancel();
+    // Recompute spokenChars offset up to this line for progress accuracy
+    spokenCharsRef.current = speechQueueRef.current
+      .slice(0, clamped)
+      .reduce((sum, l) => sum + l.text.length + 1, 0);
+    setTimeout(() => {
+      isStoppingRef.current = false;
+      speechIndexRef.current = clamped;
+      speakQueuedLine(clamped);
+    }, 60);
   };
 
   const stopAudio = () => {
