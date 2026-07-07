@@ -7,8 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
-import { Loader2, CheckCircle2, Headphones, Play, Pause, Volume2, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, CheckCircle2, Headphones, Play, Volume2, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -33,6 +32,11 @@ interface ListeningTest {
   questions: Question[];
 }
 
+interface SpeechLine {
+  speaker?: string;
+  text: string;
+}
+
 export function MockListeningSection({ onComplete, isPaused }: MockListeningSectionProps) {
   const { user } = useAuth();
   const [test, setTest] = useState<ListeningTest | null>(null);
@@ -41,30 +45,46 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState<number>(Date.now());
   const [currentPart, setCurrentPart] = useState(0);
-  
-  // Audio controls
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(false);
+
+  // IELTS-style single-play state
+  const [audioStarted, setAudioStarted] = useState(false);
+  const [audioFinished, setAudioFinished] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
-  const [speechRate, setSpeechRate] = useState(1);
+  const [currentLineIdx, setCurrentLineIdx] = useState(-1);
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechQueueRef = useRef<SpeechLine[]>([]);
+  const spokenCharsRef = useRef(0);
+  const isStoppingRef = useRef(false);
+  const voiceMapRef = useRef<Map<string, SpeechSynthesisVoice>>(new Map());
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
     generateTest();
     return () => {
       if (typeof window !== "undefined" && window.speechSynthesis) {
+        isStoppingRef.current = true;
         window.speechSynthesis.cancel();
       }
     };
   }, []);
 
-  // Pause audio when test is paused
+  // Load voices asynchronously (Chrome quirk)
   useEffect(() => {
-    if (isPaused && isPlaying) {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.pause();
-        setIsPlaying(false);
-      }
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const load = () => { availableVoicesRef.current = window.speechSynthesis.getVoices(); };
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
+
+  // Only allow "soft pause" via the outer mock timer pause (freeze the queue,
+  // do NOT let user manually pause/rewind — real IELTS rules).
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (isPaused && window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+    } else if (!isPaused && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
     }
   }, [isPaused]);
 
@@ -86,60 +106,113 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
     }
   };
 
-  const playAudio = () => {
-    if (!test || typeof window === "undefined" || !window.speechSynthesis || isPaused) {
-      return;
+  // ---- Speaker-aware TTS (male/female alternating, Neural voices preferred) ----
+  const FEMALE_RE = /Samantha|Karen|Moira|Jenny|Aria|Zira|Susan|Hazel|Catherine|Serena|Kate|Fiona|Tessa|Victoria|Ava|Allison|Amelia|Sonia|Libby|Female|UK English Female|US English Female/i;
+  const MALE_RE = /Daniel|George|Ryan|David|Mark|Alex|Fred|Oliver|Arthur|Aaron|Tom|Guy|Male|UK English Male|US English Male/i;
+  const QUALITY_RE = /Neural|Natural|Enhanced|Premium|Google|Microsoft|Online|\(Natural\)/i;
+
+  const pickBestVoice = (opts: { female?: boolean; male?: boolean; prefLang?: string; exclude?: Set<string> }) => {
+    const all = availableVoicesRef.current.length ? availableVoicesRef.current : window.speechSynthesis.getVoices();
+    let pool = all.filter(v => v.lang.startsWith("en-"));
+    if (opts.prefLang) {
+      const langPool = pool.filter(v => v.lang.toLowerCase() === opts.prefLang!.toLowerCase());
+      if (langPool.length) pool = langPool;
     }
+    if (opts.exclude) pool = pool.filter(v => !opts.exclude!.has(v.name)) || pool;
+    const gendered = pool.filter(v => (opts.female && FEMALE_RE.test(v.name)) || (opts.male && MALE_RE.test(v.name)));
+    const genderedQuality = gendered.filter(v => QUALITY_RE.test(v.name));
+    return genderedQuality[0] || gendered[0] || pool.find(v => QUALITY_RE.test(v.name)) || pool[0];
+  };
 
-    if (isPlaying) {
-      window.speechSynthesis.pause();
-      setIsPlaying(false);
-      return;
+  const prepareSpeechLines = (transcript: string): SpeechLine[] => transcript
+    .replace(/\bSECTION\s+(\d)\b/gi, "\nSection $1.\n")
+    .split(/\n+/)
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(line => {
+      const match = line.match(/^([A-Z][A-Z\s]*(?:\s+[A-D])?|Speaker\s+[A-D]|Tutor|Student|Guide|Lecturer|Woman|Man|Agent|Customer)\s*:\s*(.+)$/i);
+      return { speaker: match?.[1]?.trim(), text: (match?.[2] || line).replace(/([.!?])\s+/g, "$1 ... ") };
+    });
+
+  const buildVoiceMap = (lines: SpeechLine[]) => {
+    voiceMapRef.current.clear();
+    const used = new Set<string>();
+    const speakers: string[] = [];
+    for (const l of lines) {
+      const key = (l.speaker || "narrator").toLowerCase();
+      if (!speakers.includes(key)) speakers.push(key);
     }
+    speakers.forEach((key, idx) => {
+      const explicitFemale = /woman|female|customer|student|ms\.|mrs\.|miss|speaker\s*b|speaker\s*d/i.test(key);
+      const explicitMale = /man|male|agent|tutor|lecturer|mr\.|sir|speaker\s*a|speaker\s*c/i.test(key);
+      const wantFemale = explicitFemale ? true : explicitMale ? false : idx % 2 === 0;
+      const langPref = idx % 2 === 0 ? "en-GB" : "en-US";
+      const v = pickBestVoice({ female: wantFemale, male: !wantFemale, prefLang: langPref, exclude: used });
+      if (v) { voiceMapRef.current.set(key, v); used.add(v.name); }
+    });
+  };
 
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-      setIsPlaying(true);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(visibleTranscript);
-    utterance.rate = speechRate;
-    utterance.pitch = 1;
-    
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang.startsWith("en-") && v.name.includes("Google")) ||
-                         voices.find(v => v.lang.startsWith("en-"));
-    if (englishVoice) utterance.voice = englishVoice;
-
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => {
-      setIsPlaying(false);
+  const speakQueuedLine = (index: number) => {
+    if (!test || typeof window === "undefined" || !window.speechSynthesis) return;
+    const line = speechQueueRef.current[index];
+    if (!line) {
       setPlaybackProgress(100);
-    };
-    utterance.onpause = () => setIsPlaying(false);
+      setAudioFinished(true);
+      setCurrentLineIdx(-1);
+      return;
+    }
+
+    const isFemale = /woman|female|customer|student|ms\.|mrs\.|miss|speaker\s*b|speaker\s*d/i.test(line.speaker || "");
+    const utterance = new SpeechSynthesisUtterance(line.text);
+    utterance.rate = isFemale ? 0.98 : 0.94;
+    utterance.pitch = 1 + (isFemale ? 0.08 : -0.05) + (/\?/.test(line.text) ? 0.04 : 0);
+    utterance.volume = 1;
+    const v = voiceMapRef.current.get((line.speaker || "narrator").toLowerCase());
+    if (v) utterance.voice = v;
+
+    utterance.onstart = () => setCurrentLineIdx(index);
     utterance.onboundary = (e) => {
-      const progress = (e.charIndex / visibleTranscript.length) * 100;
-      setPlaybackProgress(progress);
+      const total = test.transcript.length || 1;
+      setPlaybackProgress(Math.min(((spokenCharsRef.current + e.charIndex) / total) * 100, 99));
+    };
+    utterance.onend = () => {
+      if (isStoppingRef.current) return;
+      spokenCharsRef.current += line.text.length + 1;
+      window.setTimeout(() => speakQueuedLine(index + 1), 180);
     };
 
     speechSynthRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   };
 
+  const startListening = () => {
+    if (!test || typeof window === "undefined" || !window.speechSynthesis) {
+      toast.error("Text-to-speech is not available in your browser");
+      return;
+    }
+    isStoppingRef.current = false;
+    window.speechSynthesis.cancel();
+    const lines = prepareSpeechLines(test.transcript);
+    speechQueueRef.current = lines;
+    buildVoiceMap(lines);
+    spokenCharsRef.current = 0;
+    setAudioStarted(true);
+    setAudioFinished(false);
+    setPlaybackProgress(0);
+    // Small delay so the user sees the transition
+    window.setTimeout(() => speakQueuedLine(0), 400);
+  };
+
   const submitTest = async () => {
     if (!test) return;
 
     setIsSubmitting(true);
-    
-    // Stop audio
+
     if (typeof window !== "undefined" && window.speechSynthesis) {
+      isStoppingRef.current = true;
       window.speechSynthesis.cancel();
-      setIsPlaying(false);
     }
-    
+
     const timeTaken = Math.floor((Date.now() - startTime) / 1000);
 
     try {
@@ -218,8 +291,39 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
   ];
   const activeRange = sectionRanges[currentPart];
   const visibleQuestions = test.questions.slice(activeRange.start, activeRange.end);
-  const transcriptBlocks = test.transcript.split(/(?=SECTION\s+[1-4])/i);
-  const visibleTranscript = transcriptBlocks[currentPart]?.trim() || test.transcript;
+
+  // ---- IELTS-style Start gate ----
+  if (!audioStarted) {
+    return (
+      <Card className="border-accent/40">
+        <CardContent className="py-12 text-center space-y-6">
+          <div className="w-16 h-16 mx-auto rounded-full bg-accent/10 flex items-center justify-center">
+            <Headphones className="w-8 h-8 text-accent" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="font-display text-2xl font-bold text-foreground">Ready for the Listening Test</h2>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              You will hear a recording <strong>once only</strong>. Answer the questions as you listen —
+              you cannot pause, rewind, or replay the audio. Just like the real IELTS exam.
+            </p>
+          </div>
+          <div className="rounded-lg bg-accent/5 border border-accent/20 p-4 max-w-md mx-auto text-left text-sm">
+            <div className="flex items-start gap-2 text-muted-foreground">
+              <AlertCircle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                Check that your speakers or headphones are working, then press <strong>Start</strong>.
+                The audio begins immediately and plays through all 4 sections.
+              </div>
+            </div>
+          </div>
+          <Button onClick={startListening} size="lg" className="gap-2" disabled={isPaused}>
+            <Play className="w-5 h-5" />
+            Start Listening
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -231,53 +335,26 @@ export function MockListeningSection({ onComplete, isPaused }: MockListeningSect
               <Volume2 className="w-5 h-5 text-accent" />
               {activeRange.label}: {test.topic}
             </CardTitle>
-            <Badge variant="secondary">Listening</Badge>
+            <Badge variant={audioFinished ? "outline" : "secondary"} className="gap-1">
+              {audioFinished ? "Audio ended" : "Playing…"}
+            </Badge>
           </div>
           <p className="text-sm text-muted-foreground">{test.scenario}</p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant={isPlaying ? "secondary" : "default"}
-              size="icon"
-              onClick={playAudio}
-              disabled={isPaused}
-            >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </Button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <Volume2 className={`w-5 h-5 text-accent ${!audioFinished ? "animate-pulse" : ""}`} />
+            </div>
             <div className="flex-1">
               <Progress value={playbackProgress} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {audioFinished
+                  ? "The recording has ended. Complete your answers and submit."
+                  : "Audio plays once — no pause, rewind, or replay."}
+              </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowTranscript(!showTranscript)}
-              className="gap-1"
-            >
-              {showTranscript ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              {showTranscript ? "Hide" : "Show"} Transcript
-            </Button>
           </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Speed:</span>
-            <Slider
-              value={[speechRate]}
-              onValueChange={([v]) => setSpeechRate(v)}
-              min={0.5}
-              max={1.5}
-              step={0.1}
-              className="w-32"
-              disabled={isPaused}
-            />
-            <span className="text-sm font-mono">{speechRate.toFixed(1)}x</span>
-          </div>
-
-          {showTranscript && (
-            <ScrollArea className="h-[150px] p-4 rounded-lg bg-secondary/50">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{visibleTranscript}</p>
-            </ScrollArea>
-          )}
         </CardContent>
       </Card>
 
