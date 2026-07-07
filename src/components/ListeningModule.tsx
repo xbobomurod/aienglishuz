@@ -284,26 +284,57 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
       });
   };
 
-  const selectEnglishVoice = (speaker?: string) => {
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoices = voices.filter(v => v.lang.startsWith("en-"));
-    const normalized = speaker?.toLowerCase() || "";
-    const preferFemale = /customer|woman|student|speaker\s*b|speaker\s*d/i.test(normalized);
-    const preferMale = /agent|man|tutor|guide|lecturer|speaker\s*a|speaker\s*c/i.test(normalized);
+  const FEMALE_RE = /Samantha|Karen|Moira|Jenny|Aria|Zira|Susan|Hazel|Catherine|Serena|Kate|Fiona|Tessa|Victoria|Ava|Allison|Amelia|Sonia|Libby|Female|UK English Female|US English Female/i;
+  const MALE_RE = /Daniel|George|Ryan|David|Mark|Alex|Fred|Oliver|Arthur|Aaron|Tom|Guy|Male|UK English Male|US English Male/i;
+  const QUALITY_RE = /Neural|Natural|Enhanced|Premium|Google|Microsoft|Online|\(Natural\)/i;
 
-    if (preferFemale) {
-      const femaleVoice = englishVoices.find(v => /Samantha|Karen|Moira|Jenny|Aria|Zira|Susan|Hazel|Catherine|Female|Google UK English Female/i.test(v.name));
-      return femaleVoice || englishVoices[1] || englishVoices[0];
+  const pickBestVoice = (opts: { female?: boolean; male?: boolean; prefLang?: string; exclude?: Set<string> }) => {
+    const all = availableVoicesRef.current.length ? availableVoicesRef.current : window.speechSynthesis.getVoices();
+    let pool = all.filter(v => v.lang.startsWith("en-"));
+    if (opts.prefLang) {
+      const langPool = pool.filter(v => v.lang.toLowerCase() === opts.prefLang!.toLowerCase());
+      if (langPool.length) pool = langPool;
     }
+    if (opts.exclude) pool = pool.filter(v => !opts.exclude!.has(v.name)) || pool;
+    const gendered = pool.filter(v => (opts.female && FEMALE_RE.test(v.name)) || (opts.male && MALE_RE.test(v.name)));
+    const genderedQuality = gendered.filter(v => QUALITY_RE.test(v.name));
+    return (
+      genderedQuality[0] ||
+      gendered[0] ||
+      pool.find(v => QUALITY_RE.test(v.name)) ||
+      pool[0]
+    );
+  };
 
-    if (preferMale) {
-      const maleVoice = englishVoices.find(v => /Daniel|George|Ryan|David|Mark|Male|Google UK English Male/i.test(v.name));
-      return maleVoice || englishVoices[0];
+  // Build a stable speaker -> voice map based on all unique speakers in the queue.
+  // Alternates female/male so multi-speaker sections sound like real dialogue.
+  const buildVoiceMap = (lines: SpeechLine[]) => {
+    voiceMapRef.current.clear();
+    const used = new Set<string>();
+    const speakers: string[] = [];
+    for (const l of lines) {
+      const key = (l.speaker || "narrator").toLowerCase();
+      if (!speakers.includes(key)) speakers.push(key);
     }
+    speakers.forEach((key, idx) => {
+      const explicitFemale = /woman|female|customer|student|guide.*(she|her)|ms\.|mrs\.|miss|speaker\s*b|speaker\s*d/i.test(key);
+      const explicitMale = /man|male|agent|tutor|lecturer|mr\.|sir|speaker\s*a|speaker\s*c/i.test(key);
+      const wantFemale = explicitFemale ? true : explicitMale ? false : idx % 2 === 0;
+      const langPref =
+        accent === "en-GB" ? "en-GB" :
+        accent === "en-US" ? "en-US" :
+        idx % 2 === 0 ? "en-GB" : "en-US";
+      const v = pickBestVoice({ female: wantFemale, male: !wantFemale, prefLang: langPref, exclude: used });
+      if (v) {
+        voiceMapRef.current.set(key, v);
+        used.add(v.name);
+      }
+    });
+  };
 
-    return englishVoices.find(v => /Samantha|Daniel|Karen|Moira|Google|Microsoft|Natural|Online/i.test(v.name)) ||
-      voices.find(v => v.lang.startsWith("en-GB")) ||
-      englishVoices[0];
+  const getVoiceForSpeaker = (speaker?: string) => {
+    const key = (speaker || "narrator").toLowerCase();
+    return voiceMapRef.current.get(key) || pickBestVoice({ female: true, prefLang: "en-GB" });
   };
 
   const speakQueuedLine = (index: number) => {
