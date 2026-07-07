@@ -704,11 +704,35 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               {/* Playback controls */}
               <div className="flex items-center gap-4">
                 <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => jumpToLine(speechIndexRef.current - 1)}
+                  title="Previous line"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </Button>
+                <Button
                   variant={isPlaying ? "secondary" : "default"}
                   size="icon"
                   onClick={playAudio}
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => jumpToLine(speechIndexRef.current)}
+                  title="Replay current line"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => jumpToLine(speechIndexRef.current + 1)}
+                  title="Next line"
+                >
+                  <SkipForward className="w-4 h-4" />
                 </Button>
                 <div className="flex-1">
                   <Progress value={playbackProgress} className="h-2" />
@@ -725,7 +749,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               </div>
 
               {/* Voice controls */}
-              <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground">Voice style</Label>
                   <Select value={voiceStyle} onValueChange={(v) => setVoiceStyle(v as typeof voiceStyle)}>
@@ -736,6 +760,19 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                       <SelectItem value="exam">Exam calm</SelectItem>
                       <SelectItem value="natural">Natural conversation</SelectItem>
                       <SelectItem value="expressive">Expressive practice</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Accent</Label>
+                  <Select value={accent} onValueChange={(v) => setAccent(v as typeof accent)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mixed">Mixed (GB + US)</SelectItem>
+                      <SelectItem value="en-GB">British only</SelectItem>
+                      <SelectItem value="en-US">American only</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -752,16 +789,69 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                     step={0.1}
                   />
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm text-muted-foreground">Volume</Label>
+                    <span className="text-sm font-mono">{Math.round(volume * 100)}%</span>
+                  </div>
+                  <Slider
+                    value={[volume]}
+                    onValueChange={([v]) => setVolume(v)}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                  />
+                </div>
               </div>
 
               {/* Transcript (hidden by default) */}
               {showTranscript && (
                 <ScrollArea className="h-[200px] p-4 rounded-lg bg-secondary/50">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {visibleSections[Number(activeSection)] || test.transcript}
-                  </p>
+                  <div className="space-y-1 text-sm leading-relaxed">
+                    {speechQueueRef.current.length > 0 ? (
+                      speechQueueRef.current.map((line, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => jumpToLine(idx)}
+                          className={`cursor-pointer rounded px-2 py-1 transition-colors ${
+                            idx === currentLineIdx
+                              ? "bg-accent/30 text-foreground font-medium"
+                              : "hover:bg-accent/10 text-muted-foreground"
+                          }`}
+                          title="Click to jump here"
+                        >
+                          {line.speaker && (
+                            <span className="mr-2 font-semibold text-accent">{line.speaker}:</span>
+                          )}
+                          <span>{line.text}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="whitespace-pre-wrap">
+                        {visibleSections[Number(activeSection)] || test.transcript}
+                      </p>
+                    )}
+                  </div>
                 </ScrollArea>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Notes pad */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-accent" />
+                Quick notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Jot down key words while listening (names, numbers, dates)…"
+                className="min-h-[90px] text-sm"
+              />
             </CardContent>
           </Card>
 
