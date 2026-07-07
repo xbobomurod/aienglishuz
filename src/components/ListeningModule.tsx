@@ -128,13 +128,32 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
   const [showTranscript, setShowTranscript] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [speechRate, setSpeechRate] = useState(1);
+  const [volume, setVolume] = useState(1);
   const [voiceStyle, setVoiceStyle] = useState<"exam" | "natural" | "expressive">("natural");
+  const [accent, setAccent] = useState<"en-GB" | "en-US" | "mixed">("mixed");
+  const [currentLineIdx, setCurrentLineIdx] = useState<number>(-1);
+  const [notes, setNotes] = useState("");
   const [activeSection, setActiveSection] = useState("0");
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechQueueRef = useRef<SpeechLine[]>([]);
   const speechIndexRef = useRef(0);
   const spokenCharsRef = useRef(0);
   const isStoppingRef = useRef(false);
+  const voiceMapRef = useRef<Map<string, SpeechSynthesisVoice>>(new Map());
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+
+  // Keep voice list fresh (Chrome loads them async)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const load = () => {
+      availableVoicesRef.current = window.speechSynthesis.getVoices();
+    };
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   // Timer effect
   useEffect(() => {
