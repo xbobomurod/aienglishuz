@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, CheckCircle2, BookOpen, ChevronRight, ChevronLeft } from "lucide-react";
+import { Loader2, CheckCircle2, BookOpen, ChevronRight, ChevronLeft, Flag, Type, ClipboardList } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -39,6 +40,9 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState<number>(Date.now());
   const [currentPassage, setCurrentPassage] = useState(0);
+  const [flagged, setFlagged] = useState<Record<number, boolean>>({});
+  const [fontSize, setFontSize] = useState<number>(14); // px
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     generateTest();
@@ -135,6 +139,7 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
   }
 
   const answeredCount = Object.keys(answers).length;
+  const flaggedCount = Object.values(flagged).filter(Boolean).length;
   const progress = (answeredCount / test.questions.length) * 100;
   const passageRanges = [
     { label: "Passage 1", start: 0, end: 13 },
@@ -151,14 +156,26 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
       {/* Passage */}
       <Card className="lg:row-span-2">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <BookOpen className="w-5 h-5 text-primary" />
-            {activeRange.label}: {test.topic}
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <BookOpen className="w-5 h-5 text-primary" />
+              {activeRange.label}: {test.topic}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <Type className="w-4 h-4 text-muted-foreground" />
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setFontSize((s) => Math.max(12, s - 1))} disabled={isPaused}>A-</Button>
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setFontSize((s) => Math.min(22, s + 1))} disabled={isPaused}>A+</Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px] pr-4">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{visiblePassage}</p>
+            <p
+              className="leading-relaxed whitespace-pre-wrap selection:bg-primary/30"
+              style={{ fontSize: `${fontSize}px` }}
+            >
+              {visiblePassage}
+            </p>
           </ScrollArea>
         </CardContent>
       </Card>
@@ -166,10 +183,51 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
       {/* Questions */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Badge variant="outline">
-            {answeredCount}/{test.questions.length} answered
-          </Badge>
-          <Progress value={progress} className="w-32 h-2" />
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{answeredCount}/{test.questions.length} answered</Badge>
+            {flaggedCount > 0 && (
+              <Badge variant="secondary" className="gap-1">
+                <Flag className="w-3 h-3" /> {flaggedCount}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Progress value={progress} className="w-24 h-2" />
+            <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7 gap-1" disabled={isPaused}>
+                  <ClipboardList className="w-3.5 h-3.5" /> Review
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Question Review</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-8 gap-2">
+                  {test.questions.map((q, i) => {
+                    const answered = !!answers[q.id];
+                    const isFlag = !!flagged[q.id];
+                    const passageIdx = i < 13 ? 0 : i < 26 ? 1 : 2;
+                    return (
+                      <button
+                        key={q.id}
+                        onClick={() => { setCurrentPassage(passageIdx); setReviewOpen(false); }}
+                        className={`relative h-9 rounded text-xs font-medium border transition-colors ${
+                          answered ? "bg-primary/10 border-primary/40 text-primary" : "bg-muted border-border text-muted-foreground hover:bg-accent/10"
+                        }`}
+                      >
+                        {i + 1}
+                        {isFlag && <Flag className="w-3 h-3 absolute -top-1 -right-1 text-accent fill-accent" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Tap a number to jump to its passage. Flagged questions show a small marker.
+                </p>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <ScrollArea className="h-[400px]">
@@ -177,10 +235,22 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
             {visibleQuestions.map((q, index) => (
               <Card key={q.id} className={answers[q.id] ? "border-primary/50" : ""}>
                 <CardContent className="p-4">
-                  <p className="font-medium text-sm mb-3">
-                    <span className="text-primary mr-2">Q{activeRange.start + index + 1}.</span>
-                    {q.question}
-                  </p>
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <p className="font-medium text-sm">
+                      <span className="text-primary mr-2">Q{activeRange.start + index + 1}.</span>
+                      {q.question}
+                    </p>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}
+                      disabled={isPaused}
+                      aria-label="Flag for review"
+                    >
+                      <Flag className={`w-4 h-4 ${flagged[q.id] ? "text-accent fill-accent" : "text-muted-foreground"}`} />
+                    </Button>
+                  </div>
 
                   {q.type === "multiple-choice" || q.type === "true-false-not-given" ? (
                     <RadioGroup

@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle2, Mic, Sparkles, ChevronRight } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, CheckCircle2, Mic, Sparkles, ChevronRight, Timer, Play } from "lucide-react";
 import { VoiceRecorder } from "../VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +22,10 @@ interface SpeakingPart {
   prompt: string;
 }
 
+// IELTS timing per part
+const PART_LIMITS = [5 * 60, 4 * 60, 5 * 60]; // seconds
+const PREP_TIME = 60; // seconds for Part 2 preparation
+
 export function MockSpeakingSection({ onComplete, isPaused }: MockSpeakingSectionProps) {
   const { user } = useAuth();
   const [parts, setParts] = useState<SpeakingPart[]>([]);
@@ -28,10 +33,55 @@ export function MockSpeakingSection({ onComplete, isPaused }: MockSpeakingSectio
   const [transcripts, setTranscripts] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [partElapsed, setPartElapsed] = useState<Record<number, number>>({});
+  const [prepRemaining, setPrepRemaining] = useState<number>(PREP_TIME);
+  const [prepStarted, setPrepStarted] = useState(false);
+  const [prepDone, setPrepDone] = useState(false);
+  const tickRef = useRef<number | null>(null);
+  const prepRef = useRef<number | null>(null);
 
   useEffect(() => {
     generatePrompts();
   }, []);
+
+  // Per-part speaking timer
+  useEffect(() => {
+    if (isPaused || isSubmitting || isLoading) return;
+    // For Part 2, only start counting after prep is done
+    if (currentPart === 1 && !prepDone) return;
+    tickRef.current = window.setInterval(() => {
+      setPartElapsed((e) => ({ ...e, [currentPart]: (e[currentPart] || 0) + 1 }));
+    }, 1000);
+    return () => { if (tickRef.current) window.clearInterval(tickRef.current); };
+  }, [currentPart, isPaused, isSubmitting, isLoading, prepDone]);
+
+  // Part 2 prep countdown
+  useEffect(() => {
+    if (currentPart !== 1 || !prepStarted || prepDone || isPaused) return;
+    prepRef.current = window.setInterval(() => {
+      setPrepRemaining((r) => {
+        if (r <= 1) {
+          window.clearInterval(prepRef.current!);
+          setPrepDone(true);
+          toast.info("Preparation time is up. Start speaking for up to 2 minutes.");
+          return 0;
+        }
+        return r - 1;
+      });
+    }, 1000);
+    return () => { if (prepRef.current) window.clearInterval(prepRef.current); };
+  }, [currentPart, prepStarted, prepDone, isPaused]);
+
+  const startPrep = () => {
+    setPrepStarted(true);
+    toast.success("You have 1 minute to prepare. Make notes if needed.");
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
 
   const generatePrompts = async () => {
     try {
@@ -202,6 +252,11 @@ export function MockSpeakingSection({ onComplete, isPaused }: MockSpeakingSectio
     0
   );
   const canSubmit = totalWords >= 50;
+  const spent = partElapsed[currentPart] || 0;
+  const limit = PART_LIMITS[currentPart];
+  const timePct = Math.min((spent / limit) * 100, 100);
+  const overTime = spent > limit;
+  const showPrepGate = currentPart === 1 && !prepDone;
 
   return (
     <Card>
@@ -211,10 +266,15 @@ export function MockSpeakingSection({ onComplete, isPaused }: MockSpeakingSectio
             <Mic className="w-5 h-5 text-accent" />
             IELTS Speaking Test
           </CardTitle>
-          <Badge variant="outline">
-            Part {currentPart + 1} of {parts.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={overTime ? "destructive" : "outline"} className="gap-1">
+              <Timer className="w-3 h-3" />
+              {formatTime(spent)} / {formatTime(limit)}
+            </Badge>
+            <Badge variant="outline">Part {currentPart + 1} of {parts.length}</Badge>
+          </div>
         </div>
+        <Progress value={timePct} className="h-1.5 mt-2" />
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Part Navigation */}
@@ -247,29 +307,56 @@ export function MockSpeakingSection({ onComplete, isPaused }: MockSpeakingSectio
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{currentPartData.prompt}</p>
           </div>
 
-          {/* Voice Recorder */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Record Your Response</span>
-              <span className="text-sm text-muted-foreground">{wordCount} words</span>
+          {showPrepGate ? (
+            <div className="p-6 rounded-lg border border-dashed border-accent/40 bg-accent/5 text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-full bg-accent/10 flex items-center justify-center">
+                <Timer className="w-7 h-7 text-accent" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-semibold">Part 2 · Preparation</h3>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                  You have <strong>1 minute</strong> to prepare. Read the cue card above and make mental notes. When the minute ends, you should speak for 1–2 minutes.
+                </p>
+              </div>
+              {!prepStarted ? (
+                <Button onClick={startPrep} className="gap-2" disabled={isPaused}>
+                  <Play className="w-4 h-4" /> Start 1-minute Prep
+                </Button>
+              ) : (
+                <div className="max-w-xs mx-auto space-y-2">
+                  <div className="text-3xl font-bold text-accent tabular-nums">{formatTime(prepRemaining)}</div>
+                  <Progress value={((PREP_TIME - prepRemaining) / PREP_TIME) * 100} className="h-2" />
+                  <p className="text-xs text-muted-foreground">Preparation in progress…</p>
+                </div>
+              )}
             </div>
-            <VoiceRecorder 
-              transcript={currentTranscript}
-              onTranscriptChange={(text) => setTranscripts(prev => ({ ...prev, [currentPart]: text }))}
-            />
-          </div>
+          ) : (
+            <>
+              {/* Voice Recorder */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Record Your Response</span>
+                  <span className="text-sm text-muted-foreground">{wordCount} words</span>
+                </div>
+                <VoiceRecorder 
+                  transcript={currentTranscript}
+                  onTranscriptChange={(text) => setTranscripts(prev => ({ ...prev, [currentPart]: text }))}
+                />
+              </div>
 
-          {/* Manual Transcript Input */}
-          <div>
-            <span className="text-sm font-medium block mb-2">Or type your response:</span>
-            <Textarea
-              placeholder="Type your speaking response here..."
-              value={currentTranscript}
-              onChange={(e) => setTranscripts(prev => ({ ...prev, [currentPart]: e.target.value }))}
-              className="min-h-[150px] resize-none"
-              disabled={isPaused}
-            />
-          </div>
+              {/* Manual Transcript Input */}
+              <div>
+                <span className="text-sm font-medium block mb-2">Or type your response:</span>
+                <Textarea
+                  placeholder="Type your speaking response here..."
+                  value={currentTranscript}
+                  onChange={(e) => setTranscripts(prev => ({ ...prev, [currentPart]: e.target.value }))}
+                  className="min-h-[150px] resize-none"
+                  disabled={isPaused}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Navigation */}

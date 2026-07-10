@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, CheckCircle2, PenTool, AlertCircle, BarChart3, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, PenTool, AlertCircle, BarChart3, FileText, Clock, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -22,9 +22,11 @@ interface TaskPrompt {
 type TaskTab = "task1" | "task2";
 
 const taskConfig = {
-  "task1": { minWords: 150, label: "Task 1: Academic Report", icon: BarChart3 },
-  "task2": { minWords: 250, label: "Task 2: Essay", icon: FileText },
+  "task1": { minWords: 150, label: "Task 1: Academic Report", icon: BarChart3, recommendedMin: 20 },
+  "task2": { minWords: 250, label: "Task 2: Essay", icon: FileText, recommendedMin: 40 },
 };
+
+const DRAFT_STORAGE_KEY = "mock-writing-draft-v1";
 
 export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionProps) {
   const { user } = useAuth();
@@ -36,6 +38,41 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<TaskTab>("task1");
+  const [elapsed, setElapsed] = useState<Record<TaskTab, number>>({ task1: 0, task2: 0 });
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const tickRef = useRef<number | null>(null);
+
+  // Load drafts on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.essays) setEssays(parsed.essays);
+        if (parsed?.elapsed) setElapsed(parsed.elapsed);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Autosave drafts every 5s when content changes
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ essays, elapsed }));
+        setSavedAt(new Date());
+      } catch { /* quota */ }
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [essays, elapsed]);
+
+  // Per-task elapsed timer (only for active tab, and not while paused / submitting)
+  useEffect(() => {
+    if (isPaused || isSubmitting || isLoading) return;
+    tickRef.current = window.setInterval(() => {
+      setElapsed((e) => ({ ...e, [activeTab]: e[activeTab] + 1 }));
+    }, 1000);
+    return () => { if (tickRef.current) window.clearInterval(tickRef.current); };
+  }, [activeTab, isPaused, isSubmitting, isLoading]);
 
   useEffect(() => {
     generatePrompts();
@@ -83,6 +120,7 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
       const roundedBand = Math.round(overallBand * 2) / 2;
 
       toast.success(`Writing complete! Task 1: ${task1Score} • Task 2: ${task2Score} • Overall: ${roundedBand}`);
+      try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* ignore */ }
       onComplete(roundedBand);
     } catch (err) {
       console.error("Error submitting writing:", err);
@@ -130,6 +168,12 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
   };
 
   const getWordCount = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
+  const getParagraphCount = (text: string) => text.trim().split(/\n\s*\n/).filter(Boolean).length;
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
 
   if (isLoading) {
     return (
@@ -170,13 +214,22 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
     const { count, min, complete } = allStatus[tab];
     const config = taskConfig[tab];
     const Icon = config.icon;
+    const spent = elapsed[tab];
+    const overTime = spent > config.recommendedMin * 60;
+    const paras = getParagraphCount(essays[tab]);
     
     return (
       <TabsContent value={tab} className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
         <div className="p-3 sm:p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon className="w-4 h-4 text-primary" />
-            <span className="font-medium text-xs sm:text-sm">{config.label} Prompt</span>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Icon className="w-4 h-4 text-primary" />
+              <span className="font-medium text-xs sm:text-sm">{config.label} Prompt</span>
+            </div>
+            <Badge variant={overTime ? "destructive" : "outline"} className="gap-1 text-[10px] sm:text-xs">
+              <Clock className="w-3 h-3" />
+              {formatTime(spent)} / {config.recommendedMin}:00
+            </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">{prompt}</p>
         </div>
@@ -184,9 +237,12 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs sm:text-sm font-medium">Your Response</span>
-            <span className={`text-xs sm:text-sm ${complete ? "text-success" : "text-muted-foreground"}`}>
-              {count}/{min}+ {complete && <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline ml-1" />}
-            </span>
+            <div className="flex items-center gap-3 text-[11px] sm:text-xs text-muted-foreground">
+              <span>{paras} {paras === 1 ? "paragraph" : "paragraphs"}</span>
+              <span className={complete ? "text-success" : ""}>
+                {count}/{min}+ {complete && <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline ml-1" />}
+              </span>
+            </div>
           </div>
           <Textarea
             placeholder={`Write your ${config.label.toLowerCase()} here... (minimum ${min} words)`}
@@ -209,10 +265,17 @@ export function MockWritingSection({ onComplete, isPaused }: MockWritingSectionP
   return (
     <Card>
       <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-          <PenTool className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-          IELTS Writing Test
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <PenTool className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            IELTS Writing Test
+          </CardTitle>
+          {savedAt && (
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Save className="w-3 h-3" /> Draft saved {savedAt.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TaskTab)}>
