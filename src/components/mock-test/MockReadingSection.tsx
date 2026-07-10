@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, CheckCircle2, BookOpen, ChevronRight, ChevronLeft, Flag, Type, ClipboardList } from "lucide-react";
+import { Loader2, CheckCircle2, BookOpen, ChevronRight, ChevronLeft, Flag, Type, ClipboardList, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -43,6 +44,8 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [fontSize, setFontSize] = useState<number>(14); // px
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewTab, setReviewTab] = useState<"all" | "unanswered" | "flagged">("all");
+  const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   useEffect(() => {
     generateTest();
@@ -151,6 +154,30 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
   const passageBlocks = test.passage.split(/(?=PASSAGE\s+[123])/i);
   const visiblePassage = passageBlocks[currentPassage]?.trim() || test.passage;
 
+  const passageIndexForQ = (idx: number) => (idx < 13 ? 0 : idx < 26 ? 1 : 2);
+
+  const jumpToQuestion = (idx: number) => {
+    const pIdx = passageIndexForQ(idx);
+    const q = test.questions[idx];
+    setReviewOpen(false);
+    if (pIdx !== currentPassage) setCurrentPassage(pIdx);
+    // Scroll after layout settles
+    window.setTimeout(() => {
+      const el = questionRefs.current[q.id];
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.classList.add("ring-2", "ring-primary/60");
+      window.setTimeout(() => el?.classList.remove("ring-2", "ring-primary/60"), 1500);
+    }, pIdx !== currentPassage ? 120 : 0);
+  };
+
+  const filteredForReview = test.questions
+    .map((q, i) => ({ q, i }))
+    .filter(({ q }) => {
+      if (reviewTab === "unanswered") return !answers[q.id];
+      if (reviewTab === "flagged") return !!flagged[q.id];
+      return true;
+    });
+
   return (
     <div className="grid lg:grid-cols-2 gap-6">
       {/* Passage */}
@@ -199,41 +226,115 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
                   <ClipboardList className="w-3.5 h-3.5" /> Review
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Question Review</DialogTitle>
                 </DialogHeader>
-                <div className="grid grid-cols-8 gap-2">
-                  {test.questions.map((q, i) => {
-                    const answered = !!answers[q.id];
-                    const isFlag = !!flagged[q.id];
-                    const passageIdx = i < 13 ? 0 : i < 26 ? 1 : 2;
-                    return (
-                      <button
-                        key={q.id}
-                        onClick={() => { setCurrentPassage(passageIdx); setReviewOpen(false); }}
-                        className={`relative h-9 rounded text-xs font-medium border transition-colors ${
-                          answered ? "bg-primary/10 border-primary/40 text-primary" : "bg-muted border-border text-muted-foreground hover:bg-accent/10"
-                        }`}
-                      >
-                        {i + 1}
-                        {isFlag && <Flag className="w-3 h-3 absolute -top-1 -right-1 text-accent fill-accent" />}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Tap a number to jump to its passage. Flagged questions show a small marker.
+                <Tabs value={reviewTab} onValueChange={(v) => setReviewTab(v as typeof reviewTab)}>
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="all">All ({test.questions.length})</TabsTrigger>
+                    <TabsTrigger value="unanswered">
+                      Unanswered ({test.questions.length - answeredCount})
+                    </TabsTrigger>
+                    <TabsTrigger value="flagged" className="gap-1">
+                      <Flag className="w-3 h-3" /> Flagged ({flaggedCount})
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value={reviewTab} className="mt-4">
+                    {filteredForReview.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {reviewTab === "flagged"
+                          ? "No flagged questions yet. Tap the flag icon on any question to save it here."
+                          : reviewTab === "unanswered"
+                          ? "Great — every question has an answer."
+                          : "No questions."}
+                      </p>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-8 gap-2">
+                          {filteredForReview.map(({ q, i }) => {
+                            const answered = !!answers[q.id];
+                            const isFlag = !!flagged[q.id];
+                            return (
+                              <button
+                                key={q.id}
+                                onClick={() => jumpToQuestion(i)}
+                                className={`relative h-9 rounded text-xs font-medium border transition-colors ${
+                                  answered
+                                    ? "bg-primary/10 border-primary/40 text-primary"
+                                    : "bg-muted border-border text-muted-foreground hover:bg-accent/10"
+                                }`}
+                                title={q.question}
+                              >
+                                {i + 1}
+                                {isFlag && (
+                                  <Flag className="w-3 h-3 absolute -top-1 -right-1 text-accent fill-accent" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {reviewTab === "flagged" && (
+                          <div className="mt-4 space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {filteredForReview.map(({ q, i }) => (
+                              <button
+                                key={`row-${q.id}`}
+                                onClick={() => jumpToQuestion(i)}
+                                className="w-full text-left p-2.5 rounded-md border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors flex items-start gap-2"
+                              >
+                                <Badge variant="outline" className="shrink-0 text-[10px]">Q{i + 1}</Badge>
+                                <span className="text-xs text-muted-foreground line-clamp-2">{q.question}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </TabsContent>
+                </Tabs>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Tap a number to jump directly to that question.
                 </p>
               </DialogContent>
             </Dialog>
           </div>
         </div>
 
+        {/* Flagged quick strip */}
+        {flaggedCount > 0 && (
+          <div className="flex items-center gap-2 p-2 rounded-lg border border-accent/30 bg-accent/5 overflow-x-auto">
+            <Flag className="w-3.5 h-3.5 text-accent shrink-0 fill-accent" />
+            <span className="text-[11px] font-medium text-accent shrink-0">Flagged:</span>
+            <div className="flex items-center gap-1.5 flex-1">
+              {test.questions.map((q, i) => flagged[q.id] ? (
+                <div key={q.id} className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    onClick={() => jumpToQuestion(i)}
+                    className="h-6 min-w-[28px] px-1.5 rounded text-[11px] font-semibold bg-background border border-accent/40 text-accent hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    {i + 1}
+                  </button>
+                  <button
+                    onClick={() => setFlagged((f) => ({ ...f, [q.id]: false }))}
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label={`Unflag Q${i + 1}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : null)}
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="h-[400px]">
           <div className="space-y-4 pr-4">
             {visibleQuestions.map((q, index) => (
-              <Card key={q.id} className={answers[q.id] ? "border-primary/50" : ""}>
+              <Card
+                key={q.id}
+                ref={(el) => { questionRefs.current[q.id] = el; }}
+                className={`transition-shadow ${answers[q.id] ? "border-primary/50" : ""} ${flagged[q.id] ? "border-accent/60 bg-accent/5" : ""}`}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <p className="font-medium text-sm">
