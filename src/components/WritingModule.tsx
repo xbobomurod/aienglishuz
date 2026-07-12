@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Send, Loader2, ArrowLeft, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Send, Loader2, ArrowLeft, CheckCircle2, AlertCircle, Sparkles, Clock, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScoreDisplay } from "./ScoreDisplay";
@@ -66,6 +66,50 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [feedback, setFeedback] = useState<WritingFeedback | null>(null);
   const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const startRef = useRef<number>(Date.now());
+
+  const DRAFT_KEY = `writing-draft-${taskType}`;
+  const RECOMMENDED = taskType === "task1" ? 20 : 40;
+
+  // Load draft on task change
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.essay) setEssay(parsed.essay);
+        if (parsed.topic && !topic) setTopic(parsed.topic);
+      } else {
+        setEssay("");
+      }
+    } catch { /* noop */ }
+    startRef.current = Date.now();
+    setElapsed(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskType]);
+
+  // Elapsed timer
+  useEffect(() => {
+    if (feedback) return;
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [feedback]);
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (!essay && !topic) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ essay, topic }));
+        setSavedAt(new Date());
+      } catch { /* noop */ }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [essay, topic, DRAFT_KEY]);
+
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   
   const { 
     saveWritingEvaluation, 
@@ -167,6 +211,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
         setSavedTaskId(crypto.randomUUID());
         toast.success(`Graded and saved! IELTS Band: ${data.bandScore}`);
       }
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
     } catch (err) {
       console.error("Error:", err);
       toast.error("Something went wrong. Please try again.");
@@ -176,6 +221,7 @@ export function WritingModule({ onBack }: WritingModuleProps) {
   };
 
   const wordCount = essay.trim().split(/\s+/).filter(Boolean).length;
+  const paragraphCount = essay.split(/\n\s*\n/).filter((p) => p.trim().length > 0).length;
   const previousScore = getPreviousWritingScore();
 
   const getImprovementAreas = (): string[] => {
@@ -275,9 +321,17 @@ export function WritingModule({ onBack }: WritingModuleProps) {
               <label className="block text-sm font-medium text-foreground">
                 Your {getTaskLabel(taskType)}
               </label>
-              <span className={`text-xs sm:text-sm ${wordCount < minWordCount ? 'text-muted-foreground' : 'text-success'}`}>
-                {wordCount}/{minWordCount}+ {wordCount >= minWordCount && <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline ml-1" />}
-              </span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  {formatTime(elapsed)}
+                  <span className="opacity-60">/ {RECOMMENDED}m</span>
+                </span>
+                <span className="text-muted-foreground">· {paragraphCount} ¶</span>
+                <span className={wordCount < minWordCount ? "text-muted-foreground" : "text-success"}>
+                  · {wordCount}/{minWordCount}+ {wordCount >= minWordCount && <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline ml-1" />}
+                </span>
+              </div>
             </div>
             <Textarea
               placeholder={`Write your ${getTaskLabel(taskType).toLowerCase()} here... (minimum ${minWordCount} words)`}
@@ -285,6 +339,11 @@ export function WritingModule({ onBack }: WritingModuleProps) {
               onChange={(e) => setEssay(e.target.value)}
               className="min-h-[180px] sm:min-h-[250px] bg-card resize-none text-sm"
             />
+            {savedAt && (
+              <p className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                <Save className="w-3 h-3" /> Draft saved {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
           </div>
 
           <Button 

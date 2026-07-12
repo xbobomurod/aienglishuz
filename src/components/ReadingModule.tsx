@@ -12,6 +12,7 @@ import {
   Highlighter,
   Eraser
 } from "lucide-react";
+import { Flag, ClipboardList, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Settings2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useLatencyEstimator } from "@/hooks/useLatencyEstimator";
 import {
   Select,
@@ -96,6 +98,10 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
   const [highlightMode, setHighlightMode] = useState(false);
   const [fontScale, setFontScale] = useState<"sm" | "base" | "lg" | "xl">("lg");
   const passageRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const [flagged, setFlagged] = useState<Record<number, boolean>>({});
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewTab, setReviewTab] = useState<"all" | "unanswered" | "flagged">("all");
 
   const fontClass = {
     sm: "text-sm leading-relaxed",
@@ -335,6 +341,37 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
   const answeredCount = Object.keys(answers).length;
   const progress = test ? (answeredCount / test.questions.length) * 100 : 0;
+  const flaggedCount = Object.values(flagged).filter(Boolean).length;
+
+  const passageIndexForQ = (qid: number) => {
+    for (let i = 0; i < visiblePassages.length; i++) {
+      const qs = getQuestionsForPassage(i);
+      if (qs.some((q) => q.id === qid)) return i;
+    }
+    return 0;
+  };
+
+  const jumpToQuestion = (qid: number) => {
+    const pIdx = passageIndexForQ(qid);
+    setReviewOpen(false);
+    if (String(pIdx) !== activePassage) setActivePassage(String(pIdx));
+    window.setTimeout(() => {
+      const el = questionRefs.current[qid];
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.classList.add("ring-2", "ring-primary/60");
+      window.setTimeout(() => el?.classList.remove("ring-2", "ring-primary/60"), 1500);
+    }, String(pIdx) !== activePassage ? 120 : 0);
+  };
+
+  const filteredForReview = test
+    ? test.questions
+        .map((q, i) => ({ q, i }))
+        .filter(({ q }) => {
+          if (reviewTab === "unanswered") return !answers[q.id];
+          if (reviewTab === "flagged") return !!flagged[q.id];
+          return true;
+        })
+    : [];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -537,21 +574,130 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
                 <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {passageAnswered}/{passageQuestions.length} answered in this passage
-              </span>
-              <Progress value={progress} className="w-32 h-2" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {passageAnswered}/{passageQuestions.length} in passage
+                </span>
+                {flaggedCount > 0 && (
+                  <Badge variant="secondary" className="gap-1">
+                    <Flag className="w-3 h-3" /> {flaggedCount}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Progress value={progress} className="w-24 h-2" />
+                <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-7 gap-1">
+                      <ClipboardList className="w-3.5 h-3.5" /> Review
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Question Review</DialogTitle>
+                    </DialogHeader>
+                    <Tabs value={reviewTab} onValueChange={(v) => setReviewTab(v as typeof reviewTab)}>
+                      <TabsList className="grid grid-cols-3 w-full">
+                        <TabsTrigger value="all">All ({test.questions.length})</TabsTrigger>
+                        <TabsTrigger value="unanswered">Unanswered ({test.questions.length - answeredCount})</TabsTrigger>
+                        <TabsTrigger value="flagged" className="gap-1">
+                          <Flag className="w-3 h-3" /> Flagged ({flaggedCount})
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value={reviewTab} className="mt-4">
+                        {filteredForReview.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-8">
+                            {reviewTab === "flagged"
+                              ? "No flagged questions yet. Tap the flag icon on any question to save it here."
+                              : reviewTab === "unanswered"
+                              ? "Great — every question has an answer."
+                              : "No questions."}
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-8 gap-2">
+                            {filteredForReview.map(({ q, i }) => {
+                              const answered = !!answers[q.id];
+                              const isFlag = !!flagged[q.id];
+                              return (
+                                <button
+                                  key={q.id}
+                                  onClick={() => jumpToQuestion(q.id)}
+                                  className={`relative h-9 rounded text-xs font-medium border transition-colors ${
+                                    answered
+                                      ? "bg-primary/10 border-primary/40 text-primary"
+                                      : "bg-muted border-border text-muted-foreground hover:bg-accent/10"
+                                  }`}
+                                  title={q.question}
+                                >
+                                  {i + 1}
+                                  {isFlag && (
+                                    <Flag className="w-3 h-3 absolute -top-1 -right-1 text-accent fill-accent" />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Tap a number to jump directly to that question.
+                    </p>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
+
+            {flaggedCount > 0 && (
+              <div className="flex items-center gap-2 p-2 rounded-lg border border-accent/30 bg-accent/5 overflow-x-auto">
+                <Flag className="w-3.5 h-3.5 text-accent shrink-0 fill-accent" />
+                <span className="text-[11px] font-medium text-accent shrink-0">Flagged:</span>
+                <div className="flex items-center gap-1.5 flex-1">
+                  {test.questions.map((q, i) => flagged[q.id] ? (
+                    <div key={q.id} className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={() => jumpToQuestion(q.id)}
+                        className="h-6 min-w-[28px] px-1.5 rounded text-[11px] font-semibold bg-background border border-accent/40 text-accent hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        {i + 1}
+                      </button>
+                      <button
+                        onClick={() => setFlagged((f) => ({ ...f, [q.id]: false }))}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label={`Unflag Q${i + 1}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : null)}
+                </div>
+              </div>
+            )}
 
             <ScrollArea className="h-[450px]">
               <div className="space-y-4 pr-4">
                 {passageQuestions.map((q) => (
-                  <Card key={q.id} className={answers[q.id] ? "border-primary/50" : ""}>
+                  <Card
+                    key={q.id}
+                    ref={(el) => { questionRefs.current[q.id] = el; }}
+                    className={`transition-shadow ${answers[q.id] ? "border-primary/50" : ""} ${flagged[q.id] ? "border-accent/60 bg-accent/5" : ""}`}
+                  >
                     <CardContent className="p-4">
-                      <p className="font-medium text-sm mb-3">
-                        <span className="text-primary mr-2">Q{q.id}.</span>
-                        {q.question}
-                      </p>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <p className="font-medium text-sm">
+                          <span className="text-primary mr-2">Q{q.id}.</span>
+                          {q.question}
+                        </p>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}
+                          aria-label="Flag for review"
+                        >
+                          <Flag className={`w-4 h-4 ${flagged[q.id] ? "text-accent fill-accent" : "text-muted-foreground"}`} />
+                        </Button>
+                      </div>
 
                       {q.type === "multiple-choice" || q.type === "true-false-not-given" || q.type === "matching" ? (
                         <RadioGroup
