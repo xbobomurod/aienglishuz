@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Send, Loader2, ArrowLeft, Volume2, Lightbulb, Sparkles, Timer } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Send, Loader2, ArrowLeft, Volume2, Lightbulb, Sparkles, Timer, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScoreDisplay } from "./ScoreDisplay";
@@ -89,6 +89,35 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
   const [cueNotes, setCueNotes] = useState("");
   const [hideTopicWhileSpeaking, setHideTopicWhileSpeaking] = useState(false);
   const [zoomMode, setZoomMode] = useState(false);
+  const [prepRemaining, setPrepRemaining] = useState(60);
+  const [prepRunning, setPrepRunning] = useState(false);
+  const [prepDone, setPrepDone] = useState(false);
+  const prepStartedFor = useRef<string>("");
+
+  // Reset prep when task changes
+  useEffect(() => {
+    setPrepRemaining(60);
+    setPrepRunning(false);
+    setPrepDone(false);
+    prepStartedFor.current = "";
+  }, [taskType, topic]);
+
+  // Prep countdown
+  useEffect(() => {
+    if (!prepRunning || prepRemaining <= 0) return;
+    const t = setInterval(() => {
+      setPrepRemaining((r) => {
+        if (r <= 1) {
+          setPrepRunning(false);
+          setPrepDone(true);
+          toast.info("Prep time is up — start speaking!");
+          return 0;
+        }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [prepRunning, prepRemaining]);
 
   const {
     saveSpeakingEvaluation, 
@@ -408,15 +437,33 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     📝 Prep Notes (1 min)
                   </label>
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hideTopicWhileSpeaking}
-                      onChange={(e) => setHideTopicWhileSpeaking(e.target.checked)}
-                      className="accent-primary"
-                    />
-                    Hide cue card while speaking
-                  </label>
+                  <div className="flex items-center gap-3">
+                    {!prepRunning && !prepDone ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-xs"
+                        disabled={!topic}
+                        onClick={() => { setPrepRunning(true); prepStartedFor.current = topic; }}
+                      >
+                        <Play className="w-3 h-3" /> Start prep
+                      </Button>
+                    ) : (
+                      <span className={`text-xs font-mono font-semibold ${prepRemaining <= 10 ? "text-destructive" : "text-primary"}`}>
+                        <Timer className="w-3 h-3 inline mr-1" />
+                        {Math.floor(prepRemaining / 60)}:{(prepRemaining % 60).toString().padStart(2, "0")}
+                      </span>
+                    )}
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hideTopicWhileSpeaking}
+                        onChange={(e) => setHideTopicWhileSpeaking(e.target.checked)}
+                        className="accent-primary"
+                      />
+                      Hide while speaking
+                    </label>
+                  </div>
                 </div>
                 <Textarea
                   placeholder="Jot down quick bullet points: where • when • who • why..."
@@ -424,6 +471,9 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                   onChange={(e) => setCueNotes(e.target.value)}
                   className="min-h-[80px] bg-secondary/20 resize-none font-mono text-xs"
                 />
+                {prepDone && (
+                  <p className="text-[11px] text-success">✓ Prep complete — you should now speak for 1–2 minutes.</p>
+                )}
               </div>
             )}
           </div>
