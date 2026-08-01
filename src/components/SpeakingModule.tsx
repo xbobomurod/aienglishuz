@@ -22,6 +22,7 @@ import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
 import { useTestSession } from "@/hooks/useTestSession";
 import { TestSessionControls } from "@/components/TestSessionControls";
+import { ExamTimerBar } from "@/components/ExamTimerBar";
 import { toast } from "sonner";
 
 interface SpeakingModuleProps {
