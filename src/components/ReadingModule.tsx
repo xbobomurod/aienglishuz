@@ -40,6 +40,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTestSession } from "@/hooks/useTestSession";
 import { TestSessionControls } from "@/components/TestSessionControls";
+import { ExamTimerBar } from "@/components/ExamTimerBar";
 import { toast } from "sonner";
 
 interface ReadingModuleProps {
