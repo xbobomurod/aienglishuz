@@ -13,6 +13,7 @@ import { useSearchParams } from "react-router-dom";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
 import { useTestSession } from "@/hooks/useTestSession";
 import { TestSessionControls } from "@/components/TestSessionControls";
+import { ExamTimerBar } from "@/components/ExamTimerBar";
 import { toast } from "sonner";
 
 interface WritingModuleProps {
@@ -317,22 +318,25 @@ export function WritingModule({ onBack }: WritingModuleProps) {
           
           {/* Essay Input */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-foreground">
-                Your {getTaskLabel(taskType)}
-              </label>
-              <div className="flex items-center gap-2 text-xs sm:text-sm">
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  {formatTime(elapsed)}
-                  <span className="opacity-60">/ {RECOMMENDED}m</span>
-                </span>
-                <span className="text-muted-foreground">· {paragraphCount} ¶</span>
-                <span className={wordCount < minWordCount ? "text-muted-foreground" : "text-success"}>
-                  · {wordCount}/{minWordCount}+ {wordCount >= minWordCount && <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 inline ml-1" />}
-                </span>
-              </div>
-            </div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Your {getTaskLabel(taskType)}
+            </label>
+            <ExamTimerBar
+              className="mb-2"
+              seconds={elapsed}
+              target={RECOMMENDED * 60}
+              mode="up"
+              label={getTaskLabel(taskType)}
+              meta={
+                <>
+                  <span>{paragraphCount} ¶</span>
+                  <span className={wordCount < minWordCount ? "text-muted-foreground" : "text-success"}>
+                    {wordCount}/{minWordCount}+
+                    {wordCount >= minWordCount && <CheckCircle2 className="w-3 h-3 inline ml-1" />}
+                  </span>
+                </>
+              }
+            />
             <Textarea
               placeholder={`Write your ${getTaskLabel(taskType).toLowerCase()} here... (minimum ${minWordCount} words)`}
               value={essay}
