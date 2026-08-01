@@ -438,7 +438,7 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                     📝 Prep Notes (1 min)
                   </label>
                   <div className="flex items-center gap-3">
-                    {!prepRunning && !prepDone ? (
+                    {!prepRunning && !prepDone && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -448,11 +448,6 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                       >
                         <Play className="w-3 h-3" /> Start prep
                       </Button>
-                    ) : (
-                      <span className={`text-xs font-mono font-semibold ${prepRemaining <= 10 ? "text-destructive" : "text-primary"}`}>
-                        <Timer className="w-3 h-3 inline mr-1" />
-                        {Math.floor(prepRemaining / 60)}:{(prepRemaining % 60).toString().padStart(2, "0")}
-                      </span>
                     )}
                     <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                       <input
@@ -465,6 +460,14 @@ export function SpeakingModule({ onBack }: SpeakingModuleProps) {
                     </label>
                   </div>
                 </div>
+                {(prepRunning || prepDone) && (
+                  <ExamTimerBar
+                    seconds={prepRemaining}
+                    target={60}
+                    mode="down"
+                    label="Prep time"
+                  />
+                )}
                 <Textarea
                   placeholder="Jot down quick bullet points: where • when • who • why..."
                   value={cueNotes}
