@@ -389,10 +389,14 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
           </p>
         </div>
         {startTime && !result && (
-          <Badge variant="outline" className="gap-1">
-            <Clock className="w-3 h-3" />
-            {formatTime(elapsedTime)}
-          </Badge>
+          <ExamTimerBar
+            className="w-52"
+            seconds={elapsedTime}
+            target={60 * 60}
+            mode="up"
+            label="Reading"
+            compact
+          />
         )}
       </div>
 
