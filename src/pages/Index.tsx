@@ -21,6 +21,7 @@ import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { FocusModeFab } from "@/components/FocusModeFab";
 import { SavedWordsFab } from "@/components/SavedWordsFab";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import Landing from "./Landing";
 
 type Module = "home" | "learning" | "writing" | "speaking" | "reading" | "listening" | "mocktest";
 
@@ -74,10 +75,10 @@ const Index = () => {
   }, [location.pathname, searchParams]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated && location.pathname !== "/") {
       navigate("/auth");
     }
-  }, [isLoading, isAuthenticated, navigate]);
+  }, [isLoading, isAuthenticated, navigate, location.pathname]);
 
   const handleSelectModule = (module: Module) => {
     setActiveModule(module);
@@ -108,7 +109,7 @@ const Index = () => {
   }
 
   if (!isAuthenticated) {
-    return null;
+    return location.pathname === "/" ? <Landing /> : null;
   }
 
   const userEmail = user?.email || "";

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { BookOpen, Loader2, Mail, Lock, User as UserIcon, ArrowLeft } from "lucide-react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { BookOpen, Loader2, Mail, Lock, User as UserIcon, ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,9 @@ type AuthView = "auth" | "forgot-password";
 export default function Auth() {
   const navigate = useNavigate();
   const { signIn, signUp, isAuthenticated, isLoading: authLoading } = useAuth();
-  
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("mode") === "signup" ? "signup" : "signin";
+
   const [view, setView] = useState<AuthView>("auth");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -151,17 +153,60 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background bg-[linear-gradient(180deg,hsl(var(--secondary)/0.9),transparent_360px)] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background grid lg:grid-cols-2">
+      {/* Brand panel */}
+      <aside className="hidden lg:flex flex-col justify-between gradient-hero border-r border-border p-12">
+        <Link to="/" className="flex items-center gap-2 w-fit">
+          <div className="w-10 h-10 rounded-xl gradient-accent flex items-center justify-center shadow-card">
+            <BookOpen className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <span className="font-display text-xl font-bold text-foreground">IELTS Coach</span>
+        </Link>
+
+        <div className="max-w-md">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-border rounded-full bg-card shadow-soft mb-6">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
+            <span className="text-[11px] font-bold tracking-[0.16em] uppercase text-primary">Free for students</span>
+          </div>
+          <h2 className="font-display text-4xl text-foreground leading-[1.1] mb-4">
+            Practise today,
+            <br />
+            <span className="text-primary">know your band tonight.</span>
+          </h2>
+          <ul className="space-y-3 mt-8">
+            {[
+              "Full mock tests for all four skills",
+              "AI band scores with criterion breakdown",
+              "Zoom-style speaking room with an AI examiner",
+              "Streaks, saved words and progress charts",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm text-foreground">
+                <CheckCircle2 className="w-4 h-4 text-success mt-0.5 shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} IELTS Coach</p>
+      </aside>
+
+      {/* Form panel */}
+      <div className="flex items-center justify-center p-4 sm:p-8 bg-background bg-[linear-gradient(180deg,hsl(var(--secondary)/0.9),transparent_320px)]">
       <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 mb-4">
+        {/* Logo (mobile) */}
+        <div className="text-center lg:hidden">
+          <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <div className="w-12 h-12 rounded-2xl gradient-accent flex items-center justify-center shadow-card">
               <BookOpen className="w-6 h-6 text-primary-foreground" />
             </div>
-          </div>
+          </Link>
           <h1 className="font-display text-3xl font-bold text-foreground">IELTS Coach</h1>
           <p className="text-muted-foreground mt-2">Practice IELTS with clear AI feedback</p>
+        </div>
+        <div className="hidden lg:block">
+          <h1 className="font-display text-2xl font-bold text-foreground">Welcome</h1>
+          <p className="text-muted-foreground text-sm mt-1">Sign in or create your free student account.</p>
         </div>
 
         {/* Forgot Password View */}
@@ -241,7 +286,7 @@ export default function Auth() {
         {/* Auth Card */}
         {view === "auth" && (
           <Card className="shadow-card">
-            <Tabs defaultValue="signin">
+            <Tabs defaultValue={defaultTab}>
               <CardHeader>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -363,6 +408,10 @@ export default function Auth() {
             </Tabs>
           </Card>
         )}
+        <p className="text-center text-xs text-muted-foreground">
+          <Link to="/" className="hover:text-foreground transition-colors">← Back to home</Link>
+        </p>
+      </div>
       </div>
     </div>
   );
