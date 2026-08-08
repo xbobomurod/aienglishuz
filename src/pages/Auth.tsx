@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { BookOpen, Loader2, Mail, Lock, User as UserIcon, ArrowLeft } from "lucide-react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { BookOpen, Loader2, Mail, Lock, User as UserIcon, ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,9 @@ type AuthView = "auth" | "forgot-password";
 export default function Auth() {
   const navigate = useNavigate();
   const { signIn, signUp, isAuthenticated, isLoading: authLoading } = useAuth();
-  
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("mode") === "signup" ? "signup" : "signin";
+
   const [view, setView] = useState<AuthView>("auth");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
