@@ -1,6 +1,7 @@
 import { BookOpen, Mic, PenTool, Headphones, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StreakCard } from "./StreakCard";
+import { ExamCountdownCard } from "./ExamCountdownCard";
 
 interface HomeModuleProps {
   onSelectModule: (module: "learning" | "writing" | "speaking" | "reading" | "listening" | "mocktest") => void;
@@ -41,8 +42,9 @@ export function HomeModule({ onSelectModule }: HomeModuleProps) {
   return (
     <div className="animate-fade-in">
       <div className="max-w-7xl mx-auto px-1 sm:px-4 lg:px-6 py-6 sm:py-12 lg:py-16">
-        <div className="mb-8 sm:mb-10">
+        <div className="mb-8 sm:mb-10 grid gap-4 lg:grid-cols-2">
           <StreakCard />
+          <ExamCountdownCard />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-14 items-center">
           {/* Editorial copy */}
