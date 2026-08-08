@@ -27,6 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useEvaluationHistory } from "@/hooks/useEvaluationHistory";
 import { DailyStudyTask, useLearningCoach } from "@/hooks/useLearningCoach";
+import { VocabFlashcards } from "@/components/VocabFlashcards";
 
 interface LearningModuleProps {
   onBack: () => void;
@@ -461,6 +462,10 @@ export function LearningModule({ onBack, onSelectModule }: LearningModuleProps) 
             </div>
           </CardContent>
         </Card>
+      </section>
+
+      <section>
+        <VocabFlashcards />
       </section>
     </div>
   );
