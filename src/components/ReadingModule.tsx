@@ -698,9 +698,9 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                     ref={(el) => { questionRefs.current[q.id] = el; }}
                     className={`transition-shadow ${answers[q.id] ? "border-primary/50" : ""} ${flagged[q.id] ? "border-accent/60 bg-accent/5" : ""}`}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <p className="font-medium text-sm">
+                        <p className="font-medium text-base leading-snug">
                           <span className="text-primary mr-2">Q{q.id}.</span>
                           {q.question}
                         </p>
@@ -726,7 +726,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                                 value={q.type === "true-false-not-given" ? option : option.charAt(0)}
                                 id={`q${q.id}-${i}`}
                               />
-                              <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
+                              <Label htmlFor={`q${q.id}-${i}`} className="text-[15px] leading-relaxed cursor-pointer">
                                 {option}
                               </Label>
                             </div>
@@ -737,7 +737,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                           placeholder="Type your answer..."
                           value={answers[q.id] || ""}
                           onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                          className="text-sm"
+                          className="h-11 text-[15px]"
                         />
                       )}
                     </CardContent>
