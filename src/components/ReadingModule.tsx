@@ -537,71 +537,70 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
         </Card>
       )}
 
-      {/* Test in progress */}
-      {test && !result && !isLoading && (
-        <Tabs value={activePassage} onValueChange={setActivePassage} className="space-y-4">
-          {visiblePassages.length > 1 && (
-            <TabsList className="grid w-full grid-cols-3">
-              {visiblePassages.map((_, index) => (
-                <TabsTrigger key={index} value={String(index)}>Passage {index + 1}</TabsTrigger>
-              ))}
-            </TabsList>
-          )}
+      {/* Test in progress — CD IELTS style split view */}
+      {test && !result && !isLoading && (() => {
+        const passageIndex = Number(activePassage) || 0;
+        const sectionText = visiblePassages[passageIndex] || test.passage;
+        const passageQuestions = getQuestionsForPassage(passageIndex);
+        const passageAnswered = passageQuestions.filter((question) => answers[question.id]).length;
 
-          {visiblePassages.map((sectionText, passageIndex) => {
-            const passageQuestions = getQuestionsForPassage(passageIndex);
-            const passageAnswered = passageQuestions.filter((question) => answers[question.id]).length;
-
-            return (
-              <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-4">
-                <Card className="lg:row-span-2">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <CardTitle className="text-lg">{test.topic}</CardTitle>
-                      <div className="flex items-center gap-1">
+        return (
+          <div className="-mx-4 pb-14">
+            <div className="grid lg:grid-cols-2 gap-0 lg:divide-x divide-border border-y border-border">
+              {/* Passage pane */}
+              <div className="bg-card">
+                <div className="flex items-center justify-between gap-2 flex-wrap border-b border-border bg-muted/40 px-4 py-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      Reading Passage {passageIndex + 1}
+                    </p>
+                    <h2 className="truncate text-base font-semibold text-foreground">{test.topic}</h2>
+                  </div>
+                  <div className="flex items-center gap-1">
                         <div className="flex items-center gap-0.5 mr-1 rounded-md border border-border bg-secondary/40 p-0.5">
                           <Button type="button" variant={fontScale === "sm" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("sm")} title="Small">A-</Button>
                           <Button type="button" variant={fontScale === "base" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("base")} title="Medium">A</Button>
                           <Button type="button" variant={fontScale === "lg" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("lg")} title="Large">A+</Button>
                           <Button type="button" variant={fontScale === "xl" ? "default" : "ghost"} size="sm" className="h-7 px-2 text-xs" onClick={() => setFontScale("xl")} title="Extra large">A++</Button>
                         </div>
-                        <Button type="button" variant={highlightMode ? "default" : "outline"} size="sm" className="h-7 gap-1" onClick={() => setHighlightMode((v) => !v)} title="Toggle highlight mode">
-                          <Highlighter className="w-3.5 h-3.5" />
-                          {highlightMode ? "On" : "Highlight"}
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => clearHighlights(passageIndex)} title="Clear highlights">
-                          <Eraser className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <ScrollArea className="h-[calc(100vh-215px)] min-h-[420px] pr-4">
-                      <div
-                        ref={(el) => { passageRefs.current[passageIndex] = el; }}
-                        onMouseUp={handlePassageMouseUp}
-                        className={`whitespace-pre-wrap rounded-lg border border-border bg-background p-6 font-serif leading-relaxed text-foreground/90 ${fontClass}`}
-                      >
-                        {formattedPassages[passageIndex] || sectionText}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
+                    <Button type="button" variant={highlightMode ? "default" : "outline"} size="sm" className="h-7 gap-1" onClick={() => setHighlightMode((v) => !v)} title="Toggle highlight mode">
+                      <Highlighter className="w-3.5 h-3.5" />
+                      {highlightMode ? "On" : "Highlight"}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => clearHighlights(passageIndex)} title="Clear highlights">
+                      <Eraser className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <ScrollArea className="h-[calc(100vh-170px)] min-h-[440px]">
+                  <div
+                    ref={(el) => { passageRefs.current[passageIndex] = el; }}
+                    onMouseUp={handlePassageMouseUp}
+                    className={`whitespace-pre-wrap px-6 py-5 font-serif text-foreground/90 ${fontClass}`}
+                  >
+                    {formattedPassages[passageIndex] || sectionText}
+                  </div>
+                </ScrollArea>
+              </div>
 
-                <div className="space-y-4">
-            <div className="flex items-center justify-between">
+              {/* Questions pane */}
+              <div className="bg-card">
+                <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Questions {passageQuestions[0]?.id ?? 1}–{passageQuestions[passageQuestions.length - 1]?.id ?? passageQuestions.length}
+                </p>
+                <p className="text-sm font-medium text-foreground">
+                  {passageAnswered}/{passageQuestions.length} answered
+                </p>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {passageAnswered}/{passageQuestions.length} in passage
-                </span>
                 {flaggedCount > 0 && (
                   <Badge variant="secondary" className="gap-1">
                     <Flag className="w-3 h-3" /> {flaggedCount}
                   </Badge>
                 )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Progress value={progress} className="w-24 h-2" />
+                <Progress value={progress} className="w-20 h-2" />
                 <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" variant="outline" className="h-7 gap-1">
@@ -662,7 +661,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                   </DialogContent>
                 </Dialog>
               </div>
-            </div>
+                </div>
+                <div className="px-4 pt-3">
 
             {flaggedCount > 0 && (
               <div className="flex items-center gap-2 p-2 rounded-lg border border-accent/30 bg-accent/5 overflow-x-auto">
@@ -690,15 +690,15 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               </div>
             )}
 
-            <ScrollArea className="h-[calc(100vh-330px)] min-h-[360px]">
-              <div className="space-y-4 pr-4">
+            <ScrollArea className="h-[calc(100vh-260px)] min-h-[400px]">
+              <div className="space-y-3 px-4 pb-4">
                 {passageQuestions.map((q) => (
                   <Card
                     key={q.id}
                     ref={(el) => { questionRefs.current[q.id] = el; }}
-                    className={`transition-shadow ${answers[q.id] ? "border-primary/50" : ""} ${flagged[q.id] ? "border-accent/60 bg-accent/5" : ""}`}
+                    className={`rounded-md shadow-none transition-shadow ${answers[q.id] ? "border-primary/50" : ""} ${flagged[q.id] ? "border-accent/60 bg-accent/5" : ""}`}
                   >
-                    <CardContent className="p-5">
+                    <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <p className="font-medium text-base leading-snug">
                           <span className="text-primary mr-2">Q{q.id}.</span>
@@ -745,30 +745,65 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                 ))}
               </div>
             </ScrollArea>
-
-            <Button 
-              onClick={submitTest} 
-              disabled={isSubmitting || answeredCount === 0}
-              className="w-full gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Scoring...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  Submit Test ({answeredCount}/{test.questions.length})
-                </>
-              )}
-            </Button>
                 </div>
-              </TabsContent>
-            );
-          })}
-        </Tabs>
-      )}
+              </div>
+            </div>
+
+            {/* CD IELTS bottom navigation bar */}
+            <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-4 overflow-x-auto border-t border-border bg-card px-3 py-1.5 shadow-elevated">
+              {visiblePassages.map((_, pIdx) => {
+                const qs = getQuestionsForPassage(pIdx);
+                const done = qs.filter((q) => answers[q.id]).length;
+                const isActive = pIdx === passageIndex;
+                return (
+                  <div key={pIdx} className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      onClick={() => setActivePassage(String(pIdx))}
+                      className={`shrink-0 text-xs font-bold ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Passage {pIdx + 1}{" "}
+                      <span className="font-normal opacity-70">{done}/{qs.length}</span>
+                    </button>
+                    {isActive && qs.map((q) => {
+                      const answered = !!answers[q.id];
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => jumpToQuestion(q.id)}
+                          className={`relative h-6 min-w-[24px] shrink-0 rounded border px-1 text-[11px] font-semibold transition-colors ${
+                            answered
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-primary"
+                          }`}
+                        >
+                          {q.id}
+                          {flagged[q.id] && (
+                            <Flag className="absolute -top-1 -right-1 h-2.5 w-2.5 fill-accent text-accent" />
+                          )}
+                        </button>
+                      );
+                    })}
+                    {!isActive && (
+                      <span className="shrink-0 text-[11px] text-muted-foreground/60">
+                        {qs[0]?.id}–{qs[qs.length - 1]?.id}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              <Button
+                onClick={submitTest}
+                disabled={isSubmitting || answeredCount === 0}
+                size="sm"
+                className="ml-auto h-7 shrink-0 gap-1"
+              >
+                {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Submit {answeredCount}/{test.questions.length}
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Results */}
       {result && test && (
