@@ -528,28 +528,36 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="font-display text-2xl font-bold text-foreground">
-            Listening Module
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Practice IELTS Listening with AI-generated audio scripts
-          </p>
-        </div>
-        {startTime && !result && (
-          <Badge variant="outline" className="gap-1">
+      {/* Header — minimal during an active test */}
+      {!(test && !result) ? (
+        <>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={onBack}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="font-display text-2xl font-bold text-foreground">
+                Listening Module
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Practice IELTS Listening with AI-generated audio scripts
+              </p>
+            </div>
+          </div>
+          <TestSessionControls testId={testSessionId} title={test?.topic} onLoad={loadTestById} />
+        </>
+      ) : (
+        <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 border-b border-border bg-background/90 px-4 py-2 backdrop-blur">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onBack} aria-label="Exit test">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <span className="truncate text-sm font-medium text-foreground">{test?.topic}</span>
+          <Badge variant="outline" className="ml-auto gap-1 shrink-0">
             <Clock className="w-3 h-3" />
             {formatTime(elapsedTime)}
           </Badge>
-        )}
-      </div>
-
-      <TestSessionControls testId={testSessionId} title={test?.topic} onLoad={loadTestById} />
+        </div>
+      )}
 
       {/* Test not started */}
       {!test && !isLoading && (
@@ -867,14 +875,14 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               <Progress value={progress} className="h-2" />
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[350px]">
+              <ScrollArea className="h-[calc(100vh-360px)] min-h-[340px]">
                 <div className="space-y-4 pr-4">
                   {getQuestionsForSection(Number(activeSection)).map((q) => (
                     <div 
                       key={q.id} 
-                      className={`p-4 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
+                      className={`p-5 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
                     >
-                      <p className="font-medium text-sm mb-3">
+                      <p className="font-medium text-base leading-snug mb-3">
                         <span className="text-accent mr-2">Q{q.id}.</span>
                         {q.question}
                       </p>
@@ -887,7 +895,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                           {q.options?.map((option, i) => (
                             <div key={i} className="flex items-center space-x-2">
                               <RadioGroupItem value={option.charAt(0)} id={`q${q.id}-${i}`} />
-                              <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
+                              <Label htmlFor={`q${q.id}-${i}`} className="text-[15px] leading-relaxed cursor-pointer">
                                 {option}
                               </Label>
                             </div>
@@ -898,7 +906,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                           placeholder="Type your answer..."
                           value={answers[q.id] || ""}
                           onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                          className="text-sm"
+                          className="h-11 text-[15px]"
                         />
                       )}
                     </div>

@@ -376,32 +376,43 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="font-display text-2xl font-bold text-foreground">
-            Reading Module
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Practice IELTS Reading with AI-generated passages
-          </p>
+      {/* Header — full header only outside an active test */}
+      {!(test && !result) ? (
+        <>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={onBack}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="font-display text-2xl font-bold text-foreground">
+                Reading Module
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Practice IELTS Reading with AI-generated passages
+              </p>
+            </div>
+          </div>
+          <TestSessionControls testId={testSessionId} title={test?.topic} onLoad={loadTestById} />
+        </>
+      ) : (
+        /* Exam mode — minimal distraction bar */
+        <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 border-b border-border bg-background/90 px-4 py-2 backdrop-blur">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onBack} aria-label="Exit test">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <span className="truncate text-sm font-medium text-foreground">{test?.topic}</span>
+          <div className="ml-auto shrink-0">
+            <ExamTimerBar
+              className="w-44 sm:w-52"
+              seconds={elapsedTime}
+              target={60 * 60}
+              mode="up"
+              label="Reading"
+              compact
+            />
+          </div>
         </div>
-        {startTime && !result && (
-          <ExamTimerBar
-            className="w-52"
-            seconds={elapsedTime}
-            target={60 * 60}
-            mode="up"
-            label="Reading"
-            compact
-          />
-        )}
-      </div>
-
-      <TestSessionControls testId={testSessionId} title={test?.topic} onLoad={loadTestById} />
+      )}
 
       {/* Test not started */}
       {!test && !isLoading && (
@@ -542,7 +553,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
             const passageAnswered = passageQuestions.filter((question) => answers[question.id]).length;
 
             return (
-              <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-6">
+              <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-4">
                 <Card className="lg:row-span-2">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -564,12 +575,12 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[500px] pr-4">
+                  <CardContent className="pt-0">
+                    <ScrollArea className="h-[calc(100vh-215px)] min-h-[420px] pr-4">
                       <div
                         ref={(el) => { passageRefs.current[passageIndex] = el; }}
                         onMouseUp={handlePassageMouseUp}
-                        className={`whitespace-pre-wrap rounded-lg border border-border bg-background p-5 font-serif text-foreground/90 ${fontClass}`}
+                        className={`whitespace-pre-wrap rounded-lg border border-border bg-background p-6 font-serif leading-relaxed text-foreground/90 ${fontClass}`}
                       >
                         {formattedPassages[passageIndex] || sectionText}
                       </div>
@@ -679,7 +690,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               </div>
             )}
 
-            <ScrollArea className="h-[450px]">
+            <ScrollArea className="h-[calc(100vh-330px)] min-h-[360px]">
               <div className="space-y-4 pr-4">
                 {passageQuestions.map((q) => (
                   <Card
@@ -687,9 +698,9 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                     ref={(el) => { questionRefs.current[q.id] = el; }}
                     className={`transition-shadow ${answers[q.id] ? "border-primary/50" : ""} ${flagged[q.id] ? "border-accent/60 bg-accent/5" : ""}`}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <p className="font-medium text-sm">
+                        <p className="font-medium text-base leading-snug">
                           <span className="text-primary mr-2">Q{q.id}.</span>
                           {q.question}
                         </p>
@@ -715,7 +726,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                                 value={q.type === "true-false-not-given" ? option : option.charAt(0)}
                                 id={`q${q.id}-${i}`}
                               />
-                              <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
+                              <Label htmlFor={`q${q.id}-${i}`} className="text-[15px] leading-relaxed cursor-pointer">
                                 {option}
                               </Label>
                             </div>
@@ -726,7 +737,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                           placeholder="Type your answer..."
                           value={answers[q.id] || ""}
                           onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                          className="text-sm"
+                          className="h-11 text-[15px]"
                         />
                       )}
                     </CardContent>
