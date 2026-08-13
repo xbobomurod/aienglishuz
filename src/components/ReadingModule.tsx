@@ -553,7 +553,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
             const passageAnswered = passageQuestions.filter((question) => answers[question.id]).length;
 
             return (
-              <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-6">
+              <TabsContent key={passageIndex} value={String(passageIndex)} className="mt-0 grid lg:grid-cols-2 gap-4">
                 <Card className="lg:row-span-2">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -575,12 +575,12 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[500px] pr-4">
+                  <CardContent className="pt-0">
+                    <ScrollArea className="h-[calc(100vh-215px)] min-h-[420px] pr-4">
                       <div
                         ref={(el) => { passageRefs.current[passageIndex] = el; }}
                         onMouseUp={handlePassageMouseUp}
-                        className={`whitespace-pre-wrap rounded-lg border border-border bg-background p-5 font-serif text-foreground/90 ${fontClass}`}
+                        className={`whitespace-pre-wrap rounded-lg border border-border bg-background p-6 font-serif leading-relaxed text-foreground/90 ${fontClass}`}
                       >
                         {formattedPassages[passageIndex] || sectionText}
                       </div>
@@ -690,7 +690,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
               </div>
             )}
 
-            <ScrollArea className="h-[450px]">
+            <ScrollArea className="h-[calc(100vh-330px)] min-h-[360px]">
               <div className="space-y-4 pr-4">
                 {passageQuestions.map((q) => (
                   <Card
