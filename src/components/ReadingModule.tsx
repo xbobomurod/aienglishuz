@@ -745,7 +745,7 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                 ))}
               </div>
             </ScrollArea>
-
+                </div>
               </div>
             </div>
 
