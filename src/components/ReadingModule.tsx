@@ -376,32 +376,43 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="font-display text-2xl font-bold text-foreground">
-            Reading Module
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Practice IELTS Reading with AI-generated passages
-          </p>
+      {/* Header — full header only outside an active test */}
+      {!(test && !result) ? (
+        <>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={onBack}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="font-display text-2xl font-bold text-foreground">
+                Reading Module
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Practice IELTS Reading with AI-generated passages
+              </p>
+            </div>
+          </div>
+          <TestSessionControls testId={testSessionId} title={test?.topic} onLoad={loadTestById} />
+        </>
+      ) : (
+        /* Exam mode — minimal distraction bar */
+        <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 border-b border-border bg-background/90 px-4 py-2 backdrop-blur">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onBack} aria-label="Exit test">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <span className="truncate text-sm font-medium text-foreground">{test?.topic}</span>
+          <div className="ml-auto shrink-0">
+            <ExamTimerBar
+              className="w-44 sm:w-52"
+              seconds={elapsedTime}
+              target={60 * 60}
+              mode="up"
+              label="Reading"
+              compact
+            />
+          </div>
         </div>
-        {startTime && !result && (
-          <ExamTimerBar
-            className="w-52"
-            seconds={elapsedTime}
-            target={60 * 60}
-            mode="up"
-            label="Reading"
-            compact
-          />
-        )}
-      </div>
-
-      <TestSessionControls testId={testSessionId} title={test?.topic} onLoad={loadTestById} />
+      )}
 
       {/* Test not started */}
       {!test && !isLoading && (
