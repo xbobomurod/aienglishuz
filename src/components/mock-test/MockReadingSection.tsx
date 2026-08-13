@@ -196,9 +196,9 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[500px] pr-4">
+          <ScrollArea className="h-[calc(100vh-230px)] min-h-[420px] pr-4">
             <p
-              className="leading-relaxed whitespace-pre-wrap selection:bg-primary/30"
+              className="font-serif leading-relaxed whitespace-pre-wrap selection:bg-primary/30"
               style={{ fontSize: `${fontSize}px` }}
             >
               {visiblePassage}
@@ -327,7 +327,7 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
           </div>
         )}
 
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="h-[calc(100vh-390px)] min-h-[340px]">
           <div className="space-y-4 pr-4">
             {visibleQuestions.map((q, index) => (
               <Card
@@ -335,9 +335,9 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
                 ref={(el) => { questionRefs.current[q.id] = el; }}
                 className={`transition-shadow ${answers[q.id] ? "border-primary/50" : ""} ${flagged[q.id] ? "border-accent/60 bg-accent/5" : ""}`}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <p className="font-medium text-sm">
+                    <p className="font-medium text-base leading-snug">
                       <span className="text-primary mr-2">Q{activeRange.start + index + 1}.</span>
                       {q.question}
                     </p>
@@ -365,7 +365,7 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
                             value={q.type === "true-false-not-given" ? option : option.charAt(0)}
                             id={`q${q.id}-${i}`}
                           />
-                          <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
+                          <Label htmlFor={`q${q.id}-${i}`} className="text-[15px] leading-relaxed cursor-pointer">
                             {option}
                           </Label>
                         </div>
@@ -376,7 +376,7 @@ export function MockReadingSection({ onComplete, isPaused }: MockReadingSectionP
                       placeholder="Type your answer..."
                       value={answers[q.id] || ""}
                       onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                      className="text-sm"
+                      className="h-11 text-[15px]"
                       disabled={isPaused}
                     />
                   )}
