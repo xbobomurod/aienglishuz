@@ -875,14 +875,14 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
               <Progress value={progress} className="h-2" />
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[350px]">
+              <ScrollArea className="h-[calc(100vh-360px)] min-h-[340px]">
                 <div className="space-y-4 pr-4">
                   {getQuestionsForSection(Number(activeSection)).map((q) => (
                     <div 
                       key={q.id} 
-                      className={`p-4 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
+                      className={`p-5 rounded-lg border ${answers[q.id] ? "border-accent/50 bg-accent/5" : "border-border"}`}
                     >
-                      <p className="font-medium text-sm mb-3">
+                      <p className="font-medium text-base leading-snug mb-3">
                         <span className="text-accent mr-2">Q{q.id}.</span>
                         {q.question}
                       </p>
@@ -895,7 +895,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                           {q.options?.map((option, i) => (
                             <div key={i} className="flex items-center space-x-2">
                               <RadioGroupItem value={option.charAt(0)} id={`q${q.id}-${i}`} />
-                              <Label htmlFor={`q${q.id}-${i}`} className="text-sm cursor-pointer">
+                              <Label htmlFor={`q${q.id}-${i}`} className="text-[15px] leading-relaxed cursor-pointer">
                                 {option}
                               </Label>
                             </div>
@@ -906,7 +906,7 @@ export function ListeningModule({ onBack }: ListeningModuleProps) {
                           placeholder="Type your answer..."
                           value={answers[q.id] || ""}
                           onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                          className="text-sm"
+                          className="h-11 text-[15px]"
                         />
                       )}
                     </div>
