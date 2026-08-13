@@ -600,7 +600,6 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                     <Flag className="w-3 h-3" /> {flaggedCount}
                   </Badge>
                 )}
-              </div>
                 <Progress value={progress} className="w-20 h-2" />
                 <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
                   <DialogTrigger asChild>
@@ -662,8 +661,8 @@ export function ReadingModule({ onBack }: ReadingModuleProps) {
                   </DialogContent>
                 </Dialog>
               </div>
-            </div>
-            <div className="px-4 pt-3">
+                </div>
+                <div className="px-4 pt-3">
 
             {flaggedCount > 0 && (
               <div className="flex items-center gap-2 p-2 rounded-lg border border-accent/30 bg-accent/5 overflow-x-auto">
