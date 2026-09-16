@@ -49,7 +49,7 @@ export default function Landing() {
             <div className="w-9 h-9 rounded-xl gradient-accent flex items-center justify-center shadow-card">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-xl font-bold text-foreground">IELTS Coach</span>
+            <span className="font-display text-xl font-bold text-foreground">AI ENGLISH UZ</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#skills" className="hover:text-foreground transition-colors">Modules</a>
