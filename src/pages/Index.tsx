@@ -134,7 +134,7 @@ const Index = () => {
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl gradient-accent flex items-center justify-center shadow-card">
               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg sm:text-xl font-bold text-foreground">IELTS Coach</span>
+                       <span className="font-display text-xl font-bold text-foreground">AI ENGLISH UZ</span>
           </div>
 
           {/* Desktop Navigation */}
