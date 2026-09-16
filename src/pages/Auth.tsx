@@ -160,7 +160,7 @@ export default function Auth() {
           <div className="w-10 h-10 rounded-xl gradient-accent flex items-center justify-center shadow-card">
             <BookOpen className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-display text-xl font-bold text-foreground">IELTS Coach</span>
+                    <span className="font-display text-xl font-bold text-foreground">AI ENGLISH UZ</span>
         </Link>
 
         <div className="max-w-md">
