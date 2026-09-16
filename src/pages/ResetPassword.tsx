@@ -116,7 +116,7 @@ export default function ResetPassword() {
               <BookOpen className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">EnglishPro</h1>
+                     <span className="font-display text-xl font-bold text-foreground">AI ENGLISH UZ</span>
           <p className="text-muted-foreground mt-2">Master your English with AI-powered feedback</p>
         </div>
 
