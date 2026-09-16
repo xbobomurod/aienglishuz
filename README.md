@@ -19,10 +19,10 @@ Agar loyihani o'z kompyuteringizda ishga tushirmoqchi bo'lsangiz, quyidagi qadam
 
 ```sh
 # 1. Repozitoriyani ko'chirib olish
-git clone <SIZNING_GIT_URL>
+git clone xbobomurod/aienglishuz
 
 # 2. Loyiha papkasiga kirish
-cd <LOYIHA_NOMI>
+cd Ai English UZ
 
 # 3. Kerakli paketlarni o'rnatish
 npm i
